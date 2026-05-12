@@ -72,24 +72,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .bico:hover{background:var(--bg)}
 .bico.del:hover{background:#FFF0F0;border-color:#FECACA}
 
-/* ── TABLE ── */
-.tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:1220px;border-left:1px solid var(--b);border-top:1px solid var(--b)}
-thead th{background:#FAFAF8;padding:9px 12px;text-align:left;font-size:11px;font-weight:800;color:#3F3F46;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--b);border-right:1px solid var(--b);white-space:nowrap}
+/* ── TABLE — V2 VISÍVEL / CABEÇALHO FIXO / SCROLL ESTÁVEL ── */
+.tw{overflow:auto;max-height:calc(100vh - 238px);border:2px solid #D1CEC4;border-radius:9px;background:#fff;scrollbar-gutter:stable both-edges;position:relative;overscroll-behavior:contain}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:1080px;border-left:0;border-top:0;table-layout:auto}
+thead th{position:sticky;top:0;z-index:30;background:#FFFFFF;padding:7px 8px;text-align:left;font-size:10px!important;font-weight:900!important;color:#171717;text-transform:uppercase;letter-spacing:.04em;border-bottom:3px solid #B8B4A8;border-right:2px solid #D8D5CB;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.08)}
 thead th.r{text-align:right}
-tbody td{padding:10px 12px;border-bottom:1px solid #F0EFE8;border-right:1px solid #E9E8E1;font-size:13px;white-space:nowrap;vertical-align:middle}
+tbody td{padding:7px 8px;border-bottom:1.5px solid #E7E4DA;border-right:2px solid #E1DED3;font-size:11.2px;white-space:nowrap;vertical-align:middle}
 tbody tr{cursor:pointer;transition:background .1s}
 tbody tr:hover td{filter:brightness(.96)}
-tbody tr.sel td{background:var(--acbg)!important;box-shadow:inset 0 1px 0 rgba(0,0,0,.03), inset 0 -1px 0 rgba(0,0,0,.03)}
-tbody tr.sel td:first-child{border-left:5px solid var(--ac)}
-tbody tr.sel td:nth-child(2){font-weight:800;color:var(--ac)}
-tbody tr:not(.sel) td:first-child{border-left:5px solid transparent}
+tbody tr.sel td{background:var(--acbg)!important;box-shadow:inset 0 1px 0 rgba(0,0,0,.04), inset 0 -1px 0 rgba(0,0,0,.04)}
+tbody tr.sel td:first-child{border-left:6px solid var(--ac)}
+tbody tr.sel td:nth-child(2){font-weight:900;color:var(--ac)}
+tbody tr:not(.sel) td:first-child{border-left:6px solid transparent}
 tbody tr:last-child td{border-bottom:none}
 tbody tr.pago-row{background:#F0FFF6}
 tbody tr.pend-row{background:#FFF5F5}
-.r{text-align:right;font-family:'DM Mono',monospace;font-size:12.5px}
-.fw{font-weight:600}
-tfoot td{background:var(--acbg);font-weight:800;font-family:'DM Mono',monospace;font-size:12.5px;padding:9px 12px;border-top:2px solid var(--ac);border-right:1px solid var(--b)}
+.r{text-align:right;font-family:'DM Mono',monospace;font-size:10.8px}
+.fw{font-weight:800}
+tfoot td{position:sticky;bottom:0;z-index:25;background:var(--acbg);font-weight:900;font-family:'DM Mono',monospace;font-size:10.8px;padding:7px 8px;border-top:3px solid var(--ac);border-right:2px solid #D8D5CB;box-shadow:0 -2px 4px rgba(0,0,0,.08)}
+/* primeira coluna fica um pouco mais estreita e ajuda no enquadramento */
+th:first-child,td:first-child{min-width:70px}
+th:nth-child(2),td:nth-child(2){min-width:105px}
 
 /* ── BADGES ── */
 .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
@@ -167,7 +170,7 @@ textarea.inp{resize:vertical;min-height:56px}
     <button class="nb" id="nav-correas" onclick="goTo('correas')"><span class="ni">🔵</span>Caixa Correas</button>
     <button class="nb" id="nav-bingen" onclick="goTo('bingen')"><span class="ni">🟢</span>Caixa Bingen</button>
   </div>
-  <div class="sb-foot">Salvo em tempo real<br>Firebase REST API<br><span style="font-size:10px;color:#52525B">v.safe 12/05 18:00</span></div>
+  <div class="sb-foot">Salvo em tempo real<br>Firebase REST API<br><span style="font-size:10px;color:#52525B">v.tabela-v2 12/05 19:05</span></div>
 </aside>
 
 <!-- MAIN -->
@@ -250,7 +253,7 @@ textarea.inp{resize:vertical;min-height:56px}
 </div></div>
 
 <script>
-var APP_VERSION="2026-05-12-1800-master-safe-no-loading";
+var APP_VERSION="2026-05-12-1905-tabela-v2-scroll-sticky";
 window.onerror=function(msg,src,line,col,err){
   try{
     var mc=document.getElementById("MC");
@@ -359,6 +362,7 @@ var MESES_FULL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 var page='visao',tab='caixa',loja=null;
 var editId=null,pixTipo='loja',selRow=null,delPath=null,baixaId=null;
 var timers=[],caixaCache={},pixCache={};
+var tableScroll={caixa:{x:0,y:0},pix:{x:0,y:0}};
 var mesSel=monthLocal(); // e.g. "2026-05"
 var pickerYear=parseInt(mesSel.slice(0,4));
 
@@ -487,8 +491,34 @@ function renderCaixa(){
   timers.push(fbListen('caixa/'+loja,function(d){caixaCache=d||{};buildCT();}));
 }
 
+function keepTableScroll(el,key){
+  var tw=el?el.querySelector('.tw'):null;
+  var saved=tableScroll[key||'caixa']||{x:0,y:0};
+  if(tw){saved={x:tw.scrollLeft||0,y:tw.scrollTop||0};tableScroll[key||'caixa']=saved;}
+  return saved;
+}
+function bindTableScroll(el,key){
+  var tw=el?el.querySelector('.tw'):null;if(!tw)return;
+  key=key||'caixa';
+  tw.addEventListener('scroll',function(){tableScroll[key]={x:tw.scrollLeft||0,y:tw.scrollTop||0};},{passive:true});
+}
+function restoreTableScroll(el,pos,key){
+  var tw=el?el.querySelector('.tw'):null;if(!tw)return;
+  pos=pos||tableScroll[key||'caixa']||{x:0,y:0};
+  function apply(){tw.scrollLeft=pos.x||0;tw.scrollTop=pos.y||0;}
+  apply();
+  requestAnimationFrame(apply);
+  setTimeout(apply,80);
+}
+function selectCaixaRow(id,row){
+  selRow=id;
+  document.querySelectorAll('#ctable tbody tr.sel').forEach(function(tr){tr.classList.remove('sel');});
+  if(row)row.classList.add('sel');
+}
+
 function buildCT(){
   var el=g('ctable');if(!el)return;
+  var scrollPos=keepTableScroll(el,'caixa');
   var rows=Object.entries(caixaCache)
     .filter(function(x){return x[1].data&&x[1].data.startsWith(mesSel);})
     .sort(function(a,b){return a[1].data.localeCompare(b[1].data);});
@@ -504,7 +534,7 @@ function buildCT(){
     T.pix+=sf(e.pix);T.din+=sf(e.din);T.rc+=calcCred(e);T.rd+=sf(e.rdeb);T.rp+=sf(e.rpar);
     T.alim+=sf(e.alim);T.nf+=sf(e.nf);T.tot+=tot;T.sis+=sis;T.moto+=sf(e.moto);T.fech+=calcFech(e);
     var cls=selRow===id?' sel':'';
-    return '<tr class="'+cls+'" onclick="selRow=\''+id+'\';buildCT()" ondblclick="openCaixaModal(\''+id+'\');event.stopPropagation()">'
+    return '<tr class="'+cls+'" onclick="selectCaixaRow(\''+id+'\',this)" ondblclick="openCaixaModal(\''+id+'\');event.stopPropagation()">'
       +'<td>'+fmtD(e.data)+'</td><td><strong>'+(e.resp||'—')+'</strong></td>'
       +'<td class="r">'+(sf(e.ab)?fmt(e.ab):'—')+'</td>'
       +'<td class="r">'+(sf(e.pix)?fmt(e.pix):'—')+'</td>'
@@ -529,14 +559,14 @@ function buildCT(){
 
   el.innerHTML='<div class="tw"><table>'
     +'<thead><tr>'
-    +'<th>Data</th><th>Resp.</th><th class="r">Abertura</th>'
-    +'<th class="r">PIX/Transf.</th><th class="r">Dinheiro</th>'
-    +'<th class="r">Crédito Líq.</th><th class="r">Déb.Rede</th><th class="r">Parcelado</th>'
-    +'<th class="r">Alim./Refeição</th>'
-    +'<th class="r">Total Dia</th><th class="r">N.Fácil</th><th class="r">Total Sist.</th>'
-    +'<th class="r">Motoboy</th><th class="r">Ret.Troco</th>'
-    +'<th class="r">Fechamento Auto</th><th class="r">Ret.Din.</th>'
-    +'<th>Obs.</th><th>Ações</th>'
+    +'<th>DATA</th><th>RESP.</th><th class="r">ABERT.</th>'
+    +'<th class="r">PIX</th><th class="r">DIN.</th>'
+    +'<th class="r">CRÉD. LÍQ.</th><th class="r">DÉB.</th><th class="r">PARC.</th>'
+    +'<th class="r">ALIM./REF.</th>'
+    +'<th class="r">TOTAL DIA</th><th class="r">N. FÁCIL</th><th class="r">TOTAL SIST.</th>'
+    +'<th class="r">MOTOBOY</th><th class="r">RET. TROCO</th>'
+    +'<th class="r">FECH. AUTO</th><th class="r">RET. DIN.</th>'
+    +'<th>OBS.</th><th>AÇÕES</th>'
     +'</tr></thead>'
     +'<tbody>'+trs+'</tbody>'
     +'<tfoot><tr>'
@@ -548,6 +578,8 @@ function buildCT(){
     +'<td class="r" style="color:var(--warn)">'+fmt(T.moto)+'</td><td></td><td class="r fw">'+fmt(T.fech)+'</td>'
     +'<td colspan="3"></td>'
     +'</tr></tfoot></table></div>';
+  bindTableScroll(el,'caixa');
+  restoreTableScroll(el,scrollPos,'caixa');
 }
 
 function openCaixaModal(id){
@@ -611,6 +643,8 @@ function renderPix(tipo){
 }
 
 function buildPT(){
+  var el=g('pxtable');
+  var scrollPos=keepTableScroll(el,'caixa');
   var srch=(g('px-srch')?g('px-srch').value:'').toLowerCase();
   var stf=g('px-st')?g('px-st').value:'';
   var sortBy=g('px-sort')?g('px-sort').value:'data';
@@ -626,7 +660,7 @@ function buildPT(){
   if(stf)rows=rows.filter(function(x){return x[1].status===stf;});
   var pend=0,pago=0;
   rows.forEach(function(x){if(x[1].status==='pago')pago+=sf(x[1].val);else pend+=sf(x[1].val);});
-  var el=g('pxtable');if(!el)return;
+  if(!el)return;
   if(!rows.length){el.innerHTML='<div class="empty"><div style="font-size:38px">📭</div><span>Nenhum registro encontrado</span></div>';return;}
   var hint='<div style="padding:8px 16px;font-size:11px;color:var(--mu);background:#FAFAF8;border-bottom:1px solid var(--b)">💡 Duplo clique numa linha pendente para dar baixa rapidamente</div>';
   var trs=rows.map(function(x){
@@ -662,6 +696,8 @@ function buildPT(){
     +'<th>Observação</th><th>Ações</th></tr></thead>'
     +'<tbody>'+trs+'</tbody>'
     +'</table></div>';
+  bindTableScroll(el,'caixa');
+  restoreTableScroll(el,scrollPos,'caixa');
 }
 
 function openPixModal(id){
