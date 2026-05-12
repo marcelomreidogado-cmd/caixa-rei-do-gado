@@ -167,7 +167,7 @@ textarea.inp{resize:vertical;min-height:56px}
     <button class="nb" id="nav-correas" onclick="goTo('correas')"><span class="ni">🔵</span>Caixa Correas</button>
     <button class="nb" id="nav-bingen" onclick="goTo('bingen')"><span class="ni">🟢</span>Caixa Bingen</button>
   </div>
-  <div class="sb-foot">Salvo em tempo real<br>Firebase REST API</div>
+  <div class="sb-foot">Salvo em tempo real<br>Firebase REST API<br><span style="font-size:10px;color:#52525B">v.safe 12/05 18:00</span></div>
 </aside>
 
 <!-- MAIN -->
@@ -250,19 +250,27 @@ textarea.inp{resize:vertical;min-height:56px}
 </div></div>
 
 <script>
-var APP_VERSION="2026-05-12-2048-auto-update";
+var APP_VERSION="2026-05-12-1800-master-safe-no-loading";
+window.onerror=function(msg,src,line,col,err){
+  try{
+    var mc=document.getElementById("MC");
+    var fs=document.getElementById("fb-status");
+    if(fs){fs.textContent="Erro no sistema";fs.style.color="var(--danger)";}
+    if(mc){mc.innerHTML='<div class="card" style="border-color:#FECACA;background:#FFF7F7"><div style="padding:18px;color:#991B1B"><strong>⚠️ Erro no sistema.</strong><br>O sistema não conseguiu iniciar. Detalhe técnico: '+String(msg).replace(/</g,"&lt;")+' — linha '+line+'.</div></div>';}
+  }catch(e){}
+};
 function appSelfUpdateCheck(){
   try{
     var base=location.origin+location.pathname;
-    fetch(base+"?check="+Date.now(),{cache:"no-store"})
-      .then(function(r){return r.text();})
+    var controller=null,timer=null,opt={cache:"no-store"};
+    if(typeof AbortController!=="undefined"){controller=new AbortController();opt.signal=controller.signal;timer=setTimeout(function(){try{controller.abort();}catch(e){}},3000);}
+    fetch(base+"?check="+Date.now(),opt)
+      .then(function(r){if(timer)clearTimeout(timer);return r.text();})
       .then(function(html){
         var m=html.match(/APP_VERSION\s*=\s*["\']([^"\']+)/);
-        if(m&&m[1]&&m[1]!==APP_VERSION){
-          location.replace(base+"?v="+Date.now()+location.hash);
-        }
+        if(m&&m[1]&&m[1]!==APP_VERSION){location.replace(base+"?v="+Date.now()+location.hash);}
       })
-      .catch(function(){});
+      .catch(function(){if(timer)clearTimeout(timer);});
   }catch(e){}
 }
 setInterval(appSelfUpdateCheck,60000);
@@ -299,11 +307,23 @@ function firebaseErrorMessage(err){
 }
 async function fbRequest(p,opt){
   var r,txt='',d=null,url=DB+'/'+p+'.json';
+  var timer=null,controller=null,finalOpt=opt?Object.assign({},opt):{};
   try{
-    r=await fetch(url,opt||{});
+    finalOpt.cache='no-store';
+    if(typeof AbortController!=='undefined'){
+      controller=new AbortController();
+      finalOpt.signal=controller.signal;
+      timer=setTimeout(function(){try{controller.abort();}catch(e){}},6000);
+    }
+    r=await fetch(url,finalOpt);
+    if(timer){clearTimeout(timer);timer=null;}
     txt=await r.text();
     if(txt){try{d=JSON.parse(txt);}catch(e){d=txt;}}
-  }catch(e){throw new Error(firebaseErrorMessage(e));}
+  }catch(e){
+    if(timer){clearTimeout(timer);timer=null;}
+    var msg=(e&&e.name==='AbortError')?'Tempo esgotado ao conectar no Firebase. Verifique internet, regras e URL do banco.':firebaseErrorMessage(e);
+    throw new Error(msg);
+  }
   if(d&&typeof d==='object'&&d.error){throw new Error(firebaseErrorMessage(new Error(d.error)));}
   if(!r.ok){throw new Error(firebaseErrorMessage(new Error('HTTP '+r.status+(txt?' - '+txt:''))));}
   setStatus('Firebase: conectado','ok');
@@ -313,7 +333,14 @@ async function fbGet(p){return fbRequest(p);}
 async function fbSet(p,d){return fbRequest(p,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});}
 async function fbDel(p){return fbRequest(p,{method:'DELETE'});}
 function fbListen(path,cb){
-  function poll(){fbGet(path).then(function(d){cb(d||{});}).catch(function(err){setStatus('Firebase: erro','err');console.error('Erro Firebase em '+path,err);});}
+  function poll(){
+    fbGet(path).then(function(d){cb(d||{});})
+      .catch(function(err){
+        setStatus('Firebase: erro','err');
+        console.error('Erro Firebase em '+path,err);
+        try{cb({});}catch(e){}
+      });
+  }
   poll();
   var id=setInterval(poll,5000);
   return id;
@@ -376,7 +403,7 @@ function cm(id){document.getElementById(id).classList.remove('open');}
 function g(id){return document.getElementById(id);}
 
 /* ── MONTH BAR ── */
-function escJS(s){return String(s).replace(/\/g,'\\').replace(/'/g,"\'");}
+function escJS(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 function buildPicker(containerId, onSelect){
   var wrap=g(containerId);if(!wrap)return;
   var yr=pickerYear;
@@ -701,11 +728,26 @@ function openDel(path){
 
 /* ── VISÃO GERAL ── */
 function renderVisao(){
-  setMC('<div id="vb"><div class="loading">⏳ Carregando...</div></div>');
   var lojas=Object.keys(LOJAS);
-  Promise.all(lojas.map(function(l){return fbGet('caixa/'+l).then(function(d){return {l:l,d:d||{}};});}))
-    .then(function(res){var a={};res.forEach(function(r){a[r.l]=r.d;});buildVisao(a);})
-    .catch(function(){g('vb').innerHTML='<div class="empty">❌ Erro ao carregar. Verifique conexão.</div>';});
+  var a={};lojas.forEach(function(l){a[l]={};});
+  setMC('<div id="vb"></div>');
+  buildVisao(a);
+  var vb=g('vb');
+  if(vb){vb.insertAdjacentHTML('afterbegin','<div id="load-note" class="card mb5"><div style="padding:10px 14px;color:var(--mu);font-size:12px">⏳ Buscando dados do Firebase em segundo plano. A tela não ficará mais travada em carregamento.</div></div>');}
+  var pending=lojas.length,hadErr=false;
+  lojas.forEach(function(l){
+    fbGet('caixa/'+l).then(function(d){
+      a[l]=d||{};pending--;
+      buildVisao(a);
+      var note=g('load-note');if(note&&pending>0){note.innerHTML='<div style="padding:10px 14px;color:var(--mu);font-size:12px">⏳ Atualizando dados... faltam '+pending+' loja(s).</div>';}
+      if(pending===0){var n=g('load-note');if(n)n.remove?n.remove():n.parentNode&&n.parentNode.removeChild(n);setStatus('Firebase: conectado','ok');}
+    }).catch(function(err){
+      hadErr=true;pending--;setStatus('Firebase: erro','err');console.error('Erro Firebase em caixa/'+l,err);
+      var note=g('load-note');
+      if(note){note.innerHTML='<div style="padding:12px 14px;color:#991B1B;font-size:12px"><strong>⚠️ Firebase não respondeu para '+LOJAS[l].nome+'.</strong><br>A tela abriu mesmo assim. Detalhe: '+String(firebaseErrorMessage(err)).replace(/</g,'&lt;')+'</div>';}
+      if(pending===0&&!hadErr){setStatus('Firebase: conectado','ok');}
+    });
+  });
 }
 
 function sumByPeriod(all,period){
