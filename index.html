@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Caixa Rei do Gado</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -247,6 +250,24 @@ textarea.inp{resize:vertical;min-height:56px}
 </div></div>
 
 <script>
+var APP_VERSION="2026-05-12-2048-auto-update";
+function appSelfUpdateCheck(){
+  try{
+    var base=location.origin+location.pathname;
+    fetch(base+"?check="+Date.now(),{cache:"no-store"})
+      .then(function(r){return r.text();})
+      .then(function(html){
+        var m=html.match(/APP_VERSION\s*=\s*["\']([^"\']+)/);
+        if(m&&m[1]&&m[1]!==APP_VERSION){
+          location.replace(base+"?v="+Date.now()+location.hash);
+        }
+      })
+      .catch(function(){});
+  }catch(e){}
+}
+setInterval(appSelfUpdateCheck,60000);
+window.addEventListener("focus",appSelfUpdateCheck);
+window.addEventListener("pageshow",appSelfUpdateCheck);
 /* ── FIREBASE REST ── */
 var DB='https://motoboy-ddefa-default-rtdb.firebaseio.com';
 function parseNum(v){
@@ -355,22 +376,24 @@ function cm(id){document.getElementById(id).classList.remove('open');}
 function g(id){return document.getElementById(id);}
 
 /* ── MONTH BAR ── */
+function escJS(s){return String(s).replace(/\/g,'\\').replace(/'/g,"\'");}
 function buildPicker(containerId, onSelect){
   var wrap=g(containerId);if(!wrap)return;
   var yr=pickerYear;
   var curM=parseInt(mesSel.slice(5,7))-1;
   var curY=parseInt(mesSel.slice(0,4));
+  var c=escJS(containerId), o=escJS(onSelect);
   wrap.innerHTML='<div class="mbar">'
     +'<span class="mbar-title">Mês</span>'
     +'<div class="mbar-year">'
-    +'<button title="Ano anterior" onclick="changePickerYear(-1,''+containerId+'',''+onSelect+'')">‹</button>'
+    +'<button title="Ano anterior" onclick="changePickerYear(-1,\''+c+'\',\''+o+'\')">‹</button>'
     +'<span>'+yr+'</span>'
-    +'<button title="Próximo ano" onclick="changePickerYear(1,''+containerId+'',''+onSelect+'')">›</button>'
+    +'<button title="Próximo ano" onclick="changePickerYear(1,\''+c+'\',\''+o+'\')">›</button>'
     +'</div>'
     +'<div class="mbar-months">'+MESES_BR.map(function(m,i){
       var val=yr+'-'+(i+1<10?'0':'')+(i+1);
       var active=(yr===curY&&i===curM)?' active':'';
-      return '<button class="mbar-month'+active+'" onclick="selectMes(''+val+'',''+containerId+'',''+onSelect+'')">'+m+'</button>';
+      return '<button class="mbar-month'+active+'" onclick="selectMes(\''+val+'\',\''+c+'\',\''+o+'\')">'+m+'</button>';
     }).join('')+'</div>'
     +'</div>';
 }
