@@ -265,11 +265,22 @@ function firebaseErrorMessage(err){
 }
 async function fbRequest(p,opt){
   var r,txt='',d=null,url=DB+'/'+p+'.json';
+  var controller=new AbortController();
+  var timer=setTimeout(function(){controller.abort();},9000);
   try{
-    r=await fetch(url,opt||{});
+    var cfg=opt?Object.assign({},opt):{};
+    cfg.signal=controller.signal;
+    r=await fetch(url,cfg);
     txt=await r.text();
     if(txt){try{d=JSON.parse(txt);}catch(e){d=txt;}}
-  }catch(e){throw new Error(firebaseErrorMessage(e));}
+  }catch(e){
+    if(e&&e.name==='AbortError'){
+      throw new Error('Tempo esgotado tentando conectar ao Firebase. Isso normalmente indica URL do banco errada, projeto Firebase indisponível, bloqueio de internet ou regra/problema no Realtime Database. Caminho testado: '+url);
+    }
+    throw new Error(firebaseErrorMessage(e));
+  }finally{
+    clearTimeout(timer);
+  }
   if(d&&typeof d==='object'&&d.error){throw new Error(firebaseErrorMessage(new Error(d.error)));}
   if(!r.ok){throw new Error(firebaseErrorMessage(new Error('HTTP '+r.status+(txt?' - '+txt:''))));}
   setStatus('Firebase: conectado','ok');
@@ -336,14 +347,14 @@ function buildPicker(containerId, onSelect){
   wrap.innerHTML='<div class="mbar">'
     +'<span class="mbar-title">Mês</span>'
     +'<div class="mbar-year">'
-    +'<button title="Ano anterior" onclick="changePickerYear(-1,''+containerId+'',''+onSelect+'')">‹</button>'
+    +'<button title="Ano anterior" onclick="changePickerYear(-1,\''+containerId+'\',\''+onSelect+'\')">‹</button>'
     +'<span>'+yr+'</span>'
-    +'<button title="Próximo ano" onclick="changePickerYear(1,''+containerId+'',''+onSelect+'')">›</button>'
+    +'<button title="Próximo ano" onclick="changePickerYear(1,\''+containerId+'\',\''+onSelect+'\')">›</button>'
     +'</div>'
     +'<div class="mbar-months">'+MESES_BR.map(function(m,i){
       var val=yr+'-'+(i+1<10?'0':'')+(i+1);
       var active=(yr===curY&&i===curM)?' active':'';
-      return '<button class="mbar-month'+active+'" onclick="selectMes(''+val+'',''+containerId+'',''+onSelect+'')">'+m+'</button>';
+      return '<button class="mbar-month'+active+'" onclick="selectMes(\''+val+'\',\''+containerId+'\',\''+onSelect+'\')">'+m+'</button>';
     }).join('')+'</div>'
     +'</div>';
 }
@@ -644,14 +655,23 @@ function renderVisao(){
   var lojas=Object.keys(LOJAS);
   Promise.all(lojas.map(function(l){return fbGet('caixa/'+l).then(function(d){return {l:l,d:d||{}};});}))
     .then(function(res){var a={};res.forEach(function(r){a[r.l]=r.d;});buildVisao(a);})
-    .catch(function(){g('vb').innerHTML='<div class="empty">❌ Erro ao carregar. Verifique conexão.</div>';});
+    .catch(function(err){
+      setStatus('Firebase: erro','err');
+      console.error('Erro ao carregar visão geral:',err);
+      var vazio={coronel:{},correas:{},bingen:{}};
+      buildVisao(vazio);
+      var vb=g('vb');
+      if(vb){
+        vb.insertAdjacentHTML('afterbegin','<div class="card mb5" style="border-color:#FECACA;background:#FFF7F7"><div class="ch"><span class="ct" style="color:var(--danger)">⚠️ Firebase não respondeu</span></div><div style="padding:14px 18px;color:var(--mu);font-size:13px">A tela não vai mais ficar presa em carregando. O sistema abriu, mas o Firebase não conectou. Erro: '+String(firebaseErrorMessage(err)).replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div>');
+      }
+    });
 }
 
 function buildVisao(all){
   var lojas=Object.keys(LOJAS),tot={};
   lojas.forEach(function(l){
     tot[l]={pix:0,din:0,cred:0,par:0,deb:0,alim:0,moto:0,total:0};
-    Object.values(all[l]).filter(function(e){return e.data&&e.data.startsWith(mesSel);}).forEach(function(e){
+    Object.values(all[l]||{}).filter(function(e){return e&&e.data&&e.data.startsWith(mesSel);}).forEach(function(e){
       tot[l].pix+=sf(e.pix);tot[l].din+=sf(e.din);
       tot[l].cred+=calcCred(e);tot[l].par+=sf(e.rpar);tot[l].deb+=sf(e.rdeb);
       tot[l].alim+=sf(e.alim);tot[l].moto+=sf(e.moto);tot[l].total+=calcTot(e);
@@ -693,6 +713,20 @@ function buildVisao(all){
 
   buildPicker('picker-visao','renderVisao');
 }
+
+/* ── ERROS GLOBAIS ── */
+window.addEventListener('error',function(ev){
+  try{
+    setStatus('Erro no sistema','err');
+    var mc=g('MC');
+    if(mc&&mc.innerHTML.indexOf('Erro no sistema')<0){
+      mc.insertAdjacentHTML('afterbegin','<div class="card mb5" style="border-color:#FECACA;background:#FFF7F7"><div class="ch"><span class="ct" style="color:var(--danger)">⚠️ Erro no sistema</span></div><div style="padding:14px 18px;color:var(--mu);font-size:13px">'+String(ev.message||'Erro desconhecido').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div>');
+    }
+  }catch(e){}
+});
+window.addEventListener('unhandledrejection',function(ev){
+  try{setStatus('Erro no sistema','err');console.error('Promessa rejeitada:',ev.reason);}catch(e){}
+});
 
 /* INIT */
 goTo('visao');
