@@ -6,6 +6,9 @@
 <title>Caixa Rei do Gado</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -70,11 +73,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .bico.del:hover{background:#FFF0F0;border-color:#FECACA}
 
 /* ── TABLE ── */
-.tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:1220px;border-left:1px solid var(--b);border-top:1px solid var(--b)}
-thead th{background:#FAFAF8;padding:9px 12px;text-align:left;font-size:11px;font-weight:800;color:#3F3F46;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--b);border-right:1px solid var(--b);white-space:nowrap}
+.tw{overflow-x:auto;position:relative;scrollbar-gutter:stable}
+table{width:100%;border-collapse:collapse;min-width:1120px;border-left:1px solid var(--b);border-top:1px solid var(--b)}
+thead th{position:sticky;top:0;z-index:4;background:#FFFFFF;padding:8px 10px;text-align:left;font-size:11px;font-weight:900;color:#27272A;text-transform:uppercase;letter-spacing:.07em;border-bottom:2px solid #D9D7CE;border-right:1px solid #D9D7CE;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.03)}
 thead th.r{text-align:right}
-tbody td{padding:10px 12px;border-bottom:1px solid #F0EFE8;border-right:1px solid #E9E8E1;font-size:13px;white-space:nowrap;vertical-align:middle}
+tbody td{padding:8px 10px;border-bottom:1px solid #ECEBE4;border-right:1px solid #DDDCD4;font-size:12.5px;white-space:nowrap;vertical-align:middle}
 tbody tr{cursor:pointer;transition:background .1s}
 tbody tr:hover td{filter:brightness(.96)}
 tbody tr.sel td{background:var(--acbg)!important;box-shadow:inset 0 1px 0 rgba(0,0,0,.03), inset 0 -1px 0 rgba(0,0,0,.03)}
@@ -84,9 +87,9 @@ tbody tr:not(.sel) td:first-child{border-left:5px solid transparent}
 tbody tr:last-child td{border-bottom:none}
 tbody tr.pago-row{background:#F0FFF6}
 tbody tr.pend-row{background:#FFF5F5}
-.r{text-align:right;font-family:'DM Mono',monospace;font-size:12.5px}
+.r{text-align:right;font-family:'DM Mono',monospace;font-size:12px}
 .fw{font-weight:600}
-tfoot td{background:var(--acbg);font-weight:800;font-family:'DM Mono',monospace;font-size:12.5px;padding:9px 12px;border-top:2px solid var(--ac);border-right:1px solid var(--b)}
+tfoot td{background:var(--acbg);font-weight:800;font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-top:2px solid var(--ac);border-right:1px solid var(--b)}
 
 /* ── BADGES ── */
 .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
@@ -99,9 +102,9 @@ tfoot td{background:var(--acbg);font-weight:800;font-family:'DM Mono',monospace;
 
 /* ── STATS ── */
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:20px}
-.st{background:#fff;border:1px solid var(--b);border-radius:var(--r);padding:14px 16px}
-.st-l{font-size:11px;color:var(--mu);font-weight:500;margin-bottom:4px}
-.st-v{font-family:'DM Mono',monospace;font-size:19px;font-weight:700}
+.st{background:#fff;border:1px solid var(--b);border-radius:var(--r);padding:11px 12px;min-width:0}
+.st-l{font-size:10.5px;color:var(--mu);font-weight:600;margin-bottom:4px}
+.st-v{font-family:'DM Mono',monospace;font-size:14.5px;font-weight:800;line-height:1.15;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
 .st-v.ac{color:var(--ac)}
 .st-s{font-size:11px;color:var(--mu);margin-top:2px}
 
@@ -141,27 +144,27 @@ textarea.inp{resize:vertical;min-height:56px}
 
 
 
-/* ── LOGIN / SEGURANÇA BÁSICA ── */
-body.auth-locked .sb,body.auth-locked .main{display:none!important}
-.login-screen{position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#18181B 0%,#27272A 52%,#111 100%);display:flex;align-items:center;justify-content:center;padding:22px;font-family:'DM Sans',sans-serif}
-body:not(.auth-locked) .login-screen{display:none!important}
-.login-card{width:100%;max-width:420px;background:#fff;border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.35);overflow:hidden;border:1px solid rgba(255,255,255,.18)}
-.login-head{background:#18181B;color:#fff;padding:22px 24px;display:flex;align-items:center;gap:12px}
-.login-icon{width:44px;height:44px;border-radius:12px;background:#3F3F46;display:flex;align-items:center;justify-content:center;font-size:22px}
-.login-title{font-size:20px;font-weight:800;line-height:1.1}
-.login-sub{font-size:12px;color:#A1A1AA;margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
-.login-body{padding:24px}
-.login-label{font-size:12px;font-weight:800;color:#52525B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;display:block}
-.login-input{width:100%;padding:13px 14px;border:1.8px solid #E4E3DC;border-radius:11px;font-size:16px;font-family:inherit;outline:none;transition:border .15s,box-shadow .15s}
-.login-input:focus{border-color:#18181B;box-shadow:0 0 0 3px rgba(24,24,27,.10)}
-.login-row{display:flex;align-items:center;gap:8px;margin:13px 0 18px;font-size:13px;color:#52525B}
-.login-btn{width:100%;border:none;background:#18181B;color:#fff;border-radius:11px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:filter .15s,transform .08s}
-.login-btn:hover{filter:brightness(1.12)}
-.login-btn:active{transform:translateY(1px)}
-.login-msg{margin-top:12px;font-size:13px;font-weight:700;color:#DC2626;min-height:18px;text-align:center}
-.login-note{margin-top:14px;padding:10px 12px;background:#F5F4F0;border-radius:10px;color:#72726A;font-size:12px;line-height:1.4}
-.logout-btn{margin-left:10px;border:1px solid var(--b);background:#fff;color:var(--mu);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-.logout-btn:hover{border-color:var(--danger);color:var(--danger)}
+/* ── AUTH FIREBASE REST ── */
+body.auth-locked{overflow:hidden}
+body.auth-locked .sb,body.auth-locked .main,body.auth-locked .ov:not(#auth-screen){filter:blur(2px);pointer-events:none;user-select:none}
+.auth-screen{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#18181B 0%,#2B2118 55%,#3A260F 100%);padding:22px}
+.auth-screen.open{display:flex}
+.auth-card{width:100%;max-width:410px;background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.35);overflow:hidden;border:1px solid rgba(255,255,255,.18)}
+.auth-head{padding:26px 26px 18px;background:#18181B;color:#fff}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.auth-logo{width:42px;height:42px;border-radius:12px;background:#E07B20;display:flex;align-items:center;justify-content:center;font-size:22px}
+.auth-title{font-size:20px;font-weight:800;line-height:1.1}
+.auth-sub{font-size:12px;color:#A1A1AA;margin-top:4px;letter-spacing:.04em;text-transform:uppercase}
+.auth-body{padding:22px 26px 24px;display:flex;flex-direction:column;gap:12px}
+.auth-body .inp{height:42px;font-size:14px}
+.auth-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--mu);margin-top:2px}
+.auth-check{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.auth-msg{min-height:18px;font-size:12px;color:var(--danger);font-weight:600}
+.auth-btn{width:100%;justify-content:center;height:42px;margin-top:2px;font-weight:800}
+.auth-note{font-size:11px;color:var(--mu);line-height:1.45;border-top:1px solid var(--b);padding-top:12px;margin-top:4px}
+.top-auth{display:flex;align-items:center;gap:8px;margin-left:16px;font-size:12px;color:var(--mu)}
+.btn-exit{border:1px solid var(--b);background:#fff;color:var(--mu);border-radius:7px;padding:5px 9px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700}
+.btn-exit:hover{border-color:var(--danger);color:var(--danger);background:#FFF5F5}
 
 /* ── MISC ── */
 .loading{display:flex;align-items:center;justify-content:center;padding:56px;color:var(--mu);gap:8px;font-size:13px}
@@ -171,23 +174,20 @@ body:not(.auth-locked) .login-screen{display:none!important}
 </head>
 <body class="auth-locked">
 
-<!-- LOGIN / SEGURANÇA BÁSICA -->
-<div class="login-screen" id="login-screen">
-  <div class="login-card">
-    <div class="login-head">
-      <div class="login-icon">🐄</div>
-      <div>
-        <div class="login-title">Caixas Rei do Gado</div>
-        <div class="login-sub">Acesso restrito</div>
-      </div>
+<!-- AUTH FIREBASE -->
+<div class="auth-screen open" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-head">
+      <div class="auth-brand"><div class="auth-logo">🐄</div><div><div class="auth-title">Caixas Rei do Gado</div><div class="auth-sub">Acesso restrito</div></div></div>
+      <div style="font-size:13px;color:#D4D4D8;line-height:1.45">Entre com o usuário criado no Firebase para acessar os lançamentos.</div>
     </div>
-    <div class="login-body">
-      <label class="login-label" for="login-pass">Senha de acesso</label>
-      <input class="login-input" type="password" id="login-pass" autocomplete="current-password" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')loginApp()">
-      <label class="login-row"><input type="checkbox" id="login-remember" checked> Manter acesso neste dispositivo</label>
-      <button class="login-btn" onclick="loginApp()">Entrar no sistema</button>
-      <div class="login-msg" id="login-msg"></div>
-      <div class="login-note">Proteção inicial para impedir acesso casual ao link. Para segurança forte, depois vamos ativar login por usuário no Firebase.</div>
+    <div class="auth-body">
+      <div class="fi"><label class="lbl">E-mail</label><input class="inp" type="email" id="auth-email" autocomplete="username" placeholder="ex.: caixa@reidogado.com.br"></div>
+      <div class="fi"><label class="lbl">Senha</label><input class="inp" type="password" id="auth-pass" autocomplete="current-password" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')loginFirebase()"></div>
+      <div class="auth-row"><label class="auth-check"><input type="checkbox" id="auth-keep" checked> Manter acesso neste dispositivo</label></div>
+      <div class="auth-msg" id="auth-msg"></div>
+      <button class="btn btn-p auth-btn" id="auth-login-btn" onclick="loginFirebase()">Entrar no sistema</button>
+      <div class="auth-note">Segurança real pelo Firebase Authentication. Os dados só serão liberados depois do login e, após ajustar as Regras do banco, usuários sem autenticação não conseguirão ler nem gravar.</div>
     </div>
   </div>
 </div>
@@ -209,12 +209,12 @@ body:not(.auth-locked) .login-screen{display:none!important}
     <button class="nb" id="nav-correas" onclick="goTo('correas')"><span class="ni">🔵</span>Caixa Correas</button>
     <button class="nb" id="nav-bingen" onclick="goTo('bingen')"><span class="ni">🟢</span>Caixa Bingen</button>
   </div>
-  <div class="sb-foot">Salvo em tempo real<br>Firebase REST API<br><strong>v.login-seguro 16/05</strong></div>
+  <div class="sb-foot">Salvo em tempo real<br>Firebase Auth + REST API<br><span style="color:#52525B">v.caixa-melhorias 16/05</span></div>
 </aside>
 
 <!-- MAIN -->
 <div class="main">
-  <div class="topbar"><span class="topbar-title" id="top-title">🏠 Visão Geral</span><span id="fb-status" style="margin-left:auto;font-size:12px;color:var(--mu)">Firebase: verificando...</span><button class="logout-btn" onclick="logoutApp()">Sair</button></div>
+  <div class="topbar"><span class="topbar-title" id="top-title">🏠 Visão Geral</span><span id="fb-status" style="margin-left:auto;font-size:12px;color:var(--mu)">Firebase: aguardando login</span><span id="top-auth-email" class="top-auth"></span><button class="btn-exit" onclick="logoutFirebase()">Sair</button></div>
   <nav class="snav" id="snav" style="display:none"></nav>
   <div class="content" id="MC"><div class="loading">⏳ Carregando...</div></div>
 </div>
@@ -229,19 +229,18 @@ body:not(.auth-locked) .login-screen{display:none!important}
     <div class="fi"><label class="lbl">Abertura R$</label><input class="inp" type="number" id="f-ab" step=".01" placeholder="0,00"></div>
     <div class="fsec full"><div class="fsec-t">💰 Vendas</div></div>
     <div class="fi"><label class="lbl">PIX / Transferência R$</label><input class="inp" type="number" id="f-pix" step=".01" placeholder="0,00"></div>
-    <div class="fi"><label class="lbl">Dinheiro R$</label><input class="inp" type="number" id="f-din" step=".01" placeholder="0,00"></div>
+    <div class="fi"><label class="lbl">Dinheiro R$</label><input class="inp" type="number" id="f-din" step=".01" placeholder="0,00" oninput="updateFechAuto()"></div>
     <div class="fsec full"><div class="fsec-t">💳 Rede</div></div>
-    <div class="fi"><label class="lbl">Crédito R$</label><input class="inp" type="number" id="f-rcred" step=".01" placeholder="0,00"></div>
+    <div class="fi"><label class="lbl">Crédito R$</label><input class="inp" type="text" id="f-rcred" inputmode="decimal" placeholder="Ex.: 100+200+50"></div>
     <div class="fi"><label class="lbl">Débito R$</label><input class="inp" type="number" id="f-rdeb" step=".01" placeholder="0,00"></div>
     <div class="fi"><label class="lbl">Parcelado R$</label><input class="inp" type="number" id="f-rpar" step=".01" placeholder="0,00"></div>
     <div class="fi"><label class="lbl">Alimentação e Refeição R$</label><input class="inp" type="number" id="f-alim" step=".01" placeholder="0,00"></div>
     <div class="fi"><label class="lbl">Nota Fácil R$</label><input class="inp" type="number" id="f-nf" step=".01" placeholder="0,00"></div>
     <div class="fsec full"><div class="fsec-t">🛵 Saídas</div></div>
     <div class="fi"><label class="lbl">Pgto Motoboy R$</label><input class="inp" type="number" id="f-moto" step=".01" placeholder="0,00"></div>
-    <div class="fi"><label class="lbl">Saídas Dinheiro R$</label><input class="inp" type="number" id="f-said" step=".01" placeholder="0,00"></div>
-    <div class="fi"><label class="lbl">Retirada Troco R$</label><input class="inp" type="number" id="f-troco" step=".01" placeholder="0,00"></div>
-    <div class="fi"><label class="lbl">Fechamento Caixa R$</label><input class="inp" type="number" id="f-fech" step=".01" placeholder="0,00"></div>
-    <div class="fi"><label class="lbl">Retirada Dinheiro R$</label><input class="inp" type="number" id="f-ret" step=".01" placeholder="0,00"></div>
+    <div class="fi"><label class="lbl">Retirada Troco R$</label><input class="inp" type="number" id="f-troco" step=".01" placeholder="0,00" oninput="updateFechAuto()"></div>
+    <div class="fi"><label class="lbl">Fechamento Caixa R$</label><input class="inp" type="text" id="f-fech" readonly placeholder="Automático"></div>
+    <div class="fi"><label class="lbl">Retirada Dinheiro R$</label><input class="inp" type="number" id="f-ret" step=".01" placeholder="0,00" oninput="updateFechAuto()"></div>
     <div class="fi full"><label class="lbl">Observações</label><textarea class="inp" id="f-obs"></textarea></div>
   </div></div>
   <div class="mf"><button class="btn btn-o" onclick="cm('m-caixa')">Cancelar</button><button class="btn btn-p" onclick="saveCaixa()">💾 Salvar</button></div>
@@ -294,96 +293,126 @@ body:not(.auth-locked) .login-screen{display:none!important}
 
 <script>
 
-/* ── SEGURANÇA BÁSICA DE ACESSO ── */
-var ACCESS_HASH='6983739412123269'; // senha temporária: Rei@2026! — trocar depois que testar
-var AUTH_KEY='caixa_rei_do_gado_auth_v1';
-function cyrb53(str,seed){
-  seed=seed||0;
-  var h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;
-  for(var i=0,ch;i<str.length;i++){
-    ch=str.charCodeAt(i);
-    h1=Math.imul(h1^ch,2654435761);
-    h2=Math.imul(h2^ch,1597334677);
-  }
-  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
-  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
-  return String(4294967296*(2097151&h2)+(h1>>>0));
-}
-function isAuthenticated(){return localStorage.getItem(AUTH_KEY)==='ok'||sessionStorage.getItem(AUTH_KEY)==='ok';}
-function showLogin(){
-  document.body.classList.add('auth-locked');
-  setTimeout(function(){var el=document.getElementById('login-pass');if(el)el.focus();},100);
-}
-function unlockApp(){
-  document.body.classList.remove('auth-locked');
-  var m=document.getElementById('login-msg');if(m)m.textContent='';
-  goTo('visao');
-}
-function loginApp(){
-  var pass=(document.getElementById('login-pass')||{}).value||'';
-  var remember=!!((document.getElementById('login-remember')||{}).checked);
-  var msg=document.getElementById('login-msg');
-  if(cyrb53(pass)===ACCESS_HASH){
-    if(remember){localStorage.setItem(AUTH_KEY,'ok');}else{sessionStorage.setItem(AUTH_KEY,'ok');}
-    unlockApp();
-  }else{
-    if(msg)msg.textContent='Senha incorreta.';
-    var el=document.getElementById('login-pass');if(el){el.value='';el.focus();}
-  }
-}
-function logoutApp(){
-  localStorage.removeItem(AUTH_KEY);sessionStorage.removeItem(AUTH_KEY);
-  clearAll();
-  location.reload();
-}
 
-/* ── FIREBASE REST ── */
-var DB='https://motoboy-ddefa-default-rtdb.firebaseio.com';
-function sf(v){try{var f=parseFloat(String(v).trim());return isNaN(f)?0:Math.round(f*100)/100;}catch(e){return 0;}}
+/* ── FIREBASE AUTH REST + DATABASE REST ── */
+var firebaseConfig={
+  apiKey:"AIzaSyDoYFoKnVjtcib0V4yN1Qzvk2B7QrNgiuM",
+  authDomain:"motoboy-ddefa.firebaseapp.com",
+  databaseURL:"https://motoboy-ddefa-default-rtdb.firebaseio.com",
+  projectId:"motoboy-ddefa",
+  storageBucket:"motoboy-ddefa.firebasestorage.app",
+  messagingSenderId:"544556036524",
+  appId:"1:544556036524:web:a69fd907a9387875384a09"
+};
+var DB=firebaseConfig.databaseURL;
+var authUser=null,appStarted=false;
+var fbApp=null,fbAuth=null,fbDB=null;
+try{
+  fbApp=firebase.initializeApp(firebaseConfig);
+  fbAuth=firebase.auth();
+  fbDB=firebase.database();
+}catch(e){console.error('Erro ao iniciar Firebase SDK',e);}
+
+function parseNum(v){
+  var s=String(v==null?'':v).trim().replace(/\s/g,'');
+  if(!s)return 0;
+  if(s.indexOf(',')>=0){s=s.replace(/\./g,'').replace(',','.');}
+  var f=parseFloat(s);
+  return isNaN(f)?0:f;
+}
+function sf(v){
+  try{
+    var s=String(v==null?'':v).trim();
+    var f=s.indexOf('+')>=0?s.split('+').reduce(function(t,p){return t+parseNum(p);},0):parseNum(s);
+    return isNaN(f)?0:Math.round(f*100)/100;
+  }catch(e){return 0;}
+}
 function todayLocal(){var d=new Date();d=new Date(d.getTime()-d.getTimezoneOffset()*60000);return d.toISOString().slice(0,10);}
 function monthLocal(){return todayLocal().slice(0,7);}
 function setStatus(msg,type){var el=g('fb-status');if(!el)return;el.textContent=msg;el.style.color=type==='ok'?'var(--ok)':(type==='err'?'var(--danger)':'var(--mu)');}
+function setAuthMsg(msg,type){var el=g('auth-msg');if(!el)return;el.textContent=msg||'';el.style.color=type==='ok'?'var(--ok)':'var(--danger)';}
 function firebaseErrorMessage(err){
   var m=(err&&err.message)?err.message:String(err||'Erro desconhecido');
-  if(m.toLowerCase().indexOf('permission')>=0||m.toLowerCase().indexOf('denied')>=0){
-    return 'Permissão negada no Firebase. Verifique as Rules do Realtime Database para permitir leitura/gravação ou configure autenticação. Detalhe: '+m;
-  }
-  if(m.toLowerCase().indexOf('failed to fetch')>=0||m.toLowerCase().indexOf('network')>=0){
-    return 'Falha de conexão com o Firebase. Verifique internet, URL do banco e se o projeto está ativo. Detalhe: '+m;
-  }
+  var code=(err&&err.code)?String(err.code):'';
+  var raw=(code+' '+m).toLowerCase();
+  if(raw.indexOf('user-not-found')>=0||raw.indexOf('wrong-password')>=0||raw.indexOf('invalid-login-credentials')>=0||raw.indexOf('invalid-credential')>=0){return 'E-mail ou senha inválidos. Confira o usuário em Segurança > Authentication > Usuários.';}
+  if(raw.indexOf('operation-not-allowed')>=0){return 'Login por e-mail/senha ainda não está ativado. Vá em Segurança > Authentication > Método de login > E-mail/senha > Ativar.';}
+  if(raw.indexOf('too-many-requests')>=0){return 'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.';}
+  if(raw.indexOf('permission')>=0||raw.indexOf('denied')>=0){return 'Permissão negada pelo Realtime Database. Confira se as regras foram publicadas em Atalhos do projeto > Realtime Database > Regras. Para teste, use .read e .write com auth != null. Detalhe: '+m;}
+  if(raw.indexOf('network')>=0||raw.indexOf('failed')>=0){return 'Falha de conexão com Firebase. Verifique internet, projeto e se os scripts do Firebase carregaram. Detalhe: '+m;}
   return m;
 }
-async function fbRequest(p,opt){
-  var r,txt='',d=null,url=DB+'/'+p+'.json';
-  var controller=new AbortController();
-  var timer=setTimeout(function(){controller.abort();},9000);
+
+async function loginFirebase(){
+  var email=(g('auth-email')?g('auth-email').value:'').trim();
+  var pass=g('auth-pass')?g('auth-pass').value:'';
+  var keep=g('auth-keep')?g('auth-keep').checked:true;
+  if(!email||!pass){setAuthMsg('Preencha e-mail e senha.');return;}
+  if(!fbAuth){setAuthMsg('Firebase SDK não carregou. Verifique internet ou bloqueio do navegador.');return;}
+  var btn=g('auth-login-btn');if(btn){btn.disabled=true;btn.textContent='Entrando...';}
+  setAuthMsg('Validando acesso...','ok');setStatus('Firebase: validando login','');
   try{
-    var cfg=opt?Object.assign({},opt):{};
-    cfg.signal=controller.signal;
-    r=await fetch(url,cfg);
-    txt=await r.text();
-    if(txt){try{d=JSON.parse(txt);}catch(e){d=txt;}}
-  }catch(e){
-    if(e&&e.name==='AbortError'){
-      throw new Error('Tempo esgotado tentando conectar ao Firebase. Isso normalmente indica URL do banco errada, projeto Firebase indisponível, bloqueio de internet ou regra/problema no Realtime Database. Caminho testado: '+url);
-    }
-    throw new Error(firebaseErrorMessage(e));
+    var persistence=keep?firebase.auth.Auth.Persistence.LOCAL:firebase.auth.Auth.Persistence.SESSION;
+    await fbAuth.setPersistence(persistence);
+    var cred=await fbAuth.signInWithEmailAndPassword(email,pass);
+    setAuthMsg('Acesso liberado. Abrindo sistema...','ok');
+    startAppAfterLogin(cred.user);
+  }catch(err){
+    setAuthMsg(firebaseErrorMessage(err));setStatus('Firebase: erro no login','err');
   }finally{
-    clearTimeout(timer);
+    if(btn){btn.disabled=false;btn.textContent='Entrar no sistema';}
   }
-  if(d&&typeof d==='object'&&d.error){throw new Error(firebaseErrorMessage(new Error(d.error)));}
-  if(!r.ok){throw new Error(firebaseErrorMessage(new Error('HTTP '+r.status+(txt?' - '+txt:''))));}
-  setStatus('Firebase: conectado','ok');
-  return d==null?{}:d;
 }
-async function fbGet(p){return fbRequest(p);}
-async function fbSet(p,d){return fbRequest(p,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});}
-async function fbDel(p){return fbRequest(p,{method:'DELETE'});}
+function clearSavedAuth(){try{localStorage.removeItem('caixa_rei_firebase_auth_rest_v1');sessionStorage.removeItem('caixa_rei_firebase_auth_rest_v1');}catch(e){}authUser=null;}
+async function fbGet(p){
+  if(!fbDB||!fbAuth||!fbAuth.currentUser)throw new Error('Usuário não autenticado. Entre novamente.');
+  try{var snap=await fbDB.ref(p).get();setStatus('Firebase: conectado','ok');return snap.exists()?snap.val():{};}
+  catch(e){throw new Error(firebaseErrorMessage(e));}
+}
+async function fbSet(p,d){
+  if(!fbDB||!fbAuth||!fbAuth.currentUser)throw new Error('Usuário não autenticado. Entre novamente.');
+  try{await fbDB.ref(p).set(d);setStatus('Firebase: salvo','ok');return true;}
+  catch(e){throw new Error(firebaseErrorMessage(e));}
+}
+async function fbDel(p){
+  if(!fbDB||!fbAuth||!fbAuth.currentUser)throw new Error('Usuário não autenticado. Entre novamente.');
+  try{await fbDB.ref(p).remove();setStatus('Firebase: excluído','ok');return true;}
+  catch(e){throw new Error(firebaseErrorMessage(e));}
+}
 function fbListen(path,cb){
-  function poll(){fbGet(path).then(function(d){cb(d||{});}).catch(function(err){setStatus('Firebase: erro','err');console.error('Erro Firebase em '+path,err);});}
+  function poll(){if(!fbAuth||!fbAuth.currentUser)return;fbGet(path).then(function(d){cb(d||{});}).catch(function(err){setStatus('Firebase: erro','err');console.error('Erro Firebase em '+path,err);});}
   poll();
   var id=setInterval(poll,5000);
   return id;
+}
+function showAuthScreen(){
+  document.body.classList.add('auth-locked');
+  var sc=g('auth-screen');if(sc)sc.classList.add('open');
+  setStatus('Firebase: aguardando login','');
+}
+function startAppAfterLogin(user){
+  authUser=user;
+  var sc=g('auth-screen');if(sc)sc.classList.remove('open');
+  document.body.classList.remove('auth-locked');
+  var em=g('top-auth-email');if(em)em.textContent=(user&&user.email)?user.email:'Usuário logado';
+  setStatus('Firebase: autenticado','ok');
+  if(!appStarted){appStarted=true;goTo('visao');}
+}
+function logoutFirebase(){
+  clearSavedAuth();clearAll();appStarted=false;
+  if(fbAuth){fbAuth.signOut().catch(function(e){console.error(e);});}
+  setMC('<div class="loading">🔐 Faça login para carregar o sistema.</div>');
+  showAuthScreen();
+}
+function initAuth(){
+  showAuthScreen();
+  setMC('<div class="loading">🔐 Faça login para carregar o sistema.</div>');
+  if(!fbAuth){setAuthMsg('Firebase SDK não carregou. Verifique internet ou bloqueio do navegador.');setStatus('Firebase: erro','err');return;}
+  setAuthMsg('');
+  fbAuth.onAuthStateChanged(function(user){
+    if(user){setAuthMsg('Sessão autenticada. Abrindo sistema...','ok');startAppAfterLogin(user);}
+    else{authUser=null;appStarted=false;showAuthScreen();}
+  },function(err){setAuthMsg(firebaseErrorMessage(err));setStatus('Firebase: erro','err');});
 }
 
 /* ── LOJAS ── */
@@ -398,7 +427,7 @@ var MESES_FULL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 /* ── STATE ── */
 var page='visao',tab='caixa',loja=null;
 var editId=null,pixTipo='loja',selRow=null,delPath=null,baixaId=null;
-var timers=[],caixaCache={},pixCache={};
+var timers=[],caixaCache={},pixCache={},caixaScrollLeft=0;
 var mesSel=monthLocal(); // e.g. "2026-05"
 var pickerYear=parseInt(mesSel.slice(0,4));
 
@@ -412,6 +441,12 @@ var weekOf=function(s){var d=new Date(s),j=new Date(d.getFullYear(),0,1);return 
 var calcCred=function(e){return sf(e.rcred)-sf(e.rpar);}; // Crédito líquido: parcelado diminui do crédito informado
 var calcTot=function(e){return sf(e.pix)+sf(e.din)+calcCred(e)+sf(e.rdeb)+sf(e.rpar)+sf(e.alim);}; // Total Dia sem duplicar parcelado e sem Nota Fácil
 var calcSis=function(e){return calcTot(e)+sf(e.nf);}; // Total Sistema = Total Dia + Nota Fácil
+var calcFech=function(e){return sf(e.fech)||(sf(e.din)-sf(e.troco)-sf(e.ret));}; // Fechamento automático = dinheiro - retirada troco - retirada dinheiro
+var fmtZ=function(v){return fmt(sf(v));};
+function updateFechAuto(){var el=g('f-fech');if(!el)return;el.value=fmtN(sf(g('f-din')&&g('f-din').value)-sf(g('f-troco')&&g('f-troco').value)-sf(g('f-ret')&&g('f-ret').value));}
+function selectCaixaRow(id){selRow=id;var rows=document.querySelectorAll('#ctable tbody tr');rows.forEach(function(r){r.classList.toggle('sel',r.getAttribute('data-id')===id);});}
+function rememberCaixaScroll(){var tw=g('tw-caixa');if(tw){caixaScrollLeft=tw.scrollLeft||0;}}
+function restoreCaixaScroll(){var tw=g('tw-caixa');if(tw){tw.scrollLeft=caixaScrollLeft||0;tw.onscroll=rememberCaixaScroll;}}
 
 function mesLabel(ym){
   ym=ym||mesSel;
@@ -513,6 +548,7 @@ function renderCaixa(){
 
 function buildCT(){
   var el=g('ctable');if(!el)return;
+  var twAtual=el.querySelector('.tw');if(twAtual){caixaScrollLeft=twAtual.scrollLeft||caixaScrollLeft||0;}
   var rows=Object.entries(caixaCache)
     .filter(function(x){return x[1].data&&x[1].data.startsWith(mesSel);})
     .sort(function(a,b){return a[1].data.localeCompare(b[1].data);});
@@ -522,29 +558,28 @@ function buildCT(){
     return;
   }
 
-  var T={pix:0,din:0,rc:0,rd:0,rp:0,alim:0,nf:0,tot:0,sis:0,moto:0,said:0};
+  var T={pix:0,din:0,rc:0,rd:0,rp:0,alim:0,nf:0,tot:0,sis:0,moto:0,fech:0,troco:0,ret:0};
   var trs=rows.map(function(x){
-    var id=x[0],e=x[1],tot=calcTot(e),sis=calcSis(e);
+    var id=x[0],e=x[1],tot=calcTot(e),sis=calcSis(e),fech=calcFech(e);
     T.pix+=sf(e.pix);T.din+=sf(e.din);T.rc+=calcCred(e);T.rd+=sf(e.rdeb);T.rp+=sf(e.rpar);
-    T.alim+=sf(e.alim);T.nf+=sf(e.nf);T.tot+=tot;T.sis+=sis;T.moto+=sf(e.moto);T.said+=sf(e.said);
+    T.alim+=sf(e.alim);T.nf+=sf(e.nf);T.tot+=tot;T.sis+=sis;T.moto+=sf(e.moto);T.fech+=fech;T.troco+=sf(e.troco);T.ret+=sf(e.ret);
     var cls=selRow===id?' sel':'';
-    return '<tr class="'+cls+'" onclick="selRow=\''+id+'\';buildCT()">'
-      +'<td>'+fmtD(e.data)+'</td><td><strong>'+(e.resp||'—')+'</strong></td>'
-      +'<td class="r">'+(sf(e.ab)?fmt(e.ab):'—')+'</td>'
-      +'<td class="r">'+(sf(e.pix)?fmt(e.pix):'—')+'</td>'
-      +'<td class="r">'+(sf(e.din)?fmt(e.din):'—')+'</td>'
-      +'<td class="r">'+(calcCred(e)?fmt(calcCred(e)):'—')+'</td>'
-      +'<td class="r">'+(sf(e.rdeb)?fmt(e.rdeb):'—')+'</td>'
-      +'<td class="r">'+(sf(e.rpar)?fmt(e.rpar):'—')+'</td>'
-      +'<td class="r">'+(sf(e.alim)?fmt(e.alim):'—')+'</td>'
+    return '<tr data-id="'+id+'" class="'+cls+'" onclick="selectCaixaRow(\''+id+'\')" ondblclick="openCaixaModal(\''+id+'\');event.stopPropagation()">'
+      +'<td>'+fmtD(e.data)+'</td><td><strong>'+(e.resp||'')+'</strong></td>'
+      +'<td class="r">'+fmtZ(e.ab)+'</td>'
+      +'<td class="r">'+fmtZ(e.pix)+'</td>'
+      +'<td class="r">'+fmtZ(e.din)+'</td>'
+      +'<td class="r">'+fmt(calcCred(e))+'</td>'
+      +'<td class="r">'+fmtZ(e.rdeb)+'</td>'
+      +'<td class="r">'+fmtZ(e.rpar)+'</td>'
+      +'<td class="r">'+fmtZ(e.alim)+'</td>'
       +'<td class="r fw">'+fmt(tot)+'</td>'
-      +'<td class="r">'+(sf(e.nf)?fmt(e.nf):'—')+'</td>'
+      +'<td class="r">'+fmtZ(e.nf)+'</td>'
       +'<td class="r fw">'+fmt(sis)+'</td>'
-      +'<td class="r" style="color:var(--warn)">'+(sf(e.moto)?fmt(e.moto):'—')+'</td>'
-      +'<td class="r">'+(sf(e.said)?fmt(e.said):'—')+'</td>'
-      +'<td class="r">'+(sf(e.troco)?fmt(e.troco):'—')+'</td>'
-      +'<td class="r">'+(sf(e.fech)?fmt(e.fech):'—')+'</td>'
-      +'<td class="r">'+(sf(e.ret)?fmt(e.ret):'—')+'</td>'
+      +'<td class="r" style="color:var(--warn)">'+fmtZ(e.moto)+'</td>'
+      +'<td class="r fw">'+fmt(fech)+'</td>'
+      +'<td class="r">'+fmtZ(e.troco)+'</td>'
+      +'<td class="r">'+fmtZ(e.ret)+'</td>'
       +'<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;color:var(--mu);font-size:12px">'+(e.obs||'')+'</td>'
       +'<td style="white-space:nowrap">'
         +'<button class="bico" onclick="openCaixaModal(\''+id+'\');event.stopPropagation()">✏️</button> '
@@ -552,15 +587,14 @@ function buildCT(){
       +'</td></tr>';
   }).join('');
 
-  el.innerHTML='<div class="tw"><table>'
+  el.innerHTML='<div class="tw" id="tw-caixa"><table>'
     +'<thead><tr>'
     +'<th>Data</th><th>Resp.</th><th class="r">Abertura</th>'
     +'<th class="r">PIX/Transf.</th><th class="r">Dinheiro</th>'
     +'<th class="r">Crédito Líq.</th><th class="r">Déb.Rede</th><th class="r">Parcelado</th>'
     +'<th class="r">Alim./Refeição</th>'
     +'<th class="r">Total Dia</th><th class="r">N.Fácil</th><th class="r">Total Sist.</th>'
-    +'<th class="r">Motoboy</th><th class="r">Saídas</th><th class="r">Ret.Troco</th>'
-    +'<th class="r">Fechamento</th><th class="r">Ret.Din.</th>'
+    +'<th class="r">Motoboy</th><th class="r">Fechamento</th><th class="r">Ret.Troco</th><th class="r">Ret.Din.</th>'
     +'<th>Obs.</th><th>Ações</th>'
     +'</tr></thead>'
     +'<tbody>'+trs+'</tbody>'
@@ -570,15 +604,16 @@ function buildCT(){
     +'<td class="r">'+fmt(T.rc)+'</td><td class="r">'+fmt(T.rd)+'</td><td class="r">'+fmt(T.rp)+'</td>'
     +'<td class="r">'+fmt(T.alim)+'</td>'
     +'<td class="r fw">'+fmt(T.tot)+'</td><td class="r">'+fmt(T.nf)+'</td><td class="r fw">'+fmt(T.sis)+'</td>'
-    +'<td class="r" style="color:var(--warn)">'+fmt(T.moto)+'</td><td class="r">'+fmt(T.said)+'</td>'
-    +'<td colspan="5"></td>'
+    +'<td class="r" style="color:var(--warn)">'+fmt(T.moto)+'</td><td class="r fw">'+fmt(T.fech)+'</td><td class="r">'+fmt(T.troco)+'</td><td class="r">'+fmt(T.ret)+'</td>'
+    +'<td colspan="2"></td>'
     +'</tr></tfoot></table></div>';
+  setTimeout(restoreCaixaScroll,0);
 }
 
 function openCaixaModal(id){
   editId=id||null;
   g('mc-title').textContent=id?'Editar Lançamento':'Novo Lançamento';
-  var keys=['data','resp','ab','pix','din','rcred','rdeb','rpar','alim','nf','moto','said','troco','fech','ret','obs'];
+  var keys=['data','resp','ab','pix','din','rcred','rdeb','rpar','alim','nf','moto','troco','fech','ret','obs'];
   if(id&&caixaCache[id]){
     var e=caixaCache[id];
     keys.forEach(function(k){var el=g('f-'+k);if(el)el.value=(e[k]!=null&&e[k]!==0)?e[k]:'';});
@@ -586,6 +621,7 @@ function openCaixaModal(id){
     keys.forEach(function(k){var el=g('f-'+k);if(el)el.value='';});
     g('f-data').value=todayLocal();
   }
+  updateFechAuto();
   g('m-caixa').classList.add('open');
 }
 
@@ -593,20 +629,25 @@ function saveCaixa(){
   if(!loja){alert('Selecione uma loja antes de lançar.');return;}
   var data=g('f-data').value;
   if(!data){alert('Data é obrigatória');return;}
+  var ret=sf(g('f-ret').value);
+  if(ret>0&&!String(g('f-obs').value||'').trim()){
+    alert('Quando preencher Retirada Dinheiro, é obrigatório informar a observação.');return;
+  }
+  var fech=sf(g('f-din').value)-sf(g('f-troco').value)-ret;
   var e={data:data,resp:g('f-resp').value,
     ab:sf(g('f-ab').value),pix:sf(g('f-pix').value),din:sf(g('f-din').value),
     rcred:sf(g('f-rcred').value),rdeb:sf(g('f-rdeb').value),rpar:sf(g('f-rpar').value),
     alim:sf(g('f-alim').value),nf:sf(g('f-nf').value),
-    moto:sf(g('f-moto').value),said:sf(g('f-said').value),
-    troco:sf(g('f-troco').value),fech:sf(g('f-fech').value),ret:sf(g('f-ret').value),
+    moto:sf(g('f-moto').value),
+    troco:sf(g('f-troco').value),fech:fech,ret:ret,
     obs:g('f-obs').value,ts:Date.now()};
   var id=editId||uid();
+  rememberCaixaScroll();
   fbSet('caixa/'+loja+'/'+id,e)
     .then(function(){
       caixaCache[id]=e;selRow=id;
       if(data.slice(0,7)!==mesSel){mesSel=data.slice(0,7);pickerYear=parseInt(mesSel.slice(0,4));buildPicker('picker-caixa','buildCT');}
       buildCT();editId=null;cm('m-caixa');setStatus('Firebase: lançamento salvo','ok');
-      alert('Lançamento salvo com sucesso.');
     })
     .catch(function(err){setStatus('Firebase: erro ao salvar','err');alert('Erro ao salvar: '+firebaseErrorMessage(err));});
 }
@@ -790,7 +831,7 @@ function buildVisao(all){
     +'</div>'
     +'<div class="sc-g mb5">'+cards+'</div>'
     +'<div class="card"><div class="ch"><span class="ct">📊 Consolidado — '+mesLabel()+'</span></div>'
-    +'<div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">'
+    +'<div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px">'
     +'<div class="st"><div class="st-l">Total Geral</div><div class="st-v">'+fmt(grand.total)+'</div></div>'
     +'<div class="st"><div class="st-l">PIX / Transf.</div><div class="st-v">'+fmt(grand.pix)+'</div></div>'
     +'<div class="st"><div class="st-l">Dinheiro</div><div class="st-v">'+fmt(grand.din)+'</div></div>'
@@ -819,7 +860,19 @@ window.addEventListener('unhandledrejection',function(ev){
 });
 
 /* INIT */
-if(isAuthenticated()){unlockApp();}else{showLogin();}
+window.addEventListener('error',function(ev){
+  try{
+    setStatus('Erro no sistema','err');
+    var mc=g('MC');
+    if(mc&&mc.innerHTML.indexOf('Erro no sistema')<0){
+      mc.insertAdjacentHTML('afterbegin','<div class="card mb5" style="border-color:#FECACA;background:#FFF7F7"><div class="ch"><span class="ct" style="color:var(--danger)">⚠️ Erro no sistema</span></div><div style="padding:14px 18px;color:var(--mu);font-size:13px">'+String(ev.message||'Erro desconhecido').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div>');
+    }
+  }catch(e){}
+});
+window.addEventListener('unhandledrejection',function(ev){
+  try{setStatus('Erro no sistema','err');console.error('Promessa rejeitada:',ev.reason);}catch(e){}
+});
+initAuth();
 </script>
 </body>
 </html>
