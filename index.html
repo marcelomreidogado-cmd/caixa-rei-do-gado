@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Caixa Rei do Gado</title>
-<!-- VERSAO_TESTE_DIAS_FIXA_V3: inclui dias na Visao Geral, coluna Data fixa e data com dia da semana -->
+<!-- VERSAO_IOS_V1: layout responsivo para iPhone/iPad + cards móveis para Caixa e PIX -->
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -160,6 +160,64 @@ textarea.inp{resize:vertical;min-height:56px}
 
 
 
+
+/* ── MOBILE / iOS ── */
+.mobile-list,.mobile-total,.mobile-note{display:none}
+.mobile-entry{background:#fff;border:1px solid var(--b);border-radius:12px;box-shadow:var(--sh);padding:12px}
+.mobile-entry.sel{border-color:var(--ac);box-shadow:0 0 0 2px var(--acbg)}
+.mobile-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid #F0EFE8;margin-bottom:10px}
+.mobile-date{font-weight:900;font-size:14px;color:var(--tx)}
+.mobile-sub{font-size:12px;color:var(--mu);margin-top:1px;font-weight:700}
+.mobile-total-val{font-family:'DM Mono',monospace;font-weight:900;color:var(--ac);white-space:nowrap;font-size:14px;text-align:right}
+.mobile-status{margin-top:3px;text-align:right}
+.mobile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mobile-kv{background:#FAFAF8;border:1px solid #F0EFE8;border-radius:9px;padding:8px;min-width:0}
+.mobile-kv span{display:block;font-size:10px;color:var(--mu);font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.mobile-kv strong{font-family:'DM Mono',monospace;font-size:12px;line-height:1.15;overflow-wrap:anywhere}
+.mobile-obs{font-size:12px;color:var(--mu);padding:8px 0 0;line-height:1.35}
+.mobile-actions{display:flex;gap:8px;margin-top:10px}
+.mobile-actions .btn,.mobile-actions .bico{flex:1;justify-content:center;height:38px;font-size:12px}
+.mobile-total{background:#fff;border:2px solid var(--ac);border-radius:12px;padding:12px;box-shadow:var(--sh);margin:10px 0 0}
+.mobile-total .mobile-head{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.mobile-note{font-size:11px;color:var(--mu);padding:8px 12px;background:#FAFAF8;border-bottom:1px solid var(--b);line-height:1.35}
+.stats-grid{padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px}
+
+@media(max-width:768px){
+  html,body{height:auto;min-height:100%;overflow:auto;-webkit-text-size-adjust:100%}
+  body{display:block;font-size:14px;background:var(--bg)}
+  .sb{position:sticky;top:0;z-index:90;width:100%;min-width:0;height:auto;display:block;overflow:visible;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+  .sb-logo{padding:10px 12px;border-bottom:1px solid #27272A}
+  .sb-logo-row{gap:8px}.sb-icon{width:32px;height:32px}.sb-name{font-size:15px}
+  .sb-sub,.sb-lbl,.sb-foot{display:none}
+  .sb-sec{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:7px 10px 9px;scrollbar-width:none}
+  .sb-sec::-webkit-scrollbar{display:none}
+  .nb{flex:0 0 auto;width:auto;min-width:max-content;padding:10px 12px;font-size:13px;background:#202024;border:1px solid #2F2F35}
+  .nb.on{background:#fff;color:var(--ac)}
+  .main{display:block;height:auto;overflow:visible;min-width:0}
+  .topbar{position:sticky;top:0;z-index:80;min-height:50px;height:auto;padding:8px 10px;gap:8px;flex-wrap:wrap}
+  .topbar-title{font-size:14px;font-weight:900}
+  #fb-status{font-size:10.5px!important;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .top-auth{display:none}.btn-exit{margin-left:auto;height:32px}
+  .snav{position:sticky;top:50px;z-index:70;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 8px;scrollbar-width:none}
+  .snav::-webkit-scrollbar{display:none}.snb{flex:0 0 auto;padding:10px 12px;font-size:12px}
+  .content{padding:10px;overflow:visible}
+  .card{border-radius:12px;overflow:hidden}
+  .ch{display:block;padding:12px}.ch .ct{display:block;margin-bottom:8px;font-size:13px}.ch .btn{width:100%;height:42px;justify-content:center;margin-top:8px;font-weight:800}
+  .mbar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 0;scrollbar-width:none}.mbar::-webkit-scrollbar{display:none}
+  .mbar-title{display:none}.mbar-year{flex:0 0 auto}.mbar-months{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.mbar-months::-webkit-scrollbar{display:none}
+  .mbar-month{flex:0 0 auto;min-width:56px;height:40px;font-size:12px}
+  .daybar-wrap{margin:0 0 12px}.daybar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:10px}.daybar::-webkit-scrollbar{display:none}.daybtn{flex:0 0 auto;height:34px}.daybtn.all{min-width:96px}
+  .sc-g{grid-template-columns:1fr!important;gap:10px}.sc-h{padding:11px 13px}.sc-b{padding:12px}.sc-r{font-size:12.5px}.sc-tot{font-size:14px}
+  .stats-grid{padding:12px!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.st{padding:9px 8px}.st-l{font-size:9.5px}.st-v{font-size:11.5px;line-height:1.15}
+  .tw{display:none!important}.mobile-note{display:block}.mobile-list{display:flex;flex-direction:column;gap:10px;padding:10px;background:#FAFAF8}.mobile-total{display:block}.mobile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-entry{padding:11px}.mobile-total-val{font-size:13px}.mobile-kv strong{font-size:11.5px}
+  .pxbar{padding:10px 12px;gap:8px;flex-wrap:wrap;font-size:12px}.fx{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:8px}.fx .finp,.fx .fsel{width:100%!important}.fx .btn{grid-column:1/-1;margin-top:0}
+  .ov{padding:0;align-items:stretch;justify-content:stretch}.modal{max-width:none;width:100%;height:100vh;max-height:100vh;border-radius:0}.mh,.mb2,.mf{padding:14px}.mf{position:sticky;bottom:0;background:#fff}.fg{grid-template-columns:1fr;gap:10px}.inp,.fsel,.finp{font-size:16px;min-height:42px}.lbl{font-size:11px}.fsec-t{font-size:10px}
+  .auth-screen{padding:12px}.auth-card{max-width:100%;border-radius:16px}.auth-head{padding:22px 20px 16px}.auth-body{padding:18px 20px}.auth-title{font-size:22px}.auth-body .inp{height:46px;font-size:16px}.auth-btn{height:46px}
+}
+@media(max-width:420px){
+  .stats-grid{grid-template-columns:1fr!important}.mobile-grid{grid-template-columns:1fr}.fx{grid-template-columns:1fr}.topbar{top:0}.mobile-actions{flex-direction:column}.mobile-actions .btn,.mobile-actions .bico{width:100%}
+}
+
 /* ── AUTH FIREBASE REST ── */
 body.auth-locked{overflow:hidden}
 body.auth-locked .sb,body.auth-locked .main,body.auth-locked .ov:not(#auth-screen){filter:blur(2px);pointer-events:none;user-select:none}
@@ -225,7 +283,7 @@ body.auth-locked .sb,body.auth-locked .main,body.auth-locked .ov:not(#auth-scree
     <button class="nb" id="nav-correas" onclick="goTo('correas')"><span class="ni">🔵</span>Caixa Correas</button>
     <button class="nb" id="nav-bingen" onclick="goTo('bingen')"><span class="ni">🟢</span>Caixa Bingen</button>
   </div>
-  <div class="sb-foot">Salvo em tempo real<br>Firebase Auth SDK<br><span style="color:#52525B">v.teste-dias-fixa-v3 20/05</span></div>
+  <div class="sb-foot">Salvo em tempo real<br>Firebase Auth SDK<br><span style="color:#52525B">v.ios-mobile-v1 20/05</span></div>
 </aside>
 
 <!-- MAIN -->
@@ -570,6 +628,10 @@ function selectCaixaRow(id,tr){
 }
 
 function zfmt(v){return fmt(sf(v));}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function selectCaixaCard(id,el){selRow=id;document.querySelectorAll('.mobile-entry').forEach(function(c){c.classList.remove('sel');});if(el)el.classList.add('sel');}
+function selectPixCard(id,el){selRow=id;document.querySelectorAll('.mobile-entry').forEach(function(c){c.classList.remove('sel');});if(el)el.classList.add('sel');}
+
 
 function buildCT(){
   var el=g('ctable');if(!el)return;
@@ -584,13 +646,14 @@ function buildCT(){
   }
 
   var T={pix:0,din:0,rc:0,rd:0,rp:0,alim:0,nf:0,tot:0,sis:0,moto:0,fech:0,troco:0,ret:0,ab:0};
-  var trs=rows.map(function(x){
+  var trs=[],cards=[];
+  rows.forEach(function(x){
     var id=x[0],e=x[1],tot=calcTot(e),sis=calcSis(e),fech=calcFech(e);
     T.ab+=sf(e.ab);T.pix+=sf(e.pix);T.din+=sf(e.din);T.rc+=calcCred(e);T.rd+=sf(e.rdeb);T.rp+=sf(e.rpar);
     T.alim+=sf(e.alim);T.nf+=sf(e.nf);T.tot+=tot;T.sis+=sis;T.moto+=sf(e.moto);T.fech+=fech;T.troco+=sf(e.troco);T.ret+=sf(e.ret);
     var cls=selRow===id?' sel':'';
-    return '<tr class="'+cls+'" onclick="selectCaixaRow(\''+id+'\',this)" ondblclick="openCaixaModal(\''+id+'\');event.stopPropagation()">'
-      +'<td class="sticky-date"><strong>'+fmtCaixaD(e.data)+'</strong></td><td><strong>'+(e.resp||'—')+'</strong></td>'
+    trs.push('<tr class="'+cls+'" onclick="selectCaixaRow(\''+id+'\',this)" ondblclick="openCaixaModal(\''+id+'\');event.stopPropagation()">'
+      +'<td class="sticky-date"><strong>'+fmtCaixaD(e.data)+'</strong></td><td><strong>'+esc(e.resp||'—')+'</strong></td>'
       +'<td class="r">'+zfmt(e.ab)+'</td>'
       +'<td class="r">'+zfmt(e.pix)+'</td>'
       +'<td class="r">'+zfmt(e.din)+'</td>'
@@ -605,14 +668,35 @@ function buildCT(){
       +'<td class="r fw">'+fmt(fech)+'</td>'
       +'<td class="r">'+zfmt(e.troco)+'</td>'
       +'<td class="r">'+zfmt(e.ret)+'</td>'
-      +'<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;color:var(--mu);font-size:12px">'+(e.obs||'')+'</td>'
+      +'<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;color:var(--mu);font-size:12px">'+esc(e.obs||'')+'</td>'
       +'<td style="white-space:nowrap">'
         +'<button class="bico" onclick="openCaixaModal(\''+id+'\');event.stopPropagation()">✏️</button> '
         +'<button class="bico del" onclick="openDel(\'caixa/'+loja+'/'+id+'\');event.stopPropagation()">🗑️</button>'
-      +'</td></tr>';
-  }).join('');
+      +'</td></tr>');
 
-  el.innerHTML='<div class="tw" id="caixa-scroll"><table class="caixa-table">'
+    cards.push('<div class="mobile-entry caixa-card'+cls+'" onclick="selectCaixaCard(\''+id+'\',this)">'
+      +'<div class="mobile-head"><div><div class="mobile-date">'+fmtCaixaD(e.data)+'</div><div class="mobile-sub">'+esc(e.resp||'Sem responsável')+'</div></div><div><div class="mobile-total-val">'+fmt(tot)+'</div><div class="mobile-sub" style="text-align:right">Total dia</div></div></div>'
+      +'<div class="mobile-grid">'
+        +'<div class="mobile-kv"><span>PIX</span><strong>'+zfmt(e.pix)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Dinheiro</span><strong>'+zfmt(e.din)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Crédito Líq.</span><strong>'+fmt(calcCred(e))+'</strong></div>'
+        +'<div class="mobile-kv"><span>Débito</span><strong>'+zfmt(e.rdeb)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Parcelado</span><strong>'+zfmt(e.rpar)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Alim./Refeição</span><strong>'+zfmt(e.alim)+'</strong></div>'
+        +'<div class="mobile-kv"><span>N. Fácil</span><strong>'+zfmt(e.nf)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Total Sistema</span><strong>'+fmt(sis)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Motoboy</span><strong style="color:var(--warn)">'+zfmt(e.moto)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Fechamento</span><strong>'+fmt(fech)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Ret. Troco</span><strong>'+zfmt(e.troco)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Ret. Dinheiro</span><strong>'+zfmt(e.ret)+'</strong></div>'
+      +'</div>'
+      +(e.obs?'<div class="mobile-obs"><strong>Obs.:</strong> '+esc(e.obs)+'</div>':'')
+      +'<div class="mobile-actions"><button class="btn btn-p" onclick="openCaixaModal(\''+id+'\');event.stopPropagation()">Editar lançamento</button><button class="bico del" onclick="openDel(\'caixa/'+loja+'/'+id+'\');event.stopPropagation()">Excluir</button></div>'
+    +'</div>');
+  });
+
+  el.innerHTML='<div class="mobile-note">📱 Modo iPhone: toque em <strong>Editar lançamento</strong> para alterar. No computador, a tabela completa continua disponível.</div>'
+    +'<div class="tw" id="caixa-scroll"><table class="caixa-table">'
     +'<thead><tr>'
     +'<th class="sticky-date">Data</th><th>Resp.</th><th class="r">Abertura</th>'
     +'<th class="r">PIX/Transf.</th><th class="r">Dinheiro</th>'
@@ -622,7 +706,7 @@ function buildCT(){
     +'<th class="r">Motoboy</th><th class="r">Fechamento</th><th class="r">Ret.Troco</th><th class="r">Ret.Din.</th>'
     +'<th>Obs.</th><th>Ações</th>'
     +'</tr></thead>'
-    +'<tbody>'+trs+'</tbody>'
+    +'<tbody>'+trs.join('')+'</tbody>'
     +'<tfoot><tr>'
     +'<td class="sticky-date"><strong>TOTAL</strong></td><td></td><td class="r">'+fmt(T.ab)+'</td>'
     +'<td class="r">'+fmt(T.pix)+'</td><td class="r">'+fmt(T.din)+'</td>'
@@ -631,10 +715,11 @@ function buildCT(){
     +'<td class="r fw">'+fmt(T.tot)+'</td><td class="r">'+fmt(T.nf)+'</td><td class="r fw">'+fmt(T.sis)+'</td>'
     +'<td class="r" style="color:var(--warn)">'+fmt(T.moto)+'</td><td class="r fw">'+fmt(T.fech)+'</td><td class="r">'+fmt(T.troco)+'</td><td class="r">'+fmt(T.ret)+'</td>'
     +'<td colspan="2"></td>'
-    +'</tr></tfoot></table></div>';
+    +'</tr></tfoot></table></div>'
+    +'<div class="mobile-list">'+cards.join('')+'</div>'
+    +'<div class="mobile-total"><div class="mobile-head"><div><div class="mobile-date">Total do mês</div><div class="mobile-sub">'+mesLabel()+'</div></div><div><div class="mobile-total-val">'+fmt(T.tot)+'</div><div class="mobile-sub" style="text-align:right">Total dia</div></div></div><div class="mobile-grid"><div class="mobile-kv"><span>Total Sistema</span><strong>'+fmt(T.sis)+'</strong></div><div class="mobile-kv"><span>Dinheiro</span><strong>'+fmt(T.din)+'</strong></div><div class="mobile-kv"><span>PIX</span><strong>'+fmt(T.pix)+'</strong></div><div class="mobile-kv"><span>Fechamento</span><strong>'+fmt(T.fech)+'</strong></div></div></div>';
   var nw=g('caixa-scroll');if(nw)nw.scrollLeft=oldScroll;
 }
-
 
 function openCaixaModal(id){
   editId=id||null;
@@ -714,28 +799,43 @@ function buildPT(){
   rows.forEach(function(x){if(x[1].status==='pago')pago+=sf(x[1].val);else pend+=sf(x[1].val);});
   var el=g('pxtable');if(!el)return;
   if(!rows.length){el.innerHTML='<div class="empty"><div style="font-size:38px">📭</div><span>Nenhum registro encontrado</span></div>';return;}
-  var hint='<div style="padding:8px 16px;font-size:11px;color:var(--mu);background:#FAFAF8;border-bottom:1px solid var(--b)">💡 Duplo clique numa linha pendente para dar baixa rapidamente</div>';
-  var trs=rows.map(function(x){
+  var hint='<div class="mobile-note">📱 Modo iPhone: use os botões <strong>Baixa</strong>, <strong>Editar</strong> ou <strong>Excluir</strong> em cada card.</div><div style="padding:8px 16px;font-size:11px;color:var(--mu);background:#FAFAF8;border-bottom:1px solid var(--b)" class="desktop-hint">💡 Duplo clique numa linha pendente para dar baixa rapidamente</div>';
+  var trs=[],cards=[];
+  rows.forEach(function(x){
     var id=x[0],e=x[1],pg=e.status==='pago';
     var badge=pg?'<span class="badge bpg">✅ Pago</span>':'<span class="badge bpd">⏳ Pendente</span>';
     var rowCls=(selRow===id?' sel':'')+(pg?' pago-row':' pend-row');
     var path_=pixTipo==='loja'?'pix_loja/'+loja+'/'+id:'pix_rest/'+loja+'/'+id;
-    return '<tr class="'+rowCls+'" onclick="selRow=\''+id+'\';buildPT()"'
+    trs.push('<tr class="'+rowCls+'" onclick="selRow=\''+id+'\';buildPT()"'
       +(!pg?' ondblclick="openBaixa(\''+id+'\');event.stopPropagation()"':'')+' >'
       +'<td>'+fmtDF(e.data)+'</td>'
-      +'<td><strong>'+(e.cli||'—')+'</strong></td>'
+      +'<td><strong>'+esc(e.cli||'—')+'</strong></td>'
       +'<td class="r fw">'+fmt(e.val)+'</td>'
       +'<td>'+badge+'</td>'
       +'<td>'+fmtDF(e.dtpg)+'</td>'
-      +'<td>'+(e.forma||'—')+'</td>'
-      +(hasC?'<td style="color:var(--mu);font-size:12px">'+(e.cred||'—')+'</td>':'')
-      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;color:var(--mu);font-size:12px">'+(e.obs||'')+'</td>'
+      +'<td>'+esc(e.forma||'—')+'</td>'
+      +(hasC?'<td style="color:var(--mu);font-size:12px">'+esc(e.cred||'—')+'</td>':'')
+      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;color:var(--mu);font-size:12px">'+esc(e.obs||'')+'</td>'
       +'<td style="white-space:nowrap">'
         +(!pg?'<button class="bico" style="background:#E4F8EF;border-color:#6EE7B7;font-size:12px;margin-right:4px" onclick="openBaixa(\''+id+'\');event.stopPropagation()">✅ Baixa</button>':'')
         +'<button class="bico" onclick="openPixModal(\''+id+'\');event.stopPropagation()">✏️</button> '
         +'<button class="bico del" onclick="openDel(\''+path_+'\');event.stopPropagation()">🗑️</button>'
-      +'</td></tr>';
-  }).join('');
+      +'</td></tr>');
+
+    cards.push('<div class="mobile-entry pix-card'+(selRow===id?' sel':'')+'" onclick="selectPixCard(\''+id+'\',this)">'
+      +'<div class="mobile-head"><div><div class="mobile-date">'+fmtDF(e.data)+'</div><div class="mobile-sub">'+esc(e.cli||'Cliente não informado')+'</div></div><div><div class="mobile-total-val">'+fmt(e.val)+'</div><div class="mobile-status">'+badge+'</div></div></div>'
+      +'<div class="mobile-grid">'
+        +'<div class="mobile-kv"><span>Data Pgto</span><strong>'+fmtDF(e.dtpg)+'</strong></div>'
+        +'<div class="mobile-kv"><span>Forma</span><strong>'+esc(e.forma||'—')+'</strong></div>'
+        +(hasC?'<div class="mobile-kv"><span>Créditos</span><strong>'+esc(e.cred||'—')+'</strong></div>':'')
+      +'</div>'
+      +(e.obs?'<div class="mobile-obs"><strong>Obs.:</strong> '+esc(e.obs)+'</div>':'')
+      +'<div class="mobile-actions">'
+        +(!pg?'<button class="btn btn-p" style="background:var(--ok)" onclick="openBaixa(\''+id+'\');event.stopPropagation()">Dar baixa</button>':'')
+        +'<button class="btn btn-p" onclick="openPixModal(\''+id+'\');event.stopPropagation()">Editar</button>'
+        +'<button class="bico del" onclick="openDel(\''+path_+'\');event.stopPropagation()">Excluir</button>'
+      +'</div></div>');
+  });
   el.innerHTML='<div class="pxbar">'
     +'<span>⏳ Pendente: <strong style="color:var(--warn)">'+fmt(pend)+'</strong></span>'
     +'<span>✅ Pago: <strong style="color:var(--ok)">'+fmt(pago)+'</strong></span>'
@@ -746,8 +846,8 @@ function buildPT(){
     +'<thead><tr><th>Data Compra</th><th>Cliente</th><th class="r">Valor</th><th>Status</th>'
     +'<th>Data Pgto</th><th>Forma Pgto</th>'+(hasC?'<th>Créditos</th>':'')
     +'<th>Observação</th><th>Ações</th></tr></thead>'
-    +'<tbody>'+trs+'</tbody>'
-    +'</table></div>';
+    +'<tbody>'+trs.join('')+'</tbody>'
+    +'</table></div><div class="mobile-list">'+cards.join('')+'</div>';
 }
 
 function openPixModal(id){
