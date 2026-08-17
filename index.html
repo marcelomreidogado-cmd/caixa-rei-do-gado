@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Caixas Rei do Gado">
 <title>Caixa Rei do Gado</title>
-<!-- VERSAO_IOS_IPHONE_V2: layout iPhone reforçado com navegação inferior, cards móveis e safe-area iOS -->
+<!-- VERSAO_IOS_ANALISE_V1: iPhone + aba Análise por período Ter-Qui / Sex-Dom -->
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -67,6 +67,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-
 .daybtn:hover{border-color:var(--ac);background:var(--acbg);color:var(--ac)}
 .daybtn.active{background:var(--ac);border-color:var(--ac);color:#fff}
 .daybtn.all{min-width:94px}
+
+/* ── ANÁLISE POR PERÍODO ── */
+.period-panel{padding:14px 16px;border-top:1px solid #F5F4F0;background:#FAFAF8}
+.period-controls{display:grid;grid-template-columns:1.4fr 1fr auto;gap:10px;align-items:end}
+.period-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.period-btn{padding:8px 12px;border:1.5px solid var(--b);border-radius:9px;background:#fff;color:var(--tx);font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .12s;box-shadow:var(--sh)}
+.period-btn:hover{border-color:var(--ac);background:var(--acbg);color:var(--ac)}
+.period-btn.active{background:var(--ac);border-color:var(--ac);color:#fff}
+.period-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.period-dates.hide{display:none}
+.analysis-title{font-size:12px;font-weight:900;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.analysis-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px}
+.analysis-store-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.analysis-card{background:#fff;border:1px solid var(--b);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
+.analysis-card-h{padding:11px 13px;font-size:13px;font-weight:900;color:#fff;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.analysis-card-b{padding:12px 13px}
+.analysis-kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #F2F1EB;font-size:12.5px}
+.analysis-kv:last-child{border-bottom:none}
+.analysis-kv span{color:var(--mu);font-weight:700}
+.analysis-kv strong{font-family:'DM Mono',monospace;font-size:12px;text-align:right;overflow-wrap:anywhere}
+.analysis-big{font-family:'DM Mono',monospace;font-size:19px;font-weight:900;color:var(--ac);line-height:1.15;overflow-wrap:anywhere}
+.analysis-muted{font-size:12px;color:var(--mu);font-weight:700;margin-top:2px}
+.analysis-callout{background:var(--acbg);border:1.5px solid var(--ac);border-radius:12px;padding:12px 14px;margin-bottom:16px;color:var(--tx)}
+.analysis-callout strong{color:var(--ac)}
 
 /* ── CARD ── */
 .card{background:#fff;border-radius:var(--r);border:1px solid var(--b);overflow:hidden;box-shadow:var(--sh)}
@@ -210,6 +235,7 @@ textarea.inp{resize:vertical;min-height:56px}
   .mbar-title{display:none}.mbar-year{flex:0 0 auto}.mbar-months{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.mbar-months::-webkit-scrollbar{display:none}
   .mbar-month{flex:0 0 auto;min-width:56px;height:40px;font-size:12px}
   .daybar-wrap{margin:0 0 12px}.daybar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:10px}.daybar::-webkit-scrollbar{display:none}.daybtn{flex:0 0 auto;height:34px}.daybtn.all{min-width:96px}
+  .period-controls{grid-template-columns:1fr!important}.period-buttons{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}.period-buttons::-webkit-scrollbar{display:none}.period-btn{flex:0 0 auto;min-height:40px}.period-dates{grid-template-columns:1fr!important}.analysis-hero{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.analysis-grid,.analysis-store-grid{grid-template-columns:1fr!important;gap:10px}.analysis-big{font-size:15px}.analysis-kv strong{font-size:11.5px}
   .sc-g{grid-template-columns:1fr!important;gap:10px}.sc-h{padding:11px 13px}.sc-b{padding:12px}.sc-r{font-size:12.5px}.sc-tot{font-size:14px}
   .stats-grid{padding:12px!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.st{padding:9px 8px}.st-l{font-size:9.5px}.st-v{font-size:11.5px;line-height:1.15}
   .tw{display:none!important}.mobile-note{display:block}.mobile-list{display:flex;flex-direction:column;gap:10px;padding:10px;background:#FAFAF8}.mobile-total{display:block}.mobile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-entry{padding:11px}.mobile-total-val{font-size:13px}.mobile-kv strong{font-size:11.5px}
@@ -328,6 +354,7 @@ body.auth-locked .sb,body.auth-locked .main,body.auth-locked .ov:not(#auth-scree
   <div class="sb-sec">
     <div class="sb-lbl">Geral</div>
     <button class="nb on" id="nav-visao" onclick="goTo('visao')"><span class="ni">🏠</span>Visão Geral</button>
+    <button class="nb" id="nav-analise" onclick="goTo('analise')"><span class="ni">📈</span>Análise</button>
   </div>
   <div class="sb-sec">
     <div class="sb-lbl">Lojas</div>
@@ -335,7 +362,7 @@ body.auth-locked .sb,body.auth-locked .main,body.auth-locked .ov:not(#auth-scree
     <button class="nb" id="nav-correas" onclick="goTo('correas')"><span class="ni">🔵</span>Caixa Correas</button>
     <button class="nb" id="nav-bingen" onclick="goTo('bingen')"><span class="ni">🟢</span>Caixa Bingen</button>
   </div>
-  <div class="sb-foot">Salvo em tempo real<br>Firebase Auth SDK<br><span style="color:#52525B">v.ios-iphone-v2 20/05</span></div>
+  <div class="sb-foot">Salvo em tempo real<br>Firebase Auth SDK<br><span style="color:#52525B">v.ios-analise-v1 17/08</span></div>
 </aside>
 
 <!-- MAIN -->
@@ -553,8 +580,9 @@ var MESES_FULL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 /* ── STATE ── */
 var page='visao',tab='caixa',loja=null;
 var editId=null,pixTipo='loja',selRow=null,delPath=null,baixaId=null;
-var timers=[],caixaCache={},pixCache={},visaoAllCache=null;
+var timers=[],caixaCache={},pixCache={},visaoAllCache=null,analiseAllCache=null;
 var diaSel=null; // null = mês cheio; YYYY-MM-DD = dia selecionado na Visão Geral
+var analisePeriodo='mes',analiseLoja='todas'; // mes | terqui | fimsemana | custom
 var mesSel=monthLocal(); // e.g. "2026-05"
 var pickerYear=parseInt(mesSel.slice(0,4));
 
@@ -620,6 +648,7 @@ function selectMes(val,containerId,onSelect){
   if(onSelect==='renderVisao')diaSel=null;
   if(onSelect==='buildCT') buildCT();
   else if(onSelect==='renderVisao') renderVisao();
+  else if(onSelect==='renderAnalise') renderAnalise();
   buildPicker(containerId,onSelect);
 }
 
@@ -628,7 +657,7 @@ function goTo(p){
   clearAll();page=p;
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
   var el=g('nav-'+p);if(el)el.classList.add('on');
-  var titles={visao:'🏠 Visão Geral',
+  var titles={visao:'🏠 Visão Geral',analise:'📈 Análise de Períodos',
     coronel:'🟡 Caixa Coronel',correas:'🔵 Caixa Correas',bingen:'🟢 Caixa Bingen'};
   g('top-title').textContent=titles[p]||p;
   if(p==='visao'){
@@ -636,6 +665,11 @@ function goTo(p){
     g('sb-icon').style.background='#52525B';
     g('snav').style.display='none';
     renderVisao();
+  } else if(p==='analise'){
+    loja=null;setAC('#52525B','#F0EFEA');
+    g('sb-icon').style.background='#52525B';
+    g('snav').style.display='none';
+    renderAnalise();
   } else {
     loja=p;setAC(LOJAS[p].cor,LOJAS[p].bg);
     g('sb-icon').style.background=LOJAS[p].cor;
@@ -1046,8 +1080,90 @@ function buildVisao(all){
     +'<div class="st"><div class="st-l">Motoboy Total</div><div class="st-v" style="color:var(--warn)">'+fmt(grand.moto)+'</div></div>'
     +'</div></div>';
 
+
   buildPicker('picker-visao','renderVisao');
   buildDiasVisao();
+}
+
+/* ── ANÁLISE DE PERÍODOS ── */
+function emptyTotals(){return {ab:0,pix:0,din:0,cred:0,par:0,deb:0,alim:0,nf:0,moto:0,fech:0,troco:0,ret:0,total:0,sis:0,count:0,dias:{}};}
+function addTotals(t,e){
+  t.ab+=sf(e.ab);t.pix+=sf(e.pix);t.din+=sf(e.din);t.cred+=calcCred(e);t.par+=sf(e.rpar);t.deb+=sf(e.rdeb);t.alim+=sf(e.alim);t.nf+=sf(e.nf);t.moto+=sf(e.moto);t.fech+=calcFech(e);t.troco+=sf(e.troco);t.ret+=sf(e.ret);t.total+=calcTot(e);t.sis+=calcSis(e);t.count++;
+  if(e.data)t.dias[e.data]=true;
+}
+function diasTot(t){return Object.keys(t.dias||{}).length;}
+function mediaDia(t){var d=diasTot(t);return d?t.total/d:0;}
+function periodoNome(p){return p==='terqui'?'Terça a quinta':(p==='fimsemana'?'Final de semana':(p==='custom'?'Período personalizado':'Mês cheio'));}
+function isDataNoPeriodo(data,periodo){
+  if(!data)return false;
+  if(periodo==='custom'){
+    var ini=(g('an-ini')?g('an-ini').value:'')||mesSel+'-01';
+    var fim=(g('an-fim')?g('an-fim').value:'')||mesSel+'-'+String(diasNoMes(mesSel)).padStart(2,'0');
+    return data>=ini&&data<=fim;
+  }
+  if(!data.startsWith(mesSel))return false;
+  if(periodo==='terqui'){var d1=new Date(data+'T12:00:00').getDay();return d1>=2&&d1<=4;}
+  if(periodo==='fimsemana'){var d2=new Date(data+'T12:00:00').getDay();return d2===5||d2===6||d2===0;}
+  return true;
+}
+function calcAnalise(all,periodo,lojaFiltro){
+  var lojas=Object.keys(LOJAS),porLoja={},total=emptyTotals();
+  lojas.forEach(function(l){porLoja[l]=emptyTotals();});
+  lojas.forEach(function(l){
+    if(lojaFiltro&&lojaFiltro!=='todas'&&l!==lojaFiltro)return;
+    Object.values(all[l]||{}).forEach(function(e){
+      if(e&&e.data&&isDataNoPeriodo(e.data,periodo)){addTotals(porLoja[l],e);addTotals(total,e);}
+    });
+  });
+  return {porLoja:porLoja,total:total};
+}
+function setAnalisePeriodo(p){
+  analisePeriodo=p;
+  document.querySelectorAll('[data-periodo]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-periodo')===p);});
+  var box=g('an-dates');if(box)box.classList.toggle('hide',p!=='custom');
+  buildAnalise();
+}
+function labelPeriodoAtual(){
+  if(analisePeriodo==='custom'){
+    var ini=g('an-ini')?g('an-ini').value:'';var fim=g('an-fim')?g('an-fim').value:'';
+    return (ini?fmtDF(ini):'Início')+' até '+(fim?fmtDF(fim):'Fim');
+  }
+  return periodoNome(analisePeriodo)+' — '+mesLabel();
+}
+function renderAnalise(){
+  setMC('<div class="card mb5"><div class="ch"><div><span class="ct">📈 Análise de vendas por período</span><div style="font-size:12px;color:var(--mu);font-weight:700;margin-top:3px">Compare terça a quinta, final de semana e lojas juntas ou separadas.</div></div><div id="picker-analise"></div></div><div class="period-panel"><div class="period-controls"><div><div class="analysis-title">Período</div><div class="period-buttons"><button class="period-btn '+(analisePeriodo==='mes'?'active':'')+'" data-periodo="mes" onclick="setAnalisePeriodo(\'mes\')">Mês cheio</button><button class="period-btn '+(analisePeriodo==='terqui'?'active':'')+'" data-periodo="terqui" onclick="setAnalisePeriodo(\'terqui\')">Terça a quinta</button><button class="period-btn '+(analisePeriodo==='fimsemana'?'active':'')+'" data-periodo="fimsemana" onclick="setAnalisePeriodo(\'fimsemana\')">Sex a domingo</button><button class="period-btn '+(analisePeriodo==='custom'?'active':'')+'" data-periodo="custom" onclick="setAnalisePeriodo(\'custom\')">Personalizado</button></div></div><div><label class="lbl">Loja</label><select class="fsel" id="an-loja" onchange="analiseLoja=this.value;buildAnalise()"><option value="todas">Todas juntas</option><option value="coronel">Coronel</option><option value="correas">Correas</option><option value="bingen">Bingen</option></select></div><button class="btn btn-p" onclick="renderAnalise()">Atualizar dados</button></div><div class="period-dates '+(analisePeriodo==='custom'?'':'hide')+'" id="an-dates"><div><label class="lbl">Data inicial</label><input class="inp" type="date" id="an-ini" onchange="buildAnalise()"></div><div><label class="lbl">Data final</label><input class="inp" type="date" id="an-fim" onchange="buildAnalise()"></div></div></div></div><div id="analise-body"><div class="loading">⏳ Carregando análise...</div></div>');
+  buildPicker('picker-analise','renderAnalise');
+  var sl=g('an-loja');if(sl)sl.value=analiseLoja;
+  var ini=g('an-ini'),fim=g('an-fim');if(ini&&!ini.value)ini.value=mesSel+'-01';if(fim&&!fim.value)fim.value=mesSel+'-'+String(diasNoMes(mesSel)).padStart(2,'0');
+  var lojas=Object.keys(LOJAS);
+  Promise.all(lojas.map(function(l){return fbGet('caixa/'+l).then(function(d){return {l:l,d:d||{}};});}))
+    .then(function(res){var a={};res.forEach(function(r){a[r.l]=r.d;});analiseAllCache=a;buildAnalise();})
+    .catch(function(err){setStatus('Firebase: erro','err');console.error('Erro análise:',err);analiseAllCache={coronel:{},correas:{},bingen:{}};buildAnalise();});
+}
+function metricHtml(label,value,sub){return '<div class="st"><div class="st-l">'+label+'</div><div class="st-v">'+value+'</div>'+(sub?'<div class="st-s">'+sub+'</div>':'')+'</div>';}
+function lojaCardAnalise(l,t){var c=LOJAS[l];return '<div class="analysis-card"><div class="analysis-card-h" style="background:'+c.cor+'"><span>'+c.icon+' '+c.nome+'</span><span>'+diasTot(t)+' dia(s)</span></div><div class="analysis-card-b"><div class="analysis-kv"><span>Total venda</span><strong>'+fmt(t.total)+'</strong></div><div class="analysis-kv"><span>Total sistema</span><strong>'+fmt(t.sis)+'</strong></div><div class="analysis-kv"><span>Média/dia</span><strong>'+fmt(mediaDia(t))+'</strong></div><div class="analysis-kv"><span>PIX</span><strong>'+fmt(t.pix)+'</strong></div><div class="analysis-kv"><span>Dinheiro</span><strong>'+fmt(t.din)+'</strong></div><div class="analysis-kv"><span>Crédito líq.</span><strong>'+fmt(t.cred)+'</strong></div><div class="analysis-kv"><span>Débito</span><strong>'+fmt(t.deb)+'</strong></div><div class="analysis-kv"><span>Parcelado</span><strong>'+fmt(t.par)+'</strong></div><div class="analysis-kv"><span>Motoboy</span><strong style="color:var(--warn)">'+fmt(t.moto)+'</strong></div></div></div>';}
+function buildAnalise(){
+  var el=g('analise-body');if(!el||!analiseAllCache)return;
+  var sl=g('an-loja');if(sl)analiseLoja=sl.value;
+  var atual=calcAnalise(analiseAllCache,analisePeriodo,analiseLoja);
+  var ter=calcAnalise(analiseAllCache,'terqui',analiseLoja).total;
+  var fim=calcAnalise(analiseAllCache,'fimsemana',analiseLoja).total;
+  var diff=fim.total-ter.total;
+  var lojaTxt=analiseLoja==='todas'?'Todas as lojas juntas':LOJAS[analiseLoja].nome;
+  var lojas=Object.keys(LOJAS).filter(function(l){return analiseLoja==='todas'||l===analiseLoja;});
+  var cards=lojas.map(function(l){return lojaCardAnalise(l,atual.porLoja[l]);}).join('');
+  el.innerHTML='<div class="analysis-callout"><strong>'+lojaTxt+'</strong> — '+labelPeriodoAtual()+'. O quadro compara também terça a quinta contra sexta a domingo dentro do mês selecionado.</div>'
+    +'<div class="analysis-hero">'
+      +metricHtml('Total venda',fmt(atual.total.total),'sem Nota Fácil')
+      +metricHtml('Total sistema',fmt(atual.total.sis),'com Nota Fácil')
+      +metricHtml('Média por dia',fmt(mediaDia(atual.total)),diasTot(atual.total)+' dia(s) com venda')
+      +metricHtml('Lançamentos',String(atual.total.count),'registros no período')
+    +'</div>'
+    +'<div class="analysis-grid">'
+      +'<div class="analysis-card"><div class="analysis-card-h" style="background:#52525B"><span>📅 Terça a quinta</span><span>'+diasTot(ter)+' dia(s)</span></div><div class="analysis-card-b"><div class="analysis-big">'+fmt(ter.total)+'</div><div class="analysis-muted">Média/dia: '+fmt(mediaDia(ter))+'</div><div class="analysis-kv"><span>Total sistema</span><strong>'+fmt(ter.sis)+'</strong></div><div class="analysis-kv"><span>PIX</span><strong>'+fmt(ter.pix)+'</strong></div><div class="analysis-kv"><span>Dinheiro</span><strong>'+fmt(ter.din)+'</strong></div></div></div>'
+      +'<div class="analysis-card"><div class="analysis-card-h" style="background:#52525B"><span>🔥 Sexta a domingo</span><span>'+diasTot(fim)+' dia(s)</span></div><div class="analysis-card-b"><div class="analysis-big">'+fmt(fim.total)+'</div><div class="analysis-muted">Média/dia: '+fmt(mediaDia(fim))+'</div><div class="analysis-kv"><span>Total sistema</span><strong>'+fmt(fim.sis)+'</strong></div><div class="analysis-kv"><span>Diferença vs Ter-Qui</span><strong>'+fmt(diff)+'</strong></div><div class="analysis-kv"><span>Lançamentos</span><strong>'+fim.count+'</strong></div></div></div>'
+    +'</div>'
+    +'<div class="analysis-title">Por loja</div><div class="analysis-store-grid">'+cards+'</div>';
 }
 
 /* ── ERROS GLOBAIS ── */
