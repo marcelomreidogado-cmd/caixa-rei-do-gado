@@ -352,13 +352,16 @@ function construirModelo(imports){
   var semEsp={}; lista.forEach(function(c){ c.nomeKeysArr.forEach(function(nk){ var kk=nk.replace(/ /g,''); (semEsp[kk]=semEsp[kk]||{})[c.chave]=c; }); });
   var duplicados=Object.keys(semEsp).map(function(k){return Object.keys(semEsp[k]).map(function(x){return semEsp[k][x];});}).filter(function(g){return g.length>1;});
   var codigos={}; lista.forEach(function(c){ if(c.codigo) codigos[c.codigo]=c; });
-  var abcPorCod={}, abcPorNome={}; (S.cfg.abc||[]).forEach(function(r){ var a=abcObj(r); abcPorCod[a.cod]=a; (abcPorNome[a.nk]=abcPorNome[a.nk]||[]).push(a); });
-  lista.forEach(function(c){ c.abc=c.codigo?abcPorCod[c.codigo]||null:null; c.celular=c.abc?c.abc.cel:''; c.bairro=c.abc?c.abc.bairro:''; });
+  var abcPorCod={}, abcPorNome={}; (S.cfg.abc||[]).forEach(function(r){ var a=abcObj(r); (abcPorCod[a.cod]=abcPorCod[a.cod]||[]).push(a); (abcPorNome[a.nk]=abcPorNome[a.nk]||[]).push(a); });
+  var abcCompart={}; Object.keys(abcPorCod).forEach(function(cod){ var ns={}; abcPorCod[cod].forEach(function(a){ns[a.nk]=1;}); if(Object.keys(ns).length>1) abcCompart[cod]=abcPorCod[cod]; });
+  lista.forEach(function(c){ var rs=c.codigo?abcPorCod[c.codigo]||[]:[]; var meu=rs.filter(function(a){return c.nomeKeysArr.indexOf(a.nk)>=0;})[0];
+    var dono=rs.filter(function(a){return a.emp===String(c.codigo).slice(0,3);})[0];
+    c.abc=meu||dono||rs[0]||null; c.celular=c.abc?c.abc.cel:''; c.bairro=c.abc?c.abc.bairro:''; });
   var funcArr=Object.keys(funcs).map(function(k){ var f=funcs[k]; f.nCompras=Object.keys(f.docs).length; delete f.docs; f.lojasArr=Object.keys(f.lojas);
     f.top=Object.keys(f.prod).sort(function(a,b){return f.prod[b]-f.prod[a];}).slice(0,3); delete f.prod; return f; }).sort(function(a,b){return b.total-a.total;});
   var meses={}; lista.forEach(function(c){ Object.keys(c.meses).forEach(function(m){meses[m]=1;}); });
 
-  var M={clientes:clientes,lista:lista,produtos:produtos,produtosArr:produtosArr,recompra:recompra,anomalias:anomalias,duplicados:duplicados,funcs:funcArr,somaInterno:somaInterno,codigos:codigos,abcPorCod:abcPorCod,abcPorNome:abcPorNome,
+  var M={clientes:clientes,lista:lista,produtos:produtos,produtosArr:produtosArr,recompra:recompra,anomalias:anomalias,duplicados:duplicados,funcs:funcArr,somaInterno:somaInterno,codigos:codigos,abcPorCod:abcPorCod,abcPorNome:abcPorNome,abcCompart:abcCompart,
     anon:{valor:anon.valor,itens:anon.itens,docs:Object.keys(anon.docs).length},cupons:Object.keys(cupons).map(function(k){return cupons[k];}),refData:refData,dataMin:dataMin,somaValor:somaValor,nLinhas:nLinhas,meses:Object.keys(meses).sort(),n:n,co:co,nClientes:lista.length};
   return M;
 }
@@ -411,7 +414,7 @@ async function salvarCodigo(chaveCliente,codigo){
   if(codigo===(c.codigo||'')) return;
   var outro=codigo&&m.codigos[codigo]&&m.codigos[codigo]!==c?m.codigos[codigo]:null;
   if(outro&&!confirm('O código '+codigo+' já está vinculado a "'+outro.nome+'".\n\nSão a mesma pessoa? OK junta os dois em um só cliente (compras e cesta somadas).')) { render(); return; }
-  await dbTx('vinculos',function(st){ c.nomeKeysArr.forEach(function(nk){ var v=marcarVinc(Object.assign({},S.vinc[nk]||{chave:nk})); v.codigo=codigo; st.put(v); S.vinc[nk]=v; }); });
+  await dbTx('vinculos',function(st){ c.nomeKeysArr.forEach(function(nk){ var v=marcarVinc(Object.assign({},S.vinc[nk]||{chave:nk})); v.codigo=codigo; v.origem='manual'; st.put(v); S.vinc[nk]=v; }); });
   agendarSync();
   var aberto=$('#modal').classList.contains('on');
   S.model=construirModelo(S.imports); render();
@@ -419,6 +422,11 @@ async function salvarCodigo(chaveCliente,codigo){
   if(aberto&&novo) abrirCliente(novo.chave);
   toast(codigo?(outro?'Clientes unidos no código '+codigo+'.':'Código '+codigo+' vinculado a '+c.nome+'.'):'Código removido.','ok');
 }
+/* passa um código para outro cliente, tirando de quem estava com ele (sem juntar os dois) */
+async function trocarDono(chave,cod){ var m=S.model, atual=cod?m.codigos[cod]:null;
+  if(atual&&atual.chave!==chave){ await dbTx('vinculos',function(st){ atual.nomeKeysArr.forEach(function(nk){ var v=marcarVinc(Object.assign({},S.vinc[nk]||{chave:nk})); v.codigo=''; v.origem='manual'; st.put(v); S.vinc[nk]=v; }); });
+    S.model=construirModelo(S.imports); }
+  await salvarCodigo(chave,cod); }
 async function definirTipo(nomeKeys,tipo){
   await dbTx('vinculos',function(st){ nomeKeys.forEach(function(nk){ var v=marcarVinc(Object.assign({},S.vinc[nk]||{chave:nk})); v.tipo=tipo; st.put(v); S.vinc[nk]=v; }); });
   agendarSync();
@@ -567,42 +575,63 @@ async function lerCurvaABC(file){
   var porCod={};
   for(var r=hi+1;r<rows.length;r++){ var R=rows[r], cod=String(R[col.cod]==null?'':R[col.cod]).trim(), nome=String(R[col.nome]||'').trim(); if(!cod||!nome) continue;
     var o=[String(col.emp!=null?R[col.emp]:''),cod,nome,String(col.bairro!=null?R[col.bairro]:'').trim(),+(col.nc!=null?R[col.nc]:0)||0,+(col.vl!=null?R[col.vl]:0)||0,col.ult!=null?dataXls(R[col.ult]):'',String(col.cel!=null?R[col.cel]:'').trim()];
-    var ant=porCod[cod]; if(!ant||o[6]>ant[6]) porCod[cod]=o; }
+    var kk=cod+'|'+rgNorm(nome), ant=porCod[kk]; if(!ant||o[6]>ant[6]) porCod[kk]=o; }
   return Object.keys(porCod).map(function(k){return porCod[k];});
 }
 /* candidatos da Curva ABC para um cliente da base (pelo nome) */
 function candidatosABC(c){ var m=S.model, out=[], vistos={}; c.nomeKeysArr.forEach(function(nk){ (m.abcPorNome[nk]||[]).forEach(function(a){ if(!vistos[a.cod]){ vistos[a.cod]=1; out.push(a); } }); }); return out; }
-function escolhaAutomatica(c){ var cs=candidatosABC(c); if(!cs.length) return {tipo:'sem'}; if(cs.length===1) return {tipo:'unico',a:cs[0]};
-  var mesmaData=cs.filter(function(a){return a.ult===c.ultimaCompra;}); if(mesmaData.length===1) return {tipo:'data',a:mesmaData[0]};
+function escolhaAutomatica(c){ var cs=candidatosABC(c), comp=S.model.abcCompart||{}; if(!cs.length) return {tipo:'sem'};
+  var r=null; if(cs.length===1) r={tipo:'unico',a:cs[0]};
+  else { var mesmaData=cs.filter(function(a){return a.ult===c.ultimaCompra;}); if(mesmaData.length===1) r={tipo:'data',a:mesmaData[0]}; }
+  if(r){ if(comp[r.a.cod]) return {tipo:'compart',a:r.a,cod:r.a.cod}; return r; }
   return {tipo:'ambiguo',cs:cs.sort(function(x,y){ return (y.ult>x.ult?1:y.ult<x.ult?-1:0)||(y.nc-x.nc); })}; }
 /* aplica os vínculos automáticos (nome único ou nome repetido resolvido pela data da última compra); não mexe em código já digitado */
 async function autoVincular(){
   var m=S.model; if(!m||!m.abcPorCod) return {n:0};
+  // revalida: código colocado automaticamente que não é mais a escolha certa (ex.: código compartilhado) é retirado
+  var tirar=[]; m.lista.forEach(function(c){ if(!c.codigo) return; var auto=c.nomeKeysArr.every(function(nk){ var v=S.vinc[nk]; return v&&/^abc/.test(v.origem||''); }); if(!auto) return;
+    var e=escolhaAutomatica(c); if((e.tipo==='unico'||e.tipo==='data')&&e.a.cod===c.codigo) return;
+    c.nomeKeysArr.forEach(function(nk){ var v=marcarVinc(Object.assign({},S.vinc[nk])); v.codigo=''; v.origem='abc-revisto'; tirar.push(v); S.vinc[nk]=v; }); });
+  if(tirar.length){ await dbTx('vinculos',function(st){ tirar.forEach(function(v){ st.put(v); }); }); S.model=construirModelo(S.imports); m=S.model; }
   var grav=[], n=0, usados={}; m.lista.forEach(function(c){ if(c.codigo) usados[c.codigo]=1; });
-  m.lista.forEach(function(c){ if(c.codigo) return; var e=escolhaAutomatica(c); if(!e.a||usados[e.a.cod]) return; usados[e.a.cod]=1; n++;
+  m.lista.forEach(function(c){ if(c.codigo) return; var e=escolhaAutomatica(c); if((e.tipo!=='unico'&&e.tipo!=='data')||usados[e.a.cod]) return; usados[e.a.cod]=1; n++;
     c.nomeKeysArr.forEach(function(nk){ var v=marcarVinc(Object.assign({},S.vinc[nk]||{chave:nk})); v.codigo=e.a.cod; v.origem=e.tipo==='unico'?'abc-nome':'abc-data'; grav.push(v); S.vinc[nk]=v; }); });
   if(grav.length){ await dbTx('vinculos',function(st){ grav.forEach(function(v){ st.put(v); }); }); agendarSync(); S.model=construirModelo(S.imports); }
-  return {n:n}; }
+  return {n:n,revistos:tirar.length}; }
 async function importarCurvaABC(file){
   try{ toast('Lendo a Curva ABC…');
     var linhas=await lerCurvaABC(file);
-    S.cfg.abc=linhas; S.cfg.abcInfo={arquivo:file.name,em:new Date().toISOString(),n:linhas.length,por:(S.sync&&S.sync.computador)||''};
+    S.cfg.abc=linhas; S.cfg.abcInfo={versao:2,arquivo:file.name,em:new Date().toISOString(),n:linhas.length,por:(S.sync&&S.sync.computador)||''};
     await dbTx('config',function(st){ var em=new Date().toISOString(); st.put({k:'abc',v:linhas,pendente:true,em:em}); st.put({k:'abcInfo',v:S.cfg.abcInfo,pendente:true,em:em}); });
     S.model=construirModelo(S.imports); var r=await autoVincular(); agendarSync(); S.aba='vinculos'; render();
-    toast('Curva ABC: '+num(linhas.length)+' clientes lidos · '+num(r.n)+' vinculados automaticamente.','ok');
+    toast('Curva ABC: '+num(linhas.length)+' linhas lidas · '+num(r.n)+' vinculados automaticamente'+(r.revistos?' · '+r.revistos+' vínculo(s) corrigido(s)':'')+'.','ok');
   }catch(e){ console.error(e); toast('Erro na Curva ABC: '+e.message,'erro'); } }
 
 function telaVinculos(){ var m=S.model, info=S.cfg.abcInfo, temAbc=!!(m.abcPorCod&&Object.keys(m.abcPorCod).length);
-  var comCod=m.lista.filter(function(c){return c.codigo;}), amb=[], sem=[], conf=[];
-  if(temAbc) m.lista.forEach(function(c){ if(c.codigo){ if(!m.abcPorCod[c.codigo]){ var e=escolhaAutomatica(c); if(e.a) conf.push({c:c,a:e.a}); } return; }
-    var e=escolhaAutomatica(c); if(e.tipo==='ambiguo') amb.push({c:c,cs:e.cs}); else if(e.tipo==='sem') sem.push(c); });
+  var comCod=m.lista.filter(function(c){return c.codigo;}), amb=[], sem=[], conf=[], comp={};
+  if(temAbc) m.lista.forEach(function(c){ var e=escolhaAutomatica(c);
+    if(e.tipo==='compart'){ var g=comp[e.cod]||(comp[e.cod]={cod:e.cod,linhas:m.abcCompart[e.cod],clientes:[]}); g.clientes.push(c); return; }
+    if(c.codigo){ if(!m.abcPorCod[c.codigo]&&e.a) conf.push({c:c,a:e.a}); return; }
+    if(e.tipo==='ambiguo') amb.push({c:c,cs:e.cs}); else if(e.tipo==='sem') sem.push(c); });
+  // clientes que já têm um código compartilhado aparecem no grupo do código
+  m.lista.forEach(function(c){ if(c.codigo&&m.abcCompart[c.codigo]){ var g=comp[c.codigo]||(comp[c.codigo]={cod:c.codigo,linhas:m.abcCompart[c.codigo],clientes:[]}); if(g.clientes.indexOf(c)<0) g.clientes.push(c); } });
+  var compArr=Object.keys(comp).map(function(k){return comp[k];}).sort(function(a,b){ return b.clientes.reduce(function(x,c){return x+c.total;},0)-a.clientes.reduce(function(x,c){return x+c.total;},0); });
+  var pendComp=compArr.filter(function(g){ return !g.clientes.some(function(c){return c.codigo===g.cod;}); }).length;
   amb.sort(function(a,b){return b.c.total-a.c.total;}); sem.sort(function(a,b){return b.total-a.total;}); conf.sort(function(a,b){return b.c.total-a.c.total;});
   var comCel=comCod.filter(function(c){return c.celular;}).length;
   var h='<div class="drop mini" id="dropAbc"><div class="ic">📇</div><b>Importar "Clientes Curva ABC" do Alterdata (.xls)</b><span>Traz código, nome, bairro, última compra e celular. Os clientes são ligados pelo nome e, quando o nome se repete, pela data da última compra.</span><input type="file" id="fabc" accept=".xls,.xlsx" hidden></div>'+
     (info?'<p class="nota">Última Curva ABC: <b>'+esc(info.arquivo)+'</b> · '+num(info.n)+' clientes · '+new Date(info.em).toLocaleString('pt-BR')+(info.por?' · por '+esc(info.por):'')+'</p>':'<p class="nota">Nenhuma Curva ABC importada ainda.</p>')+
     '<div class="kpis">'+k('Com código',num(comCod.length),pct(comCod.length/Math.max(1,m.lista.length))+' dos '+num(m.lista.length)+' clientes')+k('Com celular',num(comCel),'prontos para WhatsApp')+
-    k('Nome repetido — escolher',num(amb.length),'vários cadastros com o mesmo nome')+k('Não achados na Curva ABC',num(sem.length),'digitar o código à mão')+(conf.length?k('Código fora da Curva ABC',num(conf.length),'conferir'):'')+'</div>';
+    k('Código usado por 2 nomes',num(compArr.length),pendComp+' sem dono definido')+k('Nome repetido — escolher',num(amb.length),'vários cadastros com o mesmo nome')+k('Não achados na Curva ABC',num(sem.length),'digitar o código à mão')+(conf.length?k('Código fora da Curva ABC',num(conf.length),'conferir'):'')+'</div>';
   if(!temAbc) return h;
+  if(info&&(info.versao||1)<2) h='<div class="erro" style="margin-bottom:12px"><b>Importe a Curva ABC de novo.</b> A importação anterior juntava nomes diferentes com o mesmo código (ex.: Arthur Gianotti / Elvis Costa no código 002000449). Ao reimportar, os vínculos automáticos errados são corrigidos sozinhos.</div>'+h;
+  h+='<h3>Mesmo código para nomes diferentes ('+compArr.length+')</h3><p class="nota">No Alterdata, uma venda foi lançada no cadastro de outra pessoa (o código é de um cliente, mas o nome digitado na venda é de outro). Esses códigos não são ligados sozinhos. Defina de quem é o código; para a outra pessoa, digite o código dela na aba Clientes. <b>Provável dono</b> = nome lançado na mesma loja do cadastro (as 3 primeiras casas do código).</p>'+
+    (compArr.length?'<div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Nomes no Alterdata com esse código</th><th>De quem é?</th></tr></thead><tbody>'+
+      compArr.map(function(g){ var pref=String(g.cod).slice(0,3), donoNk=(g.linhas.filter(function(a){return a.emp===pref;}).length===1)?g.linhas.filter(function(a){return a.emp===pref;})[0].nk:'';
+        var atual=g.clientes.filter(function(c){return c.codigo===g.cod;})[0];
+        return '<tr><td><b>'+esc(g.cod)+'</b></td><td>'+g.linhas.map(function(a){ return '<div>'+esc(a.nome)+' <small class="cod" style="display:inline">· loja '+esc(LOJAS[a.emp]?tituloProd(LOJAS[a.emp]):a.emp)+' · últ. '+dBR(a.ult)+(a.cel?' · '+esc(foneFmt(a.cel)):'')+'</small>'+(a.nk===donoNk?' <span class="pill okp">provável dono</span>':'')+'</div>'; }).join('')+'</td>'+
+          '<td>'+(atual?'<span class="pill okp">✔ '+esc(atual.nome)+'</span> ':'')+g.clientes.filter(function(c){return c!==atual;}).map(function(c){ return '<button class="btn sec mini" data-usarabc="'+esc(c.chave)+'|'+esc(g.cod)+'">É de '+esc(c.nome)+'</button> '; }).join('')+
+          (atual?'<button class="btn sec mini perigo" data-usarabc="'+esc(atual.chave)+'|">Tirar</button>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>':'<p class="vazio">Nenhum.</p>');
   h+='<h3>Nome repetido — escolha o cadastro certo ('+amb.length+')</h3><p class="nota">Vários clientes do Alterdata têm esse mesmo nome e nenhum bateu com a data da última compra. Escolha pelo bairro, celular ou data.</p>'+
     (amb.length?'<div class="tw"><table class="tbl"><thead><tr><th>Cliente na cesta</th><th>Loja</th><th class="r">Compras</th><th>Última compra</th><th>Cadastro no Alterdata</th></tr></thead><tbody>'+
       amb.map(function(x){ return '<tr><td class="click" data-cli="'+esc(x.c.chave)+'"><b>'+esc(x.c.nome)+'</b></td><td>'+esc(lojaTxtCurto(x.c))+'</td><td class="r">'+x.c.nCompras+'</td><td>'+dBR(x.c.ultimaCompra)+'</td>'+
@@ -944,7 +973,7 @@ function bind(){
     if((b=t.closest('[data-copiar]'))){ copiar($('#'+b.dataset.copiar).value); return; }
     if((b=t.closest('[data-wa]'))){ var cw=S.model.clientes[b.dataset.wa]; window.open(waLink(cw.celular,$('#msgCli').value),'_blank'); return; }
     if((b=t.closest('[data-wacli]'))){ var cw2=S.model.clientes[b.dataset.wacli]; window.open(waLink(cw2.celular,sugestoes(cw2).mensagem),'_blank'); return; }
-    if((b=t.closest('[data-usarabc]'))){ var pr=b.dataset.usarabc.split('|'); salvarCodigo(pr[0],pr[1]); return; }
+    if((b=t.closest('[data-usarabc]'))){ var pr=b.dataset.usarabc.split('|'); await trocarDono(pr[0],pr[1]); return; }
     if(t.closest('#dropAbc')){ $('#fabc').click(); return; }
     if((b=t.closest('[data-copiarcli]'))){ copiar(sugestoes(S.model.clientes[b.dataset.copiarcli]).mensagem); return; }
     if((b=t.closest('[data-salvarcod]'))){ var inp=$('#modal input[data-codcli]'); salvarCodigo(b.dataset.salvarcod,inp.value); return; }
