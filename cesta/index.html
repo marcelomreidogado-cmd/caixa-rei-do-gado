@@ -241,7 +241,7 @@ function dbTx(store,fn){ return new Promise(function(res,rej){ var tx=DB.transac
 /* ---------- estado ---------- */
 var S={imports:[],vinc:{},cfg:{linhas:{},msg:MSG_PADRAO},model:null,aba:'clientes',limite:200,
   filtro:{q:'',loja:'',status:'',perfil:'',produto:'',cod:''},ordem:{campo:'total',dir:-1},
-  prodQ:'',prodOrdem:{campo:'valor',dir:-1},rec:{q:'',loja:'',produto:''},
+  prodQ:'',prodLoja:'',prodOrdem:{campo:'valor',dir:-1},rec:{q:'',loja:'',produto:''},
   sug:{q:'',loja:'',status:'ativos',cod:'',linha:''},cad:{periodo:'mes'},sync:null};
 
 function linhaDe(cod,nome){ return S.cfg.linhas[cod||rgNorm(nome)]||linhaAuto(nome); }
@@ -265,7 +265,8 @@ function construirModelo(imports){
       f.total+=valor; f.itens++; f.docs[loja+'|'+doc+'|'+data]=1; f.lojas[lojaN]=1; f.prod[pn]=(f.prod[pn]||0)+valor; if(!f.ultima||data>f.ultima) f.ultima=data; return; }
     somaValor+=valor; nLinhas++; if(!dataMin||data<dataMin) dataMin=data;
     var cpk=loja+'|'+doc+'|'+data, cp=cupons[cpk]; if(!cp) cp=cupons[cpk]={loja:lojaN,data:data,anon:ehAnonimo(nk),valor:0,nk:nk}; cp.valor+=valor;
-    var p=produtos[pk]; if(!p) p=produtos[pk]={chave:pk,cod:pc,produto:pn,qtd:0,valor:0,linhas:0,inteiro:true,precos:[],clientes:{},meses:{},ultimaVenda:data};
+    var p=produtos[pk]; if(!p) p=produtos[pk]={chave:pk,cod:pc,produto:pn,qtd:0,valor:0,linhas:0,inteiro:true,precos:[],clientes:{},porLoja:{},meses:{},ultimaVenda:data};
+    var pl=p.porLoja[lojaN]||(p.porLoja[lojaN]={qtd:0,valor:0,linhas:0,precos:[],ultimaVenda:data,clientes:{},meses:{}}); pl.meses[ym]=(pl.meses[ym]||0)+valor; pl.qtd+=qtd; pl.valor+=valor; pl.linhas++; if(preco>0) pl.precos.push(preco); if(data>pl.ultimaVenda) pl.ultimaVenda=data;
     p.qtd+=qtd; p.valor+=valor; p.linhas++; if(Math.abs(qtd-Math.round(qtd))>1e-9) p.inteiro=false; if(preco>0) p.precos.push(preco); p.meses[ym]=(p.meses[ym]||0)+valor; if(data>p.ultimaVenda) p.ultimaVenda=data;
     if(ehAnonimo(nk)){ anon.valor+=valor; anon.itens++; anon.docs[loja+'|'+doc]=1; return; }
     var v=V[nk], ck=(v&&v.codigo)?'COD:'+v.codigo:nk;
@@ -275,18 +276,22 @@ function construirModelo(imports){
     d.valor+=valor; d.itens.push({cod:pc,produto:pn,qtd:qtd,preco:preco,valor:valor});
     var e=c.cesta[pk]; if(!e) e=c.cesta[pk]={chave:pk,cod:pc,produto:pn,qtd:0,valor:0,datas:{}}; e.qtd+=qtd; e.valor+=valor; e.datas[data]=1;
     var pcl=p.clientes[ck]||(p.clientes[ck]={qtd:0,valor:0,datas:{}}); pcl.qtd+=qtd; pcl.valor+=valor; pcl.datas[data]=1;
+    var pcll=pl.clientes[ck]||(pl.clientes[ck]={qtd:0,valor:0,datas:{}}); pcll.qtd+=qtd; pcll.valor+=valor; pcll.datas[data]=1;
   }); });
 
   var produtosArr=Object.keys(produtos).map(function(k){ var p=produtos[k]; p.unidade=p.inteiro?'un':'kg';
     var a=p.precos.sort(function(x,y){return x-y;}); p.precoMediano=a.length?a[Math.floor(a.length/2)]:0; delete p.precos;
+    Object.keys(p.porLoja).forEach(function(l){ var x=p.porLoja[l], b=x.precos.sort(function(u,v){return u-v;}); x.precoMediano=b.length?b[Math.floor(b.length/2)]:0; delete x.precos; x.nClientes=Object.keys(x.clientes).length; });
     p.nClientes=Object.keys(p.clientes).length; p.linha=linhaDe(p.cod,p.produto); p.linhaAuto=!S.cfg.linhas[k];
     p.ativo=dias(p.ultimaVenda,refData)<=DIAS_PRODUTO_ATIVO; p.promo=/PROMO/.test(rgNorm(p.produto)); return p; });
 
   var lista=Object.keys(clientes).map(function(k){ var c=clientes[k];
     var nomes=Object.keys(c.nomes).sort(function(a,b){return c.nomes[b]-c.nomes[a];}); c.nome=nomes[0]; c.nomesAlt=nomes.slice(1); c.nomeKeysArr=Object.keys(c.nomeKeys);
-    c.lojasArr=Object.keys(c.lojas).sort(function(a,b){return c.lojas[b]-c.lojas[a];});
     c.compras=Object.keys(c.docs).map(function(dk){return c.docs[dk];}).sort(function(a,b){return a.data<b.data?1:a.data>b.data?-1:0;}); delete c.docs;
     c.nCompras=c.compras.length; c.ticketMedio=c.nCompras?c.total/c.nCompras:0;
+    c.comprasLoja={}; c.compras.forEach(function(d){ c.comprasLoja[d.loja]=(c.comprasLoja[d.loja]||0)+1; });
+    c.lojasArr=Object.keys(c.comprasLoja).sort(function(a,b){ return (c.comprasLoja[b]-c.comprasLoja[a])||((c.lojas[b]||0)-(c.lojas[a]||0)); });
+    c.loja=c.lojasArr[0]||'';
     var dset={}; c.compras.forEach(function(d){dset[d.data]=1;}); c.diasCompra=Object.keys(dset).sort();
     c.primeiraCompra=c.diasCompra[0]; c.ultimaCompra=c.diasCompra[c.diasCompra.length-1];
     c.intervaloMedio=c.diasCompra.length>=2?dias(c.primeiraCompra,c.ultimaCompra)/(c.diasCompra.length-1):null;
@@ -369,7 +374,7 @@ function montarMensagem(c,sg){
   var base=nv?tituloProd(nv.base):'';
   var t=S.cfg.msg||MSG_PADRAO;
   if(!nv) t=t.replace(/\n?[^\n]*\{novidade\}[^\n]*/,'');
-  return t.replace(/\{nome\}/g,primeiroNome(c.nome)).replace(/\{loja\}/g,tituloProd(c.lojasArr[0]||'')).replace(/\{ofertas\}/g,listaPT(of)||'nossos cortes')
+  return t.replace(/\{nome\}/g,primeiroNome(c.nome)).replace(/\{loja\}/g,tituloProd(c.loja||'')).replace(/\{ofertas\}/g,listaPT(of)||'nossos cortes')
     .replace(/\{novidade\}/g,nv?tituloProd(nv.produto):'').replace(/\{base\}/g,base);
 }
 function limparSugestoes(){ if(S.model) S.model.lista.forEach(function(c){ delete c._sug; }); }
@@ -567,8 +572,8 @@ function suf(){ return S.model.dataMin+'_a_'+S.model.refData; }
 function slug(s){ return rgNorm(s).replace(/ /g,'_').slice(0,40); }
 
 function exportClientes(lista){ lista=lista||S.model.lista;
-  baixarCSV('clientes_resumo_'+suf()+'.csv',['codigo_crm','cliente','outros_nomes','lojas','perfil','status','linha_principal','total_gasto','compras','ticket_medio','primeira_compra','ultima_compra','dias_sem_comprar','intervalo_medio_dias','proxima_compra_prevista','compra_atrasada','produtos_distintos','top1','top2','top3'],
-    lista.map(function(c){ return [c.codigo,c.nome,c.nomesAlt.join(' | '),c.lojasArr.join(' | '),c.perfil,c.status,c.linhaPrincipal,r2(c.total),c.nCompras,r2(c.ticketMedio),c.primeiraCompra,c.ultimaCompra,c.recencia,c.intervaloMedio==null?'':Math.round(c.intervaloMedio),c.proximaPrevista||'',c.atrasado?'SIM':'',c.cestaArr.length,c.topProdutos[0]||'',c.topProdutos[1]||'',c.topProdutos[2]||'']; })); }
+  baixarCSV('clientes_resumo_'+suf()+'.csv',['codigo_crm','cliente','outros_nomes','loja','compras_por_loja','perfil','status','linha_principal','total_gasto','compras','ticket_medio','primeira_compra','ultima_compra','dias_sem_comprar','intervalo_medio_dias','proxima_compra_prevista','compra_atrasada','produtos_distintos','top1','top2','top3'],
+    lista.map(function(c){ return [c.codigo,c.nome,c.nomesAlt.join(' | '),c.loja,c.lojasArr.map(function(l){return l+': '+c.comprasLoja[l];}).join(' | '),c.perfil,c.status,c.linhaPrincipal,r2(c.total),c.nCompras,r2(c.ticketMedio),c.primeiraCompra,c.ultimaCompra,c.recencia,c.intervaloMedio==null?'':Math.round(c.intervaloMedio),c.proximaPrevista||'',c.atrasado?'SIM':'',c.cestaArr.length,c.topProdutos[0]||'',c.topProdutos[1]||'',c.topProdutos[2]||'']; })); }
 function exportCestas(){ var rows=[]; S.model.lista.forEach(function(c){ c.cestaArr.forEach(function(e){ rows.push([c.codigo,c.nome,e.cod,e.produto,e.linha,e.unidade,r3(e.qtd),r2(e.valor),r2(e.precoMedio),e.vezes,r2(e.pct*100),e.primeira,e.ultima,e.diasSem,e.ciclo==null?'':Math.round(e.ciclo),e.proxima||'',e.atrasado?'SIM':'']); }); });
   baixarCSV('cesta_cliente_produto_'+suf()+'.csv',['codigo_crm','cliente','cod_produto','produto','linha','unidade','qtd_total','valor_total','preco_medio','vezes_comprado','pct_do_gasto','primeira_compra','ultima_compra','dias_sem_comprar','ciclo_medio_dias','proxima_prevista','recompra_atrasada'],rows); }
 function exportCompras(){ var rows=[]; S.model.lista.forEach(function(c){ c.compras.forEach(function(d){ rows.push([c.codigo,c.nome,d.data,d.loja,d.documento,d.itens.length,r2(d.valor),d.itens.map(function(i){return i.produto;}).join(' + ')]); }); });
@@ -577,14 +582,14 @@ function exportItens(){ var rows=[]; S.imports.forEach(function(im){ im.linhas.f
   rows.sort(function(a,b){return a[0]<b[0]?-1:a[0]>b[0]?1:0;});
   baixarCSV('itens_vendidos_'+suf()+'.csv',['data','loja','documento','codigo_crm','cliente','cod_produto','produto','linha','qtd','preco_unit','valor','operacao'],rows); }
 function exportRecompra(lista){ lista=lista||filtrarRecompra();
-  baixarCSV('recompra_atrasada_'+S.model.refData+'.csv',['codigo_crm','cliente','lojas','cod_produto','produto','vezes_comprado','ciclo_medio_dias','ultima_compra','dias_sem_comprar','dias_de_atraso','valor_medio_por_compra','status_cliente'],
-    lista.map(function(x){ return [x.c.codigo,x.c.nome,x.c.lojasArr.join(' | '),x.e.cod,x.e.produto,x.e.vezes,Math.round(x.e.ciclo),x.e.ultima,x.e.diasSem,x.atraso,r2(x.e.valor/x.e.vezes),x.c.status]; })); }
+  baixarCSV('recompra_atrasada_'+S.model.refData+'.csv',['codigo_crm','cliente','loja','cod_produto','produto','vezes_comprado','ciclo_medio_dias','ultima_compra','dias_sem_comprar','dias_de_atraso','valor_medio_por_compra','status_cliente'],
+    lista.map(function(x){ return [x.c.codigo,x.c.nome,x.c.loja,x.e.cod,x.e.produto,x.e.vezes,Math.round(x.e.ciclo),x.e.ultima,x.e.diasSem,x.atraso,r2(x.e.valor/x.e.vezes),x.c.status]; })); }
 function exportSugestoes(lista){ lista=lista||filtrarSug();
   baixarCSV('sugestoes_crm_'+S.model.refData+'.csv',['codigo_crm','cliente','loja','status','dias_sem_comprar','linha_principal','oferta1','oferta2','oferta3','novidade1','novidade2','mensagem'],
-    lista.map(function(c){ var s=sugestoes(c); return [c.codigo,c.nome,c.lojasArr[0],c.status,c.recencia,c.linhaPrincipal,(s.ofertas[0]||{}).produto||'',(s.ofertas[1]||{}).produto||'',(s.ofertas[2]||{}).produto||'',(s.novidades[0]||{}).produto||'',(s.novidades[1]||{}).produto||'',s.mensagem]; })); }
-function exportClientesDoProduto(chave){ var m=S.model,p=m.produtos[chave];
-  var rows=Object.keys(p.clientes).map(function(k){ var c=m.clientes[k],x=p.clientes[k],ds=Object.keys(x.datas).sort(); return [c.codigo,c.nome,c.lojasArr.join(' | '),r3(x.qtd),r2(x.valor),ds.length,ds[ds.length-1],c.status]; }).sort(function(a,b){return b[4]-a[4];});
-  baixarCSV('clientes_que_compram_'+slug(p.produto)+'.csv',['codigo_crm','cliente','lojas','qtd','valor','vezes','ultima_compra','status'],rows); }
+    lista.map(function(c){ var s=sugestoes(c); return [c.codigo,c.nome,c.loja,c.status,c.recencia,c.linhaPrincipal,(s.ofertas[0]||{}).produto||'',(s.ofertas[1]||{}).produto||'',(s.ofertas[2]||{}).produto||'',(s.novidades[0]||{}).produto||'',(s.novidades[1]||{}).produto||'',s.mensagem]; })); }
+function exportClientesDoProduto(chave){ var m=S.model,p=m.produtos[chave],L=S.prodLoja,fonte=L&&p.porLoja[L]?p.porLoja[L].clientes:p.clientes;
+  var rows=Object.keys(fonte).map(function(k){ var c=m.clientes[k],x=fonte[k],ds=Object.keys(x.datas).sort(); return [c.codigo,c.nome,c.loja,r3(x.qtd),r2(x.valor),ds.length,ds[ds.length-1],c.status]; }).sort(function(a,b){return b[4]-a[4];});
+  baixarCSV('clientes_que_compram_'+slug(p.produto)+'.csv',['codigo_crm','cliente','loja_do_cliente','qtd','valor','vezes','ultima_compra','status'],rows); }
 function exportFuncs(){ baixarCSV('funcionarios_consumo_'+suf()+'.csv',['nome','lojas','total','compras','ultima_compra','principais_produtos'],S.model.funcs.map(function(f){return [f.nome,f.lojasArr.join(' | '),r2(f.total),f.nCompras,f.ultima,f.top.join(' | ')];})); }
 function exportVinculos(){ var rows=[]; S.model.lista.forEach(function(c){ c.nomeKeysArr.forEach(function(nk){ rows.push([c.codigo,nk,c.nome,r2(c.total),c.ultimaCompra]); }); });
   rows.sort(function(a,b){ return (b[0]?1:0)-(a[0]?1:0) || b[3]-a[3]; });
@@ -601,7 +606,7 @@ function exportJSON(){ var m=S.model;
   var out={schema:SCHEMA,versao:VERSAO,geradoEm:new Date().toISOString(),periodo:{inicio:m.dataMin,fim:m.refData},
     fontes:S.imports.map(function(im){return {arquivo:im.arquivo,periodoIni:im.periodoIni,periodoFim:im.periodoFim,lojas:im.lojas,itens:im.linhas.length,conferido:im.conferido};}),
     regras:{diasRisco:DIAS_RISCO,diasInativo:DIAS_INATIVO,fatorAtraso:FATOR_ATRASO,minComprasCiclo:MIN_COMPRAS_CICLO,funcionariosExcluidos:true},
-    clientes:m.lista.map(function(c){ var s=sugestoes(c); return {codigoCrm:c.codigo||null,chave:c.chave,nome:c.nome,nomesNoExtrato:c.nomeKeysArr,nomesAlternativos:c.nomesAlt,lojas:c.lojasArr,perfil:c.perfil,status:c.status,linhaPrincipal:c.linhaPrincipal,
+    clientes:m.lista.map(function(c){ var s=sugestoes(c); return {codigoCrm:c.codigo||null,chave:c.chave,nome:c.nome,nomesNoExtrato:c.nomeKeysArr,nomesAlternativos:c.nomesAlt,loja:c.loja,comprasPorLoja:c.comprasLoja,perfil:c.perfil,status:c.status,linhaPrincipal:c.linhaPrincipal,
       metricas:{totalGasto:r2(c.total),compras:c.nCompras,ticketMedio:r2(c.ticketMedio),primeiraCompra:c.primeiraCompra,ultimaCompra:c.ultimaCompra,diasSemComprar:c.recencia,intervaloMedioDias:c.intervaloMedio==null?null:Math.round(c.intervaloMedio*10)/10,proximaCompraPrevista:c.proximaPrevista,compraAtrasada:c.atrasado,produtosDistintos:c.cestaArr.length},
       linhas:c.linhas.map(function(x){return {linha:x.linha,valor:r2(x.valor),pct:r2(x.pct*100)};}),
       sugestao:{ofertas:s.ofertas.map(function(o){return {produto:o.produto,motivo:o.motivo};}),novidades:s.novidades.map(function(o){return {produto:o.produto,motivo:o.motivo};}),mensagem:s.mensagem},
@@ -632,6 +637,8 @@ function render(){
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
 function tag(p){ var c={'VIP':'vip','Frequente':'freq','Regular':'rec','Esporádico':'oca','Compra única':'oca'}[p]||''; return '<span class="tag '+c+'">'+esc(p)+'</span>'; }
 function st(s){ var c={'Ativo':'ok','Em risco':'risk','Inativo':'off'}[s]; return c?'<span class="dot '+c+'" title="'+s+'"></span>':''; }
+function lojaTxt(c){ var o=c.lojasArr.slice(1); return '<b>'+esc(tituloProd(c.loja))+'</b>'+(o.length?'<small class="cod" title="Compras em outras lojas">também: '+o.map(function(l){return esc(tituloProd(l))+' ('+c.comprasLoja[l]+')';}).join(', ')+'</small>':''); }
+function lojaTxtCurto(c){ return tituloProd(c.loja)+(c.lojasArr.length>1?' (+'+(c.lojasArr.length-1)+')':''); }
 function lojasTodas(){ var o={}; S.model.lista.forEach(function(c){c.lojasArr.forEach(function(l){o[l]=1;});}); return Object.keys(o).sort(); }
 function dlProdutos(){ return '<datalist id="dlprod">'+S.model.produtosArr.slice().sort(function(a,b){return b.valor-a.valor;}).map(function(p){return '<option value="'+esc(p.produto)+'">';}).join('')+'</datalist>'; }
 function k(t,v,s){ return '<div class="kpi"><span>'+t+'</span><b>'+v+'</b>'+(s?'<small>'+s+'</small>':'')+'</div>'; }
@@ -645,7 +652,7 @@ function kpis(){ var m=S.model,l=m.lista; var tot=l.reduce(function(a,c){return 
 
 function filtrarClientes(){ var m=S.model,f=S.filtro,q=rgNorm(f.q),pq=rgNorm(f.produto);
   var l=m.lista.filter(function(c){
-    if(f.loja&&!c.lojas[f.loja]) return false; if(f.status&&c.status!==f.status) return false;
+    if(f.loja&&c.loja!==f.loja) return false; if(f.status&&c.status!==f.status) return false;
     if(f.cod==='com'&&!c.codigo) return false; if(f.cod==='sem'&&c.codigo) return false;
     if(f.perfil==='Recompra atrasada'){ if(!c.atrasado) return false; } else if(f.perfil&&c.perfil!==f.perfil) return false;
     if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false;
@@ -655,11 +662,11 @@ function filtrarClientes(){ var m=S.model,f=S.filtro,q=rgNorm(f.q),pq=rgNorm(f.p
 function th(c,r,cl,ord){ ord=ord||S.ordem; var on=ord.campo===c; return '<th class="sort '+(cl||'')+(on?' on':'')+'" data-ord="'+c+'">'+r+(on?(ord.dir<0?' ▼':' ▲'):'')+'</th>'; }
 function telaClientes(){ var f=S.filtro,l=filtrarClientes();
   return kpis()+'<div class="filtros"><input id="fq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'"><input id="fprod" list="dlprod" placeholder="Que compram o produto…" value="'+esc(f.produto)+'">'+dlProdutos()+
-    sel('floja','Todas as lojas',lojasTodas(),f.loja)+sel('fstatus','Todos os status',['Ativo','Em risco','Inativo'],f.status)+sel('fperfil','Todos os perfis',['VIP','Frequente','Regular','Esporádico','Compra única','Recompra atrasada'],f.perfil)+
+    sel('floja','Loja do cliente: todas',lojasTodas(),f.loja)+sel('fstatus','Todos os status',['Ativo','Em risco','Inativo'],f.status)+sel('fperfil','Todos os perfis',['VIP','Frequente','Regular','Esporádico','Compra única','Recompra atrasada'],f.perfil)+
     sel('fcod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+'<button class="btn sec" id="expFiltro">⬇ CSV desta lista</button></div>'+
     '<div class="info">'+num(l.length)+' cliente(s) · '+brl(l.reduce(function(a,c){return a+c.total;},0))+' · digite o código do CRM e tecle Enter para vincular</div>'+
     '<div class="tw"><table class="tbl"><thead><tr>'+th('codigo','Cód. CRM')+th('nome','Cliente')+'<th>Loja</th>'+th('perfil','Perfil')+th('total','Total','r')+th('nCompras','Compras','r')+th('ticketMedio','Ticket','r')+th('ultimaCompra','Última compra')+th('recencia','Dias s/ comprar','r')+th('intervaloMedio','Compra a cada','r')+'<th>Principais produtos</th></tr></thead><tbody>'+
-    l.slice(0,S.limite).map(function(c){ return '<tr class="click" data-cli="'+esc(c.chave)+'"><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.nomesAlt.length?'<small class="cod warn" title="'+esc(c.nomesAlt.join(', '))+'">+'+c.nomesAlt.length+' grafia(s)</small>':'')+'</td><td>'+esc(c.lojasArr.join(', '))+'</td><td>'+tag(c.perfil)+'</td>'+
+    l.slice(0,S.limite).map(function(c){ return '<tr class="click" data-cli="'+esc(c.chave)+'"><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.nomesAlt.length?'<small class="cod warn" title="'+esc(c.nomesAlt.join(', '))+'">+'+c.nomesAlt.length+' grafia(s)</small>':'')+'</td><td>'+lojaTxt(c)+'</td><td>'+tag(c.perfil)+'</td>'+
       '<td class="r">'+brl(c.total)+'</td><td class="r">'+c.nCompras+'</td><td class="r">'+brl(c.ticketMedio)+'</td><td>'+dBR(c.ultimaCompra)+'</td><td class="r">'+c.recencia+' '+st(c.status)+(c.atrasado?' <span class="pill late">atrasado</span>':'')+'</td>'+
       '<td class="r">'+(c.intervaloMedio==null?'—':Math.round(c.intervaloMedio)+' dias')+'</td><td class="tp">'+esc(c.topProdutos.join(' · '))+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
@@ -671,7 +678,7 @@ function blocoSugestao(c){ var s=sugestoes(c);
 function barrasMensais(meses,valores){ var max=0; meses.forEach(function(x){max=Math.max(max,valores[x]||0);});
   return '<div class="meses">'+meses.map(function(x){ var v=valores[x]||0; return '<div class="mes" title="'+mesBR(x)+': '+brl(v)+'"><div class="col"><i style="height:'+(max?v/max*100:0)+'%"></i></div><span>'+mesBR(x)+'</span></div>'; }).join('')+'</div>'; }
 function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; var maxV=c.cestaArr.length?c.cestaArr[0].valor:1;
-  var h='<div class="modal-h"><div><h2>'+esc(c.nome)+'</h2><div class="sub">'+esc(c.lojasArr.join(', '))+' · '+tag(c.perfil)+' '+st(c.status)+' '+esc(c.status)+(c.atrasado?' <span class="pill late">compra atrasada</span>':'')+
+  var h='<div class="modal-h"><div><h2>'+esc(c.nome)+'</h2><div class="sub">Cliente da loja <b>'+esc(tituloProd(c.loja))+'</b>'+(c.lojasArr.length>1?' ('+c.lojasArr.map(function(l){return esc(tituloProd(l))+': '+c.comprasLoja[l]+' compra'+(c.comprasLoja[l]>1?'s':'');}).join(' · ')+')':'')+' · '+tag(c.perfil)+' '+st(c.status)+' '+esc(c.status)+(c.atrasado?' <span class="pill late">compra atrasada</span>':'')+
     (c.nomesAlt.length?'<div class="warn">Também aparece como: '+esc(c.nomesAlt.join(', '))+'</div>':'')+'</div></div><button class="x" id="fechar">✕</button></div>'+
     '<div class="vinc"><label>Código do cliente no CRM</label>'+codInput(c)+'<button class="btn sec mini" data-salvarcod="'+esc(c.chave)+'">Salvar código</button>'+'<span class="nota">'+(function(){ var v=S.vinc[c.nomeKeysArr[0]]; return v&&v.codigo?'Salvo'+(v.por?' por <b>'+esc(v.por)+'</b>':'')+(v.atualizadoEm?' em '+new Date(v.atualizadoEm).toLocaleString('pt-BR'):'')+(v.pendente?' · <span class="warn">aguardando envio à nuvem</span>':' · ☁ na nuvem')+'. ':''; })()+'Usar o mesmo código em dois nomes junta os dois.</span>'+
     '<button class="btn sec mini perigo" data-movefunc="'+esc(c.chave)+'" style="margin-left:auto">É funcionário / uso interno</button></div>'+
@@ -690,17 +697,17 @@ function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; 
 function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
   return S.model.lista.filter(function(c){
     if(f.status==='ativos'&&c.status==='Inativo') return false; if(f.status&&f.status!=='ativos'&&c.status!==f.status) return false;
-    if(f.loja&&c.lojasArr[0]!==f.loja) return false; if(f.cod==='com'&&!c.codigo) return false; if(f.cod==='sem'&&c.codigo) return false;
+    if(f.loja&&c.loja!==f.loja) return false; if(f.cod==='com'&&!c.codigo) return false; if(f.cod==='sem'&&c.codigo) return false;
     if(f.linha&&c.linhaPrincipal!==f.linha) return false; if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false; return true; })
     .sort(function(a,b){ return (b.atrasado?1:0)-(a.atrasado?1:0) || b.total-a.total; }); }
 function telaSugestoes(){ var f=S.sug,l=filtrarSug();
   return '<p class="info">Para cada cliente: os produtos que ele já compra (prioridade para o que está na hora de recomprar) + uma novidade da linha que ele mais compra, escolhida por afinidade ("quem compra X também leva Y"). Funcionários e uso interno ficam fora.</p>'+
-    '<div class="filtros"><input id="sq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'">'+sel('sloja','Loja principal: todas',lojasTodas(),f.loja)+
+    '<div class="filtros"><input id="sq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'">'+sel('sloja','Loja do cliente: todas',lojasTodas(),f.loja)+
     sel('sstatus','Todos os status',[['ativos','Ativos + em risco'],['Ativo','Só ativos'],['Em risco','Só em risco'],['Inativo','Só inativos (reativação)']],f.status)+
     sel('slinha','Todas as linhas',LINHAS,f.linha)+sel('scod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+'<button class="btn" id="expSug">⬇ CSV para o CRM</button><button class="btn sec" id="editMsg">✎ Modelo da mensagem</button></div>'+
     '<div class="info">'+num(l.length)+' cliente(s). Clique no cliente para ver a mensagem completa.</div>'+
     '<div class="tw"><table class="tbl"><thead><tr><th>Cód. CRM</th><th>Cliente</th><th>Linha principal</th><th>Oferecer (cesta)</th><th>Novidade da linha</th><th></th></tr></thead><tbody>'+
-    l.slice(0,S.limite).map(function(c){ var s=sugestoes(c); return '<tr class="click" data-cli="'+esc(c.chave)+'"><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(c.lojasArr[0])+' · '+st(c.status)+' '+c.recencia+'d sem comprar'+(c.atrasado?' · <span class="warn">atrasado</span>':'')+'</small></td><td><small>'+esc(c.linhaPrincipal)+'</small></td>'+
+    l.slice(0,S.limite).map(function(c){ var s=sugestoes(c); return '<tr class="click" data-cli="'+esc(c.chave)+'"><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+' · '+st(c.status)+' '+c.recencia+'d sem comprar'+(c.atrasado?' · <span class="warn">atrasado</span>':'')+'</small></td><td><small>'+esc(c.linhaPrincipal)+'</small></td>'+
       '<td>'+s.ofertas.map(function(o){return '<span class="mchip of" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td><td>'+s.novidades.map(function(o){return '<span class="mchip nv" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td>'+
       '<td><button class="btn sec mini" data-copiarcli="'+esc(c.chave)+'">📋 Copiar</button></td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
@@ -710,31 +717,36 @@ function abrirModeloMsg(){
   $('#modal').classList.add('on'); }
 
 function filtrarRecompra(){ var r=S.rec,q=rgNorm(r.q),pq=rgNorm(r.produto);
-  return S.model.recompra.filter(function(x){ if(r.loja&&!x.c.lojas[r.loja]) return false; if(q&&(x.c.nomeKeysArr.join(' ')+' '+x.c.codigo).indexOf(q)<0) return false; if(pq&&rgNorm(x.e.produto).indexOf(pq)<0) return false; return true; }); }
+  return S.model.recompra.filter(function(x){ if(r.loja&&x.c.loja!==r.loja) return false; if(q&&(x.c.nomeKeysArr.join(' ')+' '+x.c.codigo).indexOf(q)<0) return false; if(pq&&rgNorm(x.e.produto).indexOf(pq)<0) return false; return true; }); }
 function telaRecompra(){ var r=S.rec,l=filtrarRecompra();
   return '<p class="info">Clientes que compram um produto com regularidade (pelo menos '+MIN_COMPRAS_CICLO+' vezes) e já passaram '+FATOR_ATRASO.toLocaleString('pt-BR')+'× do ciclo habitual sem comprar — nos últimos '+JANELA_RECOMPRA+' dias.</p>'+
-    '<div class="filtros"><input id="rq" placeholder="Buscar cliente…" value="'+esc(r.q)+'"><input id="rprod" list="dlprod" placeholder="Produto…" value="'+esc(r.produto)+'">'+dlProdutos()+sel('rloja','Todas as lojas',lojasTodas(),r.loja)+'<button class="btn" id="expRec">⬇ CSV para contato</button></div>'+
+    '<div class="filtros"><input id="rq" placeholder="Buscar cliente…" value="'+esc(r.q)+'"><input id="rprod" list="dlprod" placeholder="Produto…" value="'+esc(r.produto)+'">'+dlProdutos()+sel('rloja','Loja do cliente: todas',lojasTodas(),r.loja)+'<button class="btn" id="expRec">⬇ CSV para contato</button></div>'+
     '<div class="info">'+num(l.length)+' oportunidade(s)</div><div class="tw"><table class="tbl"><thead><tr><th>Cód. CRM</th><th>Cliente</th><th>Produto</th><th class="r">Vezes</th><th class="r">Compra a cada</th><th>Última vez</th><th class="r">Dias sem comprar</th><th class="r">Atraso</th><th class="r">Valor médio</th></tr></thead><tbody>'+
-    l.slice(0,S.limite).map(function(x){ return '<tr class="click" data-cli="'+esc(x.c.chave)+'"><td>'+codInput(x.c)+'</td><td><b>'+esc(x.c.nome)+'</b><small class="cod">'+esc(x.c.lojasArr.join(', '))+'</small></td><td>'+esc(x.e.produto)+'</td><td class="r">'+x.e.vezes+'</td><td class="r">'+Math.round(x.e.ciclo)+' dias</td><td>'+dBR(x.e.ultima)+'</td><td class="r">'+x.e.diasSem+'</td><td class="r"><span class="pill late">+'+x.atraso+'d</span></td><td class="r">'+brl(x.e.valor/x.e.vezes)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+    l.slice(0,S.limite).map(function(x){ return '<tr class="click" data-cli="'+esc(x.c.chave)+'"><td>'+codInput(x.c)+'</td><td><b>'+esc(x.c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(x.c))+'</small></td><td>'+esc(x.e.produto)+'</td><td class="r">'+x.e.vezes+'</td><td class="r">'+Math.round(x.e.ciclo)+' dias</td><td>'+dBR(x.e.ultima)+'</td><td class="r">'+x.e.diasSem+'</td><td class="r"><span class="pill late">+'+x.atraso+'d</span></td><td class="r">'+brl(x.e.valor/x.e.vezes)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
 
+function vistaProd(p){ var L=S.prodLoja; if(!L) return p; var x=p.porLoja[L]; if(!x) return null;
+  return {chave:p.chave,cod:p.cod,produto:p.produto,linha:p.linha,linhaAuto:p.linhaAuto,unidade:p.unidade,ativo:dias(x.ultimaVenda,S.model.refData)<=DIAS_PRODUTO_ATIVO,qtd:x.qtd,valor:x.valor,precoMediano:x.precoMediano,nClientes:x.nClientes,linhas:x.linhas,ultimaVenda:x.ultimaVenda}; }
 function telaProdutos(){ var m=S.model,q=rgNorm(S.prodQ),o=S.prodOrdem;
-  var l=m.produtosArr.filter(function(p){return !q||rgNorm(p.produto+' '+p.cod+' '+p.linha).indexOf(q)>=0;}).sort(function(a,b){var x=a[o.campo],y=b[o.campo]; if(typeof x==='string') return x.localeCompare(y)*o.dir; return (x-y)*o.dir;});
-  var maxV=l.reduce(function(a,p){return Math.max(a,p.valor);},1);
-  return '<div class="filtros"><input id="pq" placeholder="Buscar produto, código ou linha…" value="'+esc(S.prodQ)+'"></div><div class="info">'+l.length+' produto(s). A <b>linha</b> define as sugestões — ajuste quando a automática estiver errada (fica salvo). Clique no nome para ver quem compra.</div>'+
-    '<div class="tw"><table class="tbl"><thead><tr><th>Cód.</th>'+th('produto','Produto','',o).replace('data-ord','data-pord')+th('linha','Linha','',o).replace('data-ord','data-pord')+th('qtd','Qtd','r',o).replace('data-ord','data-pord')+th('valor','Valor','r',o).replace('data-ord','data-pord')+'<th></th>'+th('precoMediano','Preço mediano','r',o).replace('data-ord','data-pord')+th('nClientes','Clientes','r',o).replace('data-ord','data-pord')+'<th>Última venda</th></tr></thead><tbody>'+
-    l.map(function(p){ return '<tr><td><small>'+esc(p.cod)+'</small></td><td class="click" data-prod="'+esc(p.chave)+'"><b>'+esc(p.produto)+'</b>'+(p.ativo?'':' <span class="pill late" title="Sem venda há mais de '+DIAS_PRODUTO_ATIVO+' dias — não entra nas sugestões">parado</span>')+'</td>'+
+  var l=m.produtosArr.map(vistaProd).filter(function(p){return p&&(!q||rgNorm(p.produto+' '+p.cod+' '+p.linha).indexOf(q)>=0);}).sort(function(a,b){var x=a[o.campo],y=b[o.campo]; if(typeof x==='string') return x.localeCompare(y)*o.dir; return (x-y)*o.dir;});
+  var maxV=l.reduce(function(a,p){return Math.max(a,p.valor);},1), tot=l.reduce(function(a,p){return a+p.valor;},0);
+  var thp=function(c,r,cl){ return th(c,r,cl,o).replace('data-ord','data-pord'); };
+  return '<div class="filtros"><input id="pq" placeholder="Buscar produto, código ou linha…" value="'+esc(S.prodQ)+'">'+sel('ploja','Todas as lojas',lojasTodas(),S.prodLoja)+'</div>'+
+    '<div class="info">'+l.length+' produto(s)'+(S.prodLoja?' vendidos na loja <b>'+esc(tituloProd(S.prodLoja))+'</b>':'')+' · '+brl(tot)+'. A <b>linha</b> define as sugestões — ajuste quando a automática estiver errada (fica salvo). Clique no nome para ver quem compra.</div>'+
+    '<div class="tw"><table class="tbl"><thead><tr><th>Cód.</th>'+thp('produto','Produto')+thp('linha','Linha')+thp('qtd','Qtd','r')+thp('valor','Valor','r')+'<th></th>'+thp('precoMediano','Preço mediano','r')+thp('nClientes','Clientes','r')+'<th>Última venda</th></tr></thead><tbody>'+
+    l.map(function(p){ return '<tr><td><small>'+esc(p.cod)+'</small></td><td class="click" data-prod="'+esc(p.chave)+'"><b>'+esc(p.produto)+'</b>'+(p.ativo?'':' <span class="pill late" title="Sem venda há mais de '+DIAS_PRODUTO_ATIVO+' dias'+(S.prodLoja?' nesta loja':'')+'">parado</span>')+'</td>'+
       '<td><select class="linsel'+(p.linhaAuto?'':' man')+'" data-linha="'+esc(p.chave)+'">'+LINHAS.map(function(x){return '<option'+(x===p.linha?' selected':'')+'>'+x+'</option>';}).join('')+'</select></td>'+
       '<td class="r">'+fmtQtd(p.qtd,p.unidade)+'</td><td class="r">'+brl(p.valor)+'</td><td style="width:110px"><div class="hbar"><i style="width:'+(p.valor/maxV*100)+'%"></i></div></td><td class="r">'+brl(p.precoMediano)+(p.unidade==='kg'?'/kg':'')+'</td><td class="r">'+num(p.nClientes)+'</td><td>'+dBR(p.ultimaVenda)+'</td></tr>'; }).join('')+'</tbody></table></div>'; }
-function abrirProduto(chave){ var m=S.model,p=m.produtos[chave];
-  var l=Object.keys(p.clientes).map(function(k){ var x=p.clientes[k],ds=Object.keys(x.datas).sort(); return {c:m.clientes[k],x:x,vezes:ds.length,ultima:ds[ds.length-1]}; }).sort(function(a,b){return b.x.valor-a.x.valor;});
+function abrirProduto(chave){ var m=S.model,p=m.produtos[chave], L=S.prodLoja, fonte=L&&p.porLoja[L]?p.porLoja[L].clientes:p.clientes;
+  var l=Object.keys(fonte).map(function(k){ var x=fonte[k],ds=Object.keys(x.datas).sort(); return {c:m.clientes[k],x:x,vezes:ds.length,ultima:ds[ds.length-1]}; }).sort(function(a,b){return b.x.valor-a.x.valor;});
   var afins=Object.keys(m.co[chave]||{}).map(function(q){ return {p:m.produtos[q],pr:m.co[chave][q]/(m.n[chave]||1)}; }).sort(function(a,b){return b.pr-a.pr;}).slice(0,8);
-  var h='<div class="modal-h"><div><h2>'+esc(p.produto)+'</h2><div class="sub">Cód. '+esc(p.cod)+' · '+esc(p.linha)+' · '+fmtQtd(p.qtd,p.unidade)+' · '+brl(p.valor)+' · '+num(l.length)+' cliente(s)</div></div><button class="x" id="fechar">✕</button></div>'+
-    '<h3>Vendas por mês</h3>'+barrasMensais(Object.keys(p.meses).sort(),p.meses)+
+  var h='<div class="modal-h"><div><h2>'+esc(p.produto)+'</h2><div class="sub">Cód. '+esc(p.cod)+' · '+esc(p.linha)+' · '+(L&&p.porLoja[L]?'<b>Loja '+esc(tituloProd(L))+'</b>: '+fmtQtd(p.porLoja[L].qtd,p.unidade)+' · '+brl(p.porLoja[L].valor):fmtQtd(p.qtd,p.unidade)+' · '+brl(p.valor))+' · '+num(l.length)+' cliente(s)</div>'+
+    '<div class="linhasbar" style="margin-top:8px">'+Object.keys(p.porLoja).sort(function(a,b){return p.porLoja[b].valor-p.porLoja[a].valor;}).map(function(x){return '<span style="flex:'+Math.max(p.porLoja[x].valor/p.valor,0.06)+'" title="'+brl(p.porLoja[x].valor)+'"><b>'+esc(tituloProd(x))+'</b> '+pct0(p.porLoja[x].valor/p.valor)+'</span>';}).join('')+'</div></div><button class="x" id="fechar">✕</button></div>'+
+    '<h3>Vendas por mês'+(L&&p.porLoja[L]?' — '+esc(tituloProd(L)):'')+'</h3>'+barrasMensais(Object.keys(p.meses).sort(),L&&p.porLoja[L]?p.porLoja[L].meses:p.meses)+
     '<h3>Quem compra este produto também leva</h3><div class="afins">'+afins.map(function(a){return '<span class="mchip nv">'+esc(tituloProd(a.p.produto))+' <b>'+pct0(a.pr)+'</b></span>';}).join('')+'</div>'+
     '<div class="filtros" style="margin-top:12px"><button class="btn" data-expprod="'+esc(chave)+'">⬇ CSV: clientes que compram este produto</button></div>'+
     '<div class="tw"><table class="tbl"><thead><tr><th>Cliente</th><th>Loja</th><th class="r">Qtd</th><th class="r">Valor</th><th class="r">Vezes</th><th>Última vez</th><th>Status</th></tr></thead><tbody>'+
-    l.slice(0,500).map(function(y){ return '<tr class="click" data-cli="'+esc(y.c.chave)+'"><td><b>'+esc(y.c.nome)+'</b></td><td>'+esc(y.c.lojasArr.join(', '))+'</td><td class="r">'+fmtQtd(y.x.qtd,p.unidade)+'</td><td class="r">'+brl(y.x.valor)+'</td><td class="r">'+y.vezes+'</td><td>'+dBR(y.ultima)+'</td><td>'+st(y.c.status)+' '+esc(y.c.status)+'</td></tr>'; }).join('')+'</tbody></table></div>';
+    l.slice(0,500).map(function(y){ return '<tr class="click" data-cli="'+esc(y.c.chave)+'"><td><b>'+esc(y.c.nome)+'</b></td><td>'+esc(lojaTxtCurto(y.c))+'</td><td class="r">'+fmtQtd(y.x.qtd,p.unidade)+'</td><td class="r">'+brl(y.x.valor)+'</td><td class="r">'+y.vezes+'</td><td>'+dBR(y.ultima)+'</td><td>'+st(y.c.status)+' '+esc(y.c.status)+'</td></tr>'; }).join('')+'</tbody></table></div>';
   $('#modal .modal-c').innerHTML=h; $('#modal').classList.add('on'); $('#modal .modal-c').scrollTop=0; }
 
 function telaFuncs(){ var m=S.model;
@@ -881,6 +893,7 @@ function bind(){
     else if(t.id==='fvinc'){ if(t.files[0]) importarVinculos(t.files[0]); t.value=''; }
     else if(t.id==='floja'){ S.filtro.loja=t.value; S.limite=200; render(); } else if(t.id==='fstatus'){ S.filtro.status=t.value; S.limite=200; render(); }
     else if(t.id==='fperfil'){ S.filtro.perfil=t.value; S.limite=200; render(); } else if(t.id==='fcod'){ S.filtro.cod=t.value; S.limite=200; render(); }
+    else if(t.id==='ploja'){ S.prodLoja=t.value; render(); }
     else if(t.id==='rloja'){ S.rec.loja=t.value; S.limite=200; render(); }
     else if(t.id==='sloja'){ S.sug.loja=t.value; S.limite=200; render(); } else if(t.id==='sstatus'){ S.sug.status=t.value; S.limite=200; render(); }
     else if(t.id==='slinha'){ S.sug.linha=t.value; S.limite=200; render(); } else if(t.id==='scod'){ S.sug.cod=t.value; S.limite=200; render(); } });
