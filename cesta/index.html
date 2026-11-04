@@ -363,6 +363,7 @@ function construirModelo(imports){
 
   var M={clientes:clientes,lista:lista,produtos:produtos,produtosArr:produtosArr,recompra:recompra,anomalias:anomalias,duplicados:duplicados,funcs:funcArr,somaInterno:somaInterno,codigos:codigos,abcPorCod:abcPorCod,abcPorNome:abcPorNome,abcCompart:abcCompart,
     anon:{valor:anon.valor,itens:anon.itens,docs:Object.keys(anon.docs).length},cupons:Object.keys(cupons).map(function(k){return cupons[k];}),refData:refData,dataMin:dataMin,somaValor:somaValor,nLinhas:nLinhas,meses:Object.keys(meses).sort(),n:n,co:co,nClientes:lista.length};
+  S.crmSujo=true;
   return M;
 }
 
@@ -545,7 +546,38 @@ async function sincronizar(forcar){
   }catch(e){ console.warn(e); setSync(e.offline?'offline':'erro',e.message); }
   finally{ SY.ocupado=false; }
   if(mudou){ var vazio=!S.model; await recarregar(); if(vazio&&S.model&&S.aba==='importacoes') S.aba='clientes'; atualizarTela(); }
+  if(SY.estado==='ok'&&S.model&&S.crmSujo) await publicarCRM();
+  abrirDeepLink();
   return mudou; }
+/* ---------- PUBLICAÇÃO PARA O CRM: uma ficha por código de cliente em cesta_rei_do_gado/crm/{codigo} ---------- */
+var LINK_PUBLICO='https://marcelomreidogado-cmd.github.io/caixa-rei-do-gado/cesta/';
+function hashStr(t){ var h=5381; for(var i=0;i<t.length;i++){ h=((h<<5)+h+t.charCodeAt(i))|0; } return (h>>>0).toString(36)+'_'+t.length.toString(36); }
+function fichaCRM(c){ var s=sugestoes(c), ms=Object.keys(c.meses).sort().slice(-6);
+  return {codigo:c.codigo,nome:c.nome,celular:foneFmt(c.celular)||'',whatsapp:foneWa(c.celular)||'',bairro:c.bairro||'',loja:c.loja,comprasPorLoja:c.comprasLoja,
+    perfil:c.perfil,status:c.status,totalGasto:r2(c.total),compras:c.nCompras,ticketMedio:r2(c.ticketMedio),primeiraCompra:c.primeiraCompra,ultimaCompra:c.ultimaCompra,diasSemComprar:c.recencia,
+    compraACadaDias:c.intervaloMedio==null?null:Math.round(c.intervaloMedio),proximaCompraPrevista:c.proximaPrevista||null,compraAtrasada:!!c.atrasado,linhaPrincipal:c.linhaPrincipal,
+    produtos:c.cestaArr.slice(0,15).map(function(e){ return {produto:e.produto,linha:e.linha,unidade:e.unidade,vezes:e.vezes,qtd:r3(e.qtd),valor:r2(e.valor),pctGasto:r2(e.pct*100),ultimaCompra:e.ultima,cicloDias:e.ciclo==null?null:Math.round(e.ciclo),proximaPrevista:e.proxima||null,recompraAtrasada:!!e.atrasado}; }),
+    ofertas:s.ofertas.map(function(o){return {produto:o.produto,motivo:o.motivo};}),novidades:s.novidades.map(function(o){return {produto:o.produto,motivo:o.motivo};}),mensagem:s.mensagem,
+    gastoMensal:ms.reduce(function(o,k){o[k]=r2(c.meses[k]);return o;},{}),link:LINK_PUBLICO+'?cliente='+encodeURIComponent(c.codigo),base:S.model.refData}; }
+async function publicarCRM(){
+  if(SY.publicando||!S.model||!syncAtivo()) return; SY.publicando=true; S.crmSujo=false;
+  try{
+    var nuvem=(await fb('GET','crm_hash'))||{}, atual={}, fichas={}, hs={}, tel={}, n=0;
+    S.model.lista.forEach(function(c){ if(!c.codigo) return; var o=fichaCRM(c), h=hashStr(JSON.stringify(o)); atual[c.codigo]=h;
+      if(nuvem[c.codigo]!==h){ fichas[c.codigo]=o; hs[c.codigo]=h; } var w=foneWa(c.celular); if(w) tel[w]=c.codigo; });
+    Object.keys(nuvem).forEach(function(k){ if(!atual[k]){ fichas[k]=null; hs[k]=null; } });
+    var ks=Object.keys(fichas);
+    for(var i=0;i<ks.length;i+=400){ var p1={},p2={}; ks.slice(i,i+400).forEach(function(k){ p1[k]=fichas[k]; p2[k]=hs[k]; });
+      setSync('sync','Atualizando fichas do CRM '+Math.min(i+400,ks.length)+'/'+ks.length+'…'); await fb('PATCH','crm',p1); await fb('PATCH','crm_hash',p2); n+=Object.keys(p1).length; }
+    if(n){ await fb('PUT','crm_tel',tel); await fb('PUT','crm_meta',{atualizadoEm:new Date().toISOString(),base:S.model.refData,clientes:Object.keys(atual).length,link:LINK_PUBLICO}); }
+    setSync('ok','Última sincronização: '+new Date().toLocaleString('pt-BR')+(n?' · '+n+' ficha(s) do CRM atualizada(s)':''));
+  }catch(e){ console.warn(e); S.crmSujo=true; }
+  finally{ SY.publicando=false; } }
+/* link direto: ...cesta/?cliente=CODIGO (ou nome) abre a ficha do cliente */
+function abrirDeepLink(){ if(S.deepFeito||!S.model) return; var q=new URLSearchParams(location.search), cod=(q.get('cliente')||'').trim(); if(!cod){ S.deepFeito=true; return; }
+  var c=S.model.codigos[cod]||S.model.clientes['COD:'+cod]||S.model.clientes[rgNorm(cod)];
+  if(!c){ if(SY.ultima||!syncAtivo()){ S.deepFeito=true; toast('Cliente '+cod+' não encontrado na cesta.','erro'); } return; }
+  S.deepFeito=true; S.aba='clientes'; render(); abrirCliente(c.chave); }
 function atualizarTela(){ var a=document.activeElement; if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!=='file'){ SY.renderPendente=true; return; }
   if($('#modal').classList.contains('on')){ SY.renderPendente=true; return; }
   render(); toast('Base atualizada pela nuvem.','ok'); }
@@ -1034,6 +1066,7 @@ async function init(){
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); await dbOpen(); await recarregar(); S.aba=S.model?'clientes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY;
     setSync(syncAtivo()?'sync':'off');
+    abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
     setInterval(function(){ if(document.visibilityState==='visible') sincronizar(); },POLL_MS);
     window.addEventListener('focus',function(){ agendarSync(300); });

@@ -11,3 +11,10 @@ Ferramenta de cesta de produtos por cliente para o CRM:
 
 Arquivo único (`index.html`), com o leitor de PDF (pdf.js 3.11) e o leitor de planilhas (SheetJS 0.18.5) embutidos. Não tem build:
 para atualizar, basta substituir o `index.html` e o GitHub Pages publica sozinho.
+
+## Integração com o CRM
+A cesta publica uma ficha por cliente (pelo código do Alterdata) no Firebase, e o CRM só precisa ler:
+- Ficha do cliente: `https://motoboy-ddefa-default-rtdb.firebaseio.com/cesta_rei_do_gado/crm/{CODIGO}.json`
+- Procurar código pelo WhatsApp (55+DDD+número): `.../cesta_rei_do_gado/crm_tel/{NUMERO}.json`
+- Data da última atualização: `.../cesta_rei_do_gado/crm_meta.json`
+- Abrir a cesta completa do cliente: `https://marcelomreidogado-cmd.github.io/caixa-rei-do-gado/cesta/?cliente={CODIGO}`
