@@ -30,6 +30,11 @@ input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-r
 .msgcol{min-width:220px;max-width:340px}.msgcol .prev{display:block;color:#555;margin-top:3px;line-height:1.3}
 th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{background:#f3eee6}th.ord.on{color:var(--red2)}
 .lacuna{margin:0 0 12px;line-height:1.5}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}.kpi{background:#fff;border:1px solid #eadfd3;border-radius:12px;padding:12px 14px}.kpi span{display:block;font-size:12px;color:#777;font-weight:600}.kpi b{display:block;font-size:24px;margin:2px 0}.kpi small{color:#888;font-size:11.5px}.kpi.ok b{color:#1b6b3c}.kpi.risk b{color:#9a5b00}
+.legenda{display:flex;gap:14px;font-size:12px;margin:4px 0}.legenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.gdias{display:flex;gap:3px;align-items:flex-end;background:#fff;border:1px solid #eadfd3;border-radius:12px;padding:10px;overflow-x:auto}.gd{flex:1;min-width:14px;text-align:center}.gd span{font-size:10px;color:#888}.gd.dom span{color:var(--red2);font-weight:700}.gcol{height:120px;display:flex;flex-direction:column-reverse;justify-content:flex-start}.gcol i{display:block;width:100%;border-radius:2px 2px 0 0}
+.uzloja{border:1px solid #eadfd3;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fffdfa}
+.vermsg summary{font-size:11px;color:#777;cursor:pointer}.vermsg pre{white-space:pre-wrap;font:12px/1.4 inherit;margin:4px 0;background:#faf6f0;padding:6px;border-radius:6px}
 .bibl{display:block;font-weight:700;font-size:13px;margin:12px 0 4px}.bibl small{font-weight:400;color:#777}.bibta{width:100%;min-height:90px;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle}.dot.ok{background:var(--ok)}.dot.risk{background:var(--risk)}.dot.off{background:var(--off)}
 .pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}.pill.late{background:#fff1d6;color:#9a5b00}.pill.okp{background:#e3f4ea;color:var(--ok)}
@@ -71,7 +76,7 @@ textarea.msg{width:100%;font:inherit;padding:10px;border:1px solid var(--line);b
 @media print{header,.filtros,.mais{display:none}}
 </style></head><body>
 <header><div class="logo">RG</div><div><h1>Cesta de Produtos por Cliente</h1><div class="per" id="periodo"></div></div><button id="syncst" class="syncst off">○ Nuvem</button>
-<nav class="tabs"><button data-aba="clientes">Clientes</button><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="produtos">Produtos</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="funcionarios">Funcionários</button><button data-aba="qualidade">Qualidade</button><button data-aba="exportar">Exportar p/ CRM</button><button data-aba="importacoes">Importar</button></nav></header>
+<nav class="tabs"><button data-aba="clientes">Clientes</button><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="painel">Painel</button><button data-aba="produtos">Produtos</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="funcionarios">Funcionários</button><button data-aba="qualidade">Qualidade</button><button data-aba="exportar">Exportar p/ CRM</button><button data-aba="importacoes">Importar</button></nav></header>
 <main id="main">Carregando…</main>
 <div id="modal"><div class="modal-c"></div></div><div id="toast" class="toast"></div>
 <script>/**
@@ -271,7 +276,7 @@ function dbTx(store,fn){ return new Promise(function(res,rej){ var tx=DB.transac
 /* ---------- estado ---------- */
 var S={imports:[],vinc:{},cfg:{linhas:{},msg:MSG_PADRAO},model:null,aba:'clientes',limite:200,
   filtro:{q:'',loja:'',status:'',perfil:'',produto:'',cod:''},ordem:{campo:'total',dir:-1},
-  prodQ:'',prodLoja:'',prodOrdem:{campo:'valor',dir:-1},rec:{q:'',loja:'',produto:'',cont:'',dmin:'',dmax:'',de:'',ate:'',ord:{campo:'atraso',dir:-1}},pm:{chave:'',dmin:'',dmax:'',ord:'valor',status:''},sel:null,focoModal:null,
+  prodQ:'',prodLoja:'',prodOrdem:{campo:'valor',dir:-1},rec:{q:'',loja:'',produto:'',cont:'',dmin:'',dmax:'',de:'',ate:'',ord:{campo:'atraso',dir:-1}},pm:{chave:'',dmin:'',dmax:'',ord:'valor',status:''},pn:{per:'30',loja:'',jan:'7',de:'',ate:''},sel:null,focoModal:null,
   sug:{q:'',loja:'',status:'ativos',cod:'',linha:'',cont:'liberados',sit:''},cad:{periodo:'mes'},sync:null,contatos:[],contatosIdx:{}};
 
 function linhaDe(cod,nome){ return S.cfg.linhas[cod||rgNorm(nome)]||linhaAuto(nome); }
@@ -710,21 +715,22 @@ async function podeEnviar(c){ var R=regras(), e=estadoContato(c);
   var rm=await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<R.diasCliente&&!(e.ultimo&&e.ultimo.em>=rm.em))
     return confirm('Atenção: '+c.nome+' recebeu mensagem agora há pouco por outro computador ('+(rm.por||'?')+', '+new Date(rm.em).toLocaleString('pt-BR')+').\n\nEnviar mesmo assim?');
   return true; }
-async function registrarContato(c,tipo,msg,canal,sgx){ var s=sgx||sugestoes(c), agora=new Date();
+async function registrarContato(c,tipo,msg,canal,sgx,extra){ var s=sgx||sugestoes(c), agora=new Date();
   var r={id:'m'+agora.getTime().toString(36)+Math.random().toString(36).slice(2,6),em:agora.toISOString(),dia:hoje(),canal:canal||'cesta',tipo:tipo,por:(S.sync&&S.sync.computador)||'',
-    cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(msg||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',pendente:true};
+    cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(msg||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',pendente:true};
+  if(extra) Object.keys(extra).forEach(function(k){ if(extra[k]) r[k]=extra[k]; });
   await dbTx('contatos',function(st){ st.put(r); }); S.contatos.push(r); indexarContatos(); delete c._sug; delete c._sugF; S.crmSujo=true; agendarSync(300); return r; }
 async function registrarVarios(lista,canal){ var recs=[], agora=new Date(), d=hoje(), por=(S.sync&&S.sync.computador)||'';
   lista.forEach(function(c,i){ var s=sugestoes(c); recs.push({id:'m'+(agora.getTime()+i).toString(36)+Math.random().toString(36).slice(2,6),em:agora.toISOString(),dia:d,canal:canal,tipo:'lote',por:por,cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),
-    produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(s.mensagem||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',pendente:true}); });
+    produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(s.mensagem||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',pendente:true}); });
   await dbTx('contatos',function(st){ recs.forEach(function(r){ st.put(r); }); }); S.contatos=S.contatos.concat(recs); indexarContatos(); lista.forEach(function(c){ delete c._sug; delete c._sugF; }); S.crmSujo=true; agendarSync(300); return recs.length; }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
 async function enviarContato(c,msg,sg){ if(!(await podeEnviar(c))) return false; window.open(waLink(c.celular,msg),'_blank'); await registrarContato(c,'whatsapp',msg,null,sg); return true; }
 async function marcarEnviada(c,msg,sg){ if(!(await podeEnviar(c))) return false; await registrarContato(c,'manual',msg,null,sg); return true; }
 function blocoHistorico(c){ var e=estadoContato(c), R=regras();
-  return '<h3>Mensagens enviadas ('+e.historico.length+')</h3>'+(e.historico.length?'<div class="tw"><table class="tbl mini"><thead><tr><th>Quando</th><th>Por</th><th>Canal</th><th>Produtos oferecidos</th><th></th></tr></thead><tbody>'+
-    e.historico.map(function(r){ return '<tr><td>'+new Date(r.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+esc(r.por||'—')+'</td><td>'+esc(r.canal==='cesta'?(r.tipo==='whatsapp'?'WhatsApp (cesta)':'marcado na cesta'):r.canal.toUpperCase())+'</td><td><small>'+esc((r.produtos||[]).map(tituloProd).join(', '))+'</small></td><td><button class="btn sec mini perigo" data-exccont="'+esc(r.id)+'" title="Registro errado? Excluir">✕</button></td></tr>'; }).join('')+'</tbody></table></div>':'<p class="vazio">Nenhuma mensagem registrada.</p>')+
+  return '<h3>Mensagens enviadas ('+e.historico.length+')</h3>'+(e.historico.length?'<div class="tw"><table class="tbl mini"><thead><tr><th>Quando</th><th>Por</th><th>Canal</th><th>Produtos oferecidos</th><th>Resposta do cliente</th><th></th></tr></thead><tbody>'+
+    e.historico.map(function(r){ return '<tr><td>'+new Date(r.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+esc(r.por||'—')+'</td><td>'+esc(canalDe(r))+(r.envioLoja?'<br><small>nº '+esc(tituloProd(r.envioLoja))+'</small>':'')+'</td><td><small>'+esc((r.produtos||[]).map(tituloProd).join(', '))+'</small><details class="vermsg"><summary>ver mensagem</summary><pre>'+esc(r.msg||'')+'</pre></details></td><td>'+(r.resp?'<small'+(r.sair?' class="warn"':'')+'>💬 '+esc(r.resp.txt||'(mídia)')+' <span class="cod">'+new Date(r.resp.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span></small>':(/uazapi/.test(r.tipo||'')?'<small class="vazio">'+(r.respChk?'sem resposta':'aguardando leitura')+'</small>':'<small class="vazio">—</small>'))+'</td><td><button class="btn sec mini perigo" data-exccont="'+esc(r.id)+'" title="Registro errado? Excluir">✕</button></td></tr>'; }).join('')+'</tbody></table></div>':'<p class="vazio">Nenhuma mensagem registrada.</p>')+
     '<p class="nota">Regras: no máximo 1 mensagem a cada '+R.diasCliente+' dias por cliente; um corte oferecido (ex.: patinho, em qualquer versão) não volta a ser oferecido por '+R.diasProduto+' dias.</p>'; }
 function avisoContato(c){ var e=estadoContato(c); if(!e.ultimo) return '';
   return '<div class="'+(e.bloqueado?'erro':'dica')+'" style="margin:0 0 10px">'+(e.bloqueado?'⛔ <b>Já recebeu mensagem</b> em '+esc(txtUltimo(e))+'. Próxima mensagem liberada em <b>'+dBR(e.liberaEm)+'</b>.':'✔ Última mensagem em '+esc(txtUltimo(e))+'. Liberado para nova mensagem.')+
@@ -736,42 +742,56 @@ function abrirRegras(){ var R=regras();
     '<div class="filtros"><button class="btn" id="salvarRegras">Salvar regras</button></div>';
   $('#modal').classList.add('on'); }
 
-/* ---------- UAZAPI: envio direto pelo WhatsApp da loja (token fica só neste computador) ---------- */
+/* ---------- UAZAPI: um número por loja. O cliente recebe pelo número da loja dele (loja onde mais compra). Tokens ficam só neste computador ---------- */
 var UZ={lote:null};
-function uazCfg(){ try{ return JSON.parse(localStorage.getItem('cesta_uazapi')||'{}'); }catch(e){ return {}; } }
+var LOJAS_ENVIO=['CORONEL','CORREAS','BINGEN'];
+function uazCfg(){ var c; try{ c=JSON.parse(localStorage.getItem('cesta_uazapi')||'{}'); }catch(e){ c={}; }
+  if(!c.inst){ c.inst={}; if(c.url||c.token){ c.inst.CORONEL={url:c.url||'',token:c.token||'',ativo:c.ativo!==false}; } delete c.url; delete c.token; delete c.ativo; } // versão antiga: 1 número só (era a Loja Coronel)
+  return c; }
 function uazSalvar(c){ try{ localStorage.setItem('cesta_uazapi',JSON.stringify(c)); }catch(e){} }
-function uazAtivo(){ var c=uazCfg(); return !!(c.url&&c.token&&c.ativo!==false); }
-function uazBase(){ var u=String(uazCfg().url||'').trim().replace(/\/+$/,''); if(u&&!/^https?:\/\//.test(u)) u='https://'+u; var host=u.replace(/^https?:\/\//,''); if(u&&/^[a-z0-9-]+$/i.test(host)&&!/^localhost$/i.test(host)) u=u.replace(/^(https?:\/\/)(.+)$/,'$1$2.uazapi.com'); return u; }
-async function uazReq(method,path,body){ var c=uazCfg(), r;
-  try{ r=await fetch(uazBase()+path,{method:method,headers:Object.assign({token:c.token},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined}); }
-  catch(e){ throw new Error('Sem conexão com a Uazapi ('+uazBase()+')'); }
+function uazInst(loja){ var i=(uazCfg().inst||{})[loja]; return i&&i.url&&i.token&&i.ativo!==false?Object.assign({loja:loja},i):null; }
+function uazLojas(){ return LOJAS_ENVIO.filter(function(l){ return !!uazInst(l); }); }
+function uazAtivo(){ return uazLojas().length>0; }
+function uazPara(c){ return c?uazInst(c.loja):null; }
+function uazBase(inst){ var u=String(inst.url||'').trim().replace(/\/+$/,''); if(u&&!/^https?:\/\//.test(u)) u='https://'+u; var host=u.replace(/^https?:\/\//,''); if(u&&/^[a-z0-9-]+$/i.test(host)&&!/^localhost$/i.test(host)) u=u.replace(/^(https?:\/\/)(.+)$/,'$1$2.uazapi.com'); return u; }
+async function uazReq(inst,method,path,body){ var r;
+  try{ r=await fetch(uazBase(inst)+path,{method:method,headers:Object.assign({token:inst.token},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined}); }
+  catch(e){ throw new Error('Sem conexão com a Uazapi da loja '+tituloProd(inst.loja)+' ('+uazBase(inst)+')'); }
   var j=null; try{ j=await r.json(); }catch(_){}
-  if(r.status===401) throw new Error('Token da Uazapi inválido.');
-  if(!r.ok) throw new Error('Uazapi respondeu '+r.status+(j&&(j.message||j.error)?': '+(j.message||j.error):''));
+  if(r.status===401) throw new Error('Token da Uazapi da loja '+tituloProd(inst.loja)+' inválido.');
+  if(!r.ok) throw new Error('Uazapi ('+tituloProd(inst.loja)+') respondeu '+r.status+(j&&(j.message||j.error)?': '+(j.message||j.error):''));
   return j||{}; }
-async function uazStatus(){ var j=await uazReq('GET','/instance/status'); var inst=j.instance||j, st=(inst.status||j.status||'').toString().toLowerCase();
-  var ok=st==='connected'||st==='open'||(j.status&&j.status.connected===true)||inst.connected===true;
-  return {ok:ok,status:st||'?',nome:inst.profileName||inst.name||'',numero:(inst.owner||inst.wid||'').toString().replace(/\D/g,''),bruto:j}; }
-async function uazEnviar(numero,texto){ return uazReq('POST','/send/text',{number:numero,text:texto,delay:1500,linkPreview:false}); }
-/* envio de 1 cliente pela Uazapi: confere regras, envia, registra */
+async function uazStatus(inst){ var j=await uazReq(inst,'GET','/instance/status'); var ii=j.instance||j, st=(ii.status||j.status||'').toString().toLowerCase();
+  var ok=st==='connected'||st==='open'||(j.status&&j.status.connected===true)||ii.connected===true;
+  return {ok:ok,status:st||'?',nome:ii.profileName||ii.name||'',numero:(ii.owner||ii.wid||'').toString().replace(/\D/g,''),bruto:j}; }
+async function uazEnviar(inst,numero,texto){ var j=await uazReq(inst,'POST','/send/text',{number:numero,text:texto,delay:1500,linkPreview:false,track_source:'cesta-rei-do-gado'});
+  return {chatid:j.chatid||j.wa_chatid||(j.key&&j.key.remoteJid)||(j.message&&j.message.chatid)||'',msgid:j.messageid||j.id||(j.key&&j.key.id)||(j.message&&j.message.messageid)||''}; }
+function semLojaMsg(c){ return c.nome+' é cliente da loja '+tituloProd(c.loja||'?')+', e o número dessa loja não está configurado neste computador (aba Importar → WhatsApp pela Uazapi).'; }
+/* envio de 1 cliente pela Uazapi da loja dele: confere regras, envia, registra */
 async function enviarUazapi(c,msg,sg){ var w=foneWa(c.celular); if(!w){ toast(c.nome+' não tem celular.','erro'); return false; }
+  var inst=uazPara(c); if(!inst){ toast(semLojaMsg(c),'erro'); return false; }
   if(!(await podeEnviar(c))) return false;
-  try{ toast('Enviando para '+c.nome+'…'); await uazEnviar(w,msg); }catch(e){ toast('Não enviou: '+e.message,'erro'); return false; }
-  await registrarContato(c,'uazapi',msg,null,sg); return true; }
-/* envio em lote pela lista filtrada da aba Sugestões, com intervalo aleatório entre mensagens */
+  var rs; try{ toast('Enviando para '+c.nome+' pelo número da '+tituloProd(inst.loja)+'…'); rs=await uazEnviar(inst,w,msg); }catch(e){ toast('Não enviou: '+e.message,'erro'); return false; }
+  await registrarContato(c,'uazapi',msg,null,sg,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid}); return true; }
+/* envio em lote: cada cliente sai pelo número da loja dele; intervalo aleatório entre mensagens */
 async function loteUazapi(lista,fnSug){ fnSug=fnSug||sugestoes;
   var cfg=uazCfg(), max=Math.max(1,parseInt(cfg.loteMax)||30), iMin=Math.max(5,parseInt(cfg.intMin)||20), iMax=Math.max(iMin,parseInt(cfg.intMax)||45);
-  var alvo=lista.filter(function(c){ return foneWa(c.celular)&&!estadoContato(c).bloqueado&&!optout(c); }).slice(0,max);
-  if(!alvo.length){ toast('Ninguém liberado com celular nessa lista.','erro'); return; }
-  try{ var stt=await uazStatus(); if(!stt.ok){ toast('O WhatsApp da Uazapi não está conectado (status: '+stt.status+'). Conecte o celular no painel da Uazapi.','erro'); return; } }catch(e){ toast(e.message,'erro'); return; }
+  var base=lista.filter(function(c){ return foneWa(c.celular)&&!estadoContato(c).bloqueado&&!optout(c); });
+  var foraLoja=base.filter(function(c){ return !uazPara(c); }), alvo=base.filter(function(c){ return !!uazPara(c); }).slice(0,max);
+  if(!alvo.length){ toast(foraLoja.length?('Nenhum cliente dessa lista é das lojas configuradas neste computador ('+(uazLojas().map(tituloProd).join(', ')||'nenhuma')+'). '+foraLoja.length+' cliente(s) são de outra loja e devem ser enviados pelo computador/número da loja deles.'):'Ninguém liberado com celular nessa lista.','erro'); return; }
+  var porLoja={}; alvo.forEach(function(c){ porLoja[c.loja]=(porLoja[c.loja]||0)+1; });
+  var lojas=Object.keys(porLoja);
+  for(var q=0;q<lojas.length;q++){ try{ var stt=await uazStatus(uazInst(lojas[q])); if(!stt.ok){ toast('O WhatsApp da loja '+tituloProd(lojas[q])+' não está conectado (status: '+stt.status+'). Conecte o celular no painel da Uazapi.','erro'); return; } }catch(e){ toast(e.message,'erro'); return; } }
   var min=Math.round(alvo.length*(iMin+iMax)/2/60);
-  if(!confirm('Enviar a mensagem sugerida para '+alvo.length+' cliente(s) pelo WhatsApp da Uazapi?\n\nUma mensagem a cada '+iMin+'–'+iMax+' segundos (cerca de '+(min||1)+' min). Deixe esta página aberta até terminar.\nClientes que já receberam ficam de fora.')) return;
+  if(!confirm('Enviar a mensagem sugerida para '+alvo.length+' cliente(s) pelo WhatsApp da Uazapi?\n\n'+lojas.map(function(l){return '• '+porLoja[l]+' pelo número da loja '+tituloProd(l);}).join('\n')+
+    (foraLoja.length?'\n\n'+foraLoja.length+' cliente(s) de outras lojas ficam de fora (o número da loja deles não está neste computador).':'')+
+    '\n\nUma mensagem a cada '+iMin+'–'+iMax+' segundos (cerca de '+(min||1)+' min). Deixe esta página aberta até terminar.\nClientes que já receberam ficam de fora.')) return;
   UZ.lote={total:alvo.length,feitos:0,ok:0,pulados:0,erros:0,parar:false,log:[]}; painelLote();
-  for(var i=0;i<alvo.length;i++){ if(UZ.lote.parar) break; var c=alvo[i];
+  for(var i=0;i<alvo.length;i++){ if(UZ.lote.parar) break; var c=alvo[i], inst=uazPara(c);
     var e=estadoContato(c); if(e.bloqueado){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — já recebeu'); UZ.lote.feitos++; painelLote(); continue; }
     var rm=await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<regras().diasCliente){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — outro computador acabou de enviar'); UZ.lote.feitos++; painelLote(); continue; }
     var sgL=fnSug(c), msg=sgL.mensagem;
-    try{ await uazEnviar(foneWa(c.celular),msg); await registrarContato(c,'uazapi-lote',msg,null,sgL); UZ.lote.ok++; UZ.lote.log.unshift('✔ '+c.nome+' · '+foneFmt(c.celular)); }
+    try{ var rs=await uazEnviar(inst,foneWa(c.celular),msg); await registrarContato(c,'uazapi-lote',msg,null,sgL,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid}); UZ.lote.ok++; UZ.lote.log.unshift('✔ '+c.nome+' · '+foneFmt(c.celular)+' · '+tituloProd(inst.loja)); }
     catch(err){ UZ.lote.erros++; UZ.lote.log.unshift('✖ '+c.nome+' — '+err.message); if(/Token|conexão|conectado/i.test(err.message)){ UZ.lote.parar=true; UZ.lote.log.unshift('⛔ Envio interrompido: '+err.message); } }
     UZ.lote.feitos++; painelLote();
     if(i<alvo.length-1&&!UZ.lote.parar){ var esp=(iMin+Math.random()*(iMax-iMin))*1000; UZ.lote.proxima=Date.now()+esp; painelLote();
@@ -785,13 +805,119 @@ function painelLote(soRelogio){ var L=UZ.lote, el=document.getElementById('loteb
     '<div class="bar"><i style="width:'+(L.feitos/L.total*100)+'%"></i></div><div class="lotelog">'+L.log.slice(0,8).map(esc).join('<br>')+'</div>'+
     (L.fim?'<button class="btn sec mini" id="loteFechar">Fechar</button>':'<button class="btn sec mini perigo" id="loteParar">Parar envio</button>'); }
 function telaUazapi(){ var c=uazCfg();
-  return '<h3>WhatsApp pela Uazapi (envio automático)</h3><div class="syncbox"><p class="nota">Com a Uazapi configurada, o botão 💬 WhatsApp envia direto pelo número da loja, sem abrir o WhatsApp Web, e a aba Sugestões ganha o envio em lote. <b>O token fica guardado só neste computador</b> (não vai para a nuvem): configure em cada computador que for enviar.</p>'+
-    '<div class="sgrid"><label>Endereço do servidor Uazapi<input id="uzUrl" placeholder="ex.: https://reidogado.uazapi.com" value="'+esc(c.url||'')+'"></label>'+
-    '<label>Token da instância<input id="uzTok" type="password" value="'+esc(c.token||'')+'" placeholder="token da instância (não o admintoken)"></label>'+
-    '<label>Máximo de mensagens por lote<input id="uzMax" type="number" min="1" max="200" value="'+esc(c.loteMax||30)+'"></label>'+
+  return '<h3>WhatsApp pela Uazapi — um número por loja</h3><div class="syncbox"><p class="nota">Cada cliente recebe a mensagem <b>pelo número da loja dele</b> (a loja onde ele mais compra), e a assinatura sai com o nome dessa loja. Configure aqui o número (instância da Uazapi) de cada loja. <b>Os tokens ficam guardados só neste computador</b> (não vão para a nuvem). O computador da loja configura só o número dela; um computador do escritório pode configurar as três.</p>'+
+    LOJAS_ENVIO.map(function(l){ var i=(c.inst||{})[l]||{};
+      return '<div class="uzloja"><b>Loja '+esc(tituloProd(l))+'</b><div class="sgrid"><label>Endereço do servidor<input data-uzurl="'+l+'" placeholder="ex.: https://reidogado.uazapi.com" value="'+esc(i.url||'')+'"></label>'+
+        '<label>Token da instância desta loja<input type="password" data-uztok="'+l+'" value="'+esc(i.token||'')+'" placeholder="token da instância (não o admintoken)"></label></div>'+
+        '<div class="filtros"><label class="chk"><input type="checkbox" data-uzativo="'+l+'" '+(i.ativo!==false&&i.token?'checked':'')+'> enviar pelo número da '+esc(tituloProd(l))+' neste computador</label><span class="nota uzinfo" data-uzinfo="'+l+'" style="margin:0"></span></div></div>'; }).join('')+
+    '<div class="sgrid"><label>Máximo de mensagens por lote<input id="uzMax" type="number" min="1" max="200" value="'+esc(c.loteMax||30)+'"></label>'+
     '<label>Intervalo entre mensagens (segundos)<span style="display:flex;gap:6px"><input id="uzMin" type="number" min="5" value="'+esc(c.intMin||20)+'" style="width:50%"><input id="uzMaxI" type="number" min="5" value="'+esc(c.intMax||45)+'" style="width:50%"></span></label></div>'+
-    '<div class="filtros"><label class="chk"><input type="checkbox" id="uzAtivo" '+(c.ativo!==false?'checked':'')+'> enviar pela Uazapi neste computador</label><button class="btn" id="uzSalvar">Salvar e testar</button><span class="nota" id="uzInfo" style="margin:0"></span></div>'+
-    '<p class="nota">Para não correr risco de bloqueio do número: comece com lotes pequenos (20–30 por dia), mantenha o intervalo de 20 a 45 segundos e envie só para quem já é cliente.</p></div>'; }
+    '<div class="filtros"><button class="btn" id="uzSalvar">Salvar e testar</button></div>'+
+    '<p class="nota">Use uma instância diferente (um celular) para cada loja. Para não correr risco de bloqueio: comece com lotes pequenos (20–30 por dia por número), mantenha o intervalo de 20 a 45 segundos e envie só para quem já é cliente. As respostas dos clientes são lidas da Uazapi automaticamente a cada 10 minutos (aba Painel).</p></div>'; }
+async function salvarTestarUaz(){ var c=uazCfg(); c.inst=c.inst||{};
+  LOJAS_ENVIO.forEach(function(l){ c.inst[l]={url:($('[data-uzurl="'+l+'"]').value||'').trim(),token:($('[data-uztok="'+l+'"]').value||'').trim(),ativo:$('[data-uzativo="'+l+'"]').checked}; if(!c.inst[l].url&&!c.inst[l].token) delete c.inst[l]; });
+  c.loteMax=$('#uzMax').value; c.intMin=$('#uzMin').value; c.intMax=$('#uzMaxI').value; uazSalvar(c); render();
+  for(var k=0;k<LOJAS_ENVIO.length;k++){ var l=LOJAS_ENVIO[k], inf=$('[data-uzinfo="'+l+'"]'), i=c.inst[l]; if(!inf) continue;
+    if(!i){ inf.textContent='não configurado neste computador'; continue; } if(!i.url||!i.token){ inf.innerHTML='<span class="pill late">preencha endereço e token</span>'; continue; }
+    inf.textContent='Testando…';
+    try{ var stt=await uazStatus(Object.assign({loja:l},i)); inf.innerHTML=stt.ok?'<span class="pill okp">✔ conectado'+(stt.numero?' · '+esc(stt.numero):'')+(stt.nome?' · '+esc(stt.nome):'')+(i.ativo===false?' · envio desligado':'')+'</span>':'<span class="pill late">token OK, mas o WhatsApp está '+esc(stt.status)+' — clique em Conectar no painel da Uazapi e leia o QR code com o celular da loja</span>'; }
+    catch(e){ inf.innerHTML='<span class="pill late">'+esc(e.message)+'</span>'; } } }
+
+/* ---------- RESPOSTAS DOS CLIENTES: lê na Uazapi o que o cliente respondeu depois da nossa mensagem ---------- */
+var RESP={rodando:false,ult:null,info:''};
+function tsMs(t){ t=+t||0; return t<1e12?t*1000:t; }
+function txtMsgUaz(m){ var c=m.content&&typeof m.content==='object'?m.content:{}; return String(m.text||c.text||c.caption||c.conversation||(m.messageType?'['+m.messageType.replace(/Message$/,'')+']':'')).trim(); }
+function jidsDe(r,c){ var out=[]; if(r.chatid) out.push(r.chatid); var w=foneWa(c&&c.celular||'')||''; if(w){ out.push(w+'@s.whatsapp.net'); if(/^55\d{2}9\d{8}$/.test(w)) out.push(w.slice(0,4)+w.slice(5)+'@s.whatsapp.net'); }
+  return out.filter(function(x,i){ return out.indexOf(x)===i; }); }
+async function verificarRespostas(manual){ if(RESP.rodando||!S.model) return; if(!uazAtivo()){ if(manual) toast('Configure a Uazapi de pelo menos uma loja para ler as respostas.','erro'); return; }
+  RESP.rodando=true; var agora=Date.now(), idx=indiceClientesContato(), feitos=0, achou=0, sairs=0;
+  try{
+    var cand=(S.contatos||[]).filter(function(r){ if(r.excluido||r.resp||!/uazapi/.test(r.tipo||'')) return false; var idade=agora-Date.parse(r.em); if(idade>10*864e5) return false;
+        var lj=r.envioLoja||'CORONEL'; if(!uazInst(lj)) return false; return manual||!r.respChk||agora-Date.parse(r.respChk)>25*60*1000; })
+      .sort(function(a,b){ return (a.respChk||'')<(b.respChk||'')?-1:1; }).slice(0,manual?120:40);
+    for(var i=0;i<cand.length;i++){ var r=cand[i], inst=uazInst(r.envioLoja||'CORONEL'), c=clienteDoContato(r,idx), envio=Date.parse(r.em), resp=null, n=0;
+      var js=jidsDe(r,c);
+      for(var k=0;k<js.length&&!resp;k++){ var d; try{ d=await uazReq(inst,'POST','/message/find',{chatid:js[k],limit:25,offset:0,sort:'-messageTimestamp',fromMe:false}); }catch(e){ if(/Token|conexão/i.test(e.message)) throw e; continue; }
+        var ms=(d.messages||d.data||[]).filter(function(m){ return !m.fromMe&&tsMs(m.messageTimestamp)>envio; }).sort(function(a,b){ return tsMs(a.messageTimestamp)-tsMs(b.messageTimestamp); });
+        if(ms.length){ n=ms.length; resp={em:new Date(tsMs(ms[0].messageTimestamp)).toISOString(),txt:ms.map(txtMsgUaz).filter(Boolean).join(' | ').slice(0,300),n:n}; if(!r.chatid) r.chatid=js[k]; } }
+      r.respChk=new Date().toISOString(); if(resp){ r.resp=resp; achou++;
+        if(/^\W*(sair|parar|pare|stop|cancelar|descadastrar)\b/i.test(rgNorm(resp.txt).toLowerCase())||/^\W*sair\W*$/i.test(resp.txt)){ r.sair=true; sairs++; if(c&&!optout(c)) await marcarOptout(c,true); } }
+      r.pendente=true; await dbTx('contatos',function(st){ st.put(r); }); feitos++; }
+    if(feitos){ indexarContatos(); agendarSync(500); }
+    RESP.ult=new Date(); RESP.info=feitos+' conversa(s) verificada(s), '+achou+' resposta(s) nova(s)'+(sairs?', '+sairs+' pediram SAIR (já marcados)':'');
+    if(manual) toast(RESP.info+'.','ok'); if(achou&&(S.aba==='painel')) render();
+  }catch(e){ RESP.info='erro: '+e.message; if(manual) toast('Não consegui ler as respostas: '+e.message,'erro'); }
+  finally{ RESP.rodando=false; } }
+
+/* ---------- PAINEL: o que cada loja está fazendo com as mensagens e o resultado (respostas e volta às compras) ---------- */
+function indiceClientesContato(){ var idx={}; if(S.model) S.model.lista.forEach(function(c){ chavesContato(c).forEach(function(k){ idx[k]=c; }); }); return idx; }
+function clienteDoContato(r,idx){ var ks=r.chaves||[]; for(var i=0;i<ks.length;i++){ var c=idx[ks[i]]; if(c) return c; } return null; }
+var CANAIS={uazapi:'Uazapi (individual)','uazapi-lote':'Uazapi (lote)',whatsapp:'WhatsApp Web',manual:'Marcada à mão',lote:'CSV / CRM'};
+function canalDe(r){ return r.canal&&r.canal!=='cesta'?('CRM ('+r.canal+')'):(CANAIS[r.tipo]||r.tipo||'?'); }
+function ehUaz(r){ return /uazapi/.test(r.tipo||''); }
+function periodoPainel(){ var f=S.pn, h=hoje(); if(f.per==='custom') return {de:f.de||'0000',ate:f.ate||'9999'}; if(f.per==='tudo') return {de:'0000',ate:'9999'}; return {de:addDias(h,-(+f.per-1)),ate:h}; }
+function linhasPainel(){ var m=S.model, idx=indiceClientesContato(), f=S.pn, P=periodoPainel(), jan=+f.jan||7, ref=m.refData;
+  return (S.contatos||[]).filter(function(r){ return !r.excluido&&r.dia>=P.de&&r.dia<=P.ate; }).map(function(r){
+    var c=clienteDoContato(r,idx), loja=r.envioLoja||r.lojaCli||(c&&c.loja)||'?', fim=addDias(r.dia,jan), aberto=fim>ref;
+    var cortes={}; (r.produtos||[]).forEach(function(p){ cortes[corte(p)]=1; });
+    var cps=c?c.compras.filter(function(d){ return d.data>=r.dia&&d.data<=fim; }):[];
+    var prodComp=cps.some(function(d){ return d.itens.some(function(it){ return cortes[corte(it.produto)]; }); });
+    return {r:r,c:c,loja:loja,quem:r.por||'—',canal:canalDe(r),sit:r.situacao||'',prod:(r.produtos||[])[0]||'',uaz:ehUaz(r),resp:!!r.resp,sair:!!r.sair,
+      aberto:aberto,comprou:cps.length>0,valor:cps.reduce(function(a,d){return a+d.valor;},0),prodComp:prodComp,primeira:cps.length?cps[cps.length-1].data:null}; })
+    .filter(function(x){ return !f.loja||x.loja===f.loja; }); }
+function agregar(rows,keyFn){ var g={};
+  rows.forEach(function(x){ var k=keyFn(x); if(k==null) return; var a=g[k]||(g[k]={k:k,n:0,cli:{},uaz:0,resp:0,fech:0,compF:0,comp:0,valor:0,prodF:0,sair:0,ult:''});
+    a.n++; if(x.c) a.cli[x.c.chave]=1; if(x.uaz){ a.uaz++; if(x.resp) a.resp++; } if(x.sair) a.sair++;
+    if(x.comprou){ a.comp++; a.valor+=x.valor; } if(!x.aberto){ a.fech++; if(x.comprou) a.compF++; if(x.prodComp) a.prodF++; } if(x.r.dia>a.ult) a.ult=x.r.dia; });
+  return Object.keys(g).map(function(k){ var a=g[k]; a.nCli=Object.keys(a.cli).length; return a; }).sort(function(a,b){ return b.n-a.n; }); }
+function pctTxt(n,d){ return d?Math.round(n/d*100)+'%':'—'; }
+function tabelaAgg(titulo,rot,rows,fmtK){ if(!rows.length) return '';
+  return '<h3>'+titulo+'</h3><div class="tw"><table class="tbl"><thead><tr><th>'+rot+'</th><th class="r">Mensagens</th><th class="r">Clientes</th><th class="r" title="Só dá para ler a resposta das mensagens enviadas pela Uazapi">Responderam</th><th class="r" title="Compraram qualquer coisa dentro da janela, contando só mensagens com a janela já fechada na base de vendas">Voltaram a comprar</th><th class="r">Compraram o produto oferecido</th><th class="r">Valor comprado depois</th><th class="r">SAIR</th></tr></thead><tbody>'+
+    rows.map(function(a){ return '<tr><td><b>'+(fmtK?fmtK(a.k):esc(a.k))+'</b></td><td class="r">'+num(a.n)+'</td><td class="r">'+num(a.nCli)+'</td><td class="r">'+(a.uaz?num(a.resp)+' <small>('+pctTxt(a.resp,a.uaz)+')</small>':'<small class="vazio">—</small>')+'</td>'+
+      '<td class="r">'+num(a.comp)+' <small>('+pctTxt(a.compF,a.fech)+')</small></td><td class="r">'+num(a.prodF)+' <small>('+pctTxt(a.prodF,a.fech)+')</small></td><td class="r">'+brl(a.valor)+'</td><td class="r">'+(a.sair||'')+'</td></tr>'; }).join('')+'</tbody></table></div>'; }
+var COR_LOJA={CORONEL:'#b3121b',CORREAS:'#d98a1c',BINGEN:'#2c4f86'};
+function graficoDias(rows){ var P=periodoPainel(), h=hoje(), fim=P.ate>h?h:P.ate, ini=P.de<'1000'?(rows.reduce(function(a,x){return !a||x.r.dia<a?x.r.dia:a;},'')||h):P.de;
+  if(dias(ini,fim)>60) ini=addDias(fim,-59); var ds=[]; for(var d=ini;d<=fim;d=addDias(d,1)) ds.push(d); if(!ds.length) return '';
+  var cont={}, max=1; rows.forEach(function(x){ var o=cont[x.r.dia]||(cont[x.r.dia]={}); o[x.loja]=(o[x.loja]||0)+1; });
+  ds.forEach(function(d){ var t=0, o=cont[d]||{}; Object.keys(o).forEach(function(l){t+=o[l];}); if(t>max) max=t; });
+  var lojas=LOJAS_ENVIO.concat(['?']);
+  return '<h3>Mensagens por dia'+(ds.length===60?' (últimos 60 dias do período)':'')+'</h3><div class="legenda">'+LOJAS_ENVIO.map(function(l){return '<span><i style="background:'+COR_LOJA[l]+'"></i>'+esc(tituloProd(l))+'</span>';}).join('')+'</div>'+
+    '<div class="gdias">'+ds.map(function(d){ var o=cont[d]||{}, t=0; Object.keys(o).forEach(function(l){t+=o[l];}); var dw=new Date(d+'T12:00:00').getDay();
+      return '<div class="gd'+(dw===0?' dom':'')+'" title="'+dBR(d)+': '+t+' mensagem(ns)'+Object.keys(o).map(function(l){return ' · '+tituloProd(l)+' '+o[l];}).join('')+'"><div class="gcol">'+
+        lojas.filter(function(l){return o[l];}).map(function(l){ return '<i style="height:'+(o[l]/max*100)+'%;background:'+(COR_LOJA[l]||'#999')+'"></i>'; }).join('')+'</div><span>'+d.slice(8,10)+'</span></div>'; }).join('')+'</div>'; }
+function telaPainel(){ var m=S.model, f=S.pn, rows=linhasPainel(), tot=agregar(rows,function(){return 'tot';})[0]||{n:0,nCli:0,uaz:0,resp:0,fech:0,compF:0,comp:0,valor:0,prodF:0,sair:0};
+  var h=hoje(), P=periodoPainel();
+  var porLoja=agregar(rows,function(x){return x.loja;}), lojaMap={}; porLoja.forEach(function(a){lojaMap[a.k]=a;});
+  // atividade: todas as mensagens (sem filtro de período) para saber há quantos dias a loja não envia
+  var idx=indiceClientesContato(), ultLoja={}, sem7={};
+  (S.contatos||[]).forEach(function(r){ if(r.excluido) return; var c=clienteDoContato(r,idx), l=r.envioLoja||r.lojaCli||(c&&c.loja)||'?'; if(!ultLoja[l]||r.dia>ultLoja[l]) ultLoja[l]=r.dia; if(dias(r.dia,h)<7) sem7[l]=(sem7[l]||0)+1; });
+  var kpi=function(rot,val,sub,cls){ return '<div class="kpi'+(cls?' '+cls:'')+'"><span>'+rot+'</span><b>'+val+'</b><small>'+(sub||'')+'</small></div>'; };
+  var abertas=tot.n-tot.fech;
+  return '<p class="info">Acompanhe o que cada loja está fazendo com as mensagens e o resultado: quem <b>respondeu</b> (lido na Uazapi) e quem <b>voltou a comprar</b> depois da mensagem (cruzando com o Extrato de Produtos). Vendas na base até <b>'+dBR(m.refData)+'</b>.</p>'+
+    '<div class="filtros">'+sel('pnper','Período',[['7','Últimos 7 dias'],['30','Últimos 30 dias'],['90','Últimos 90 dias'],['tudo','Tudo'],['custom','Escolher datas…']],f.per).replace('<option value="">Período</option>','')+
+    (f.per==='custom'?'<input id="pnde" type="date" value="'+esc(f.de)+'"><input id="pnate" type="date" value="'+esc(f.ate)+'">':'')+
+    sel('pnloja','Todas as lojas',LOJAS_ENVIO.map(function(l){return [l,tituloProd(l)];}),f.loja)+
+    '<select id="pnjan">'+[3,7,15,30].map(function(d){return '<option value="'+d+'"'+(+f.jan===d?' selected':'')+'>Volta à compra em até '+d+' dias</option>';}).join('')+'</select>'+
+    (uazAtivo()?'<button class="btn sec" id="lerResp">🔄 Ler respostas agora</button>':'')+'<span class="nota" style="margin:0">'+(RESP.ult?'Respostas lidas às '+RESP.ult.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(RESP.info):(uazAtivo()?'As respostas são lidas a cada 10 minutos.':'Configure a Uazapi para ler as respostas.'))+'</span></div>'+
+    '<div class="kpis">'+kpi('Mensagens',num(tot.n),num(tot.nCli)+' cliente(s)')+kpi('Responderam',tot.uaz?pctTxt(tot.resp,tot.uaz):'—',num(tot.resp)+' de '+num(tot.uaz)+' pela Uazapi')+
+      kpi('Voltaram a comprar',pctTxt(tot.compF,tot.fech),num(tot.comp)+' cliente(s)'+(abertas?' · '+num(abertas)+' msg ainda em aberto':''),'ok')+kpi('Compraram o produto oferecido',pctTxt(tot.prodF,tot.fech),num(tot.prodF)+' com janela fechada')+
+      kpi('Valor comprado depois',brl(tot.valor),'em até '+f.jan+' dias da mensagem','ok')+kpi('Pediram SAIR',num(tot.sair),'',tot.sair?'risk':'')+'</div>'+
+    (abertas?'<p class="nota">“Voltaram a comprar” em % considera só as mensagens cuja janela de '+f.jan+' dias já está dentro da base de vendas (até '+dBR(m.refData)+'). Importe o Extrato mais recente para fechar as demais.</p>':'')+
+    '<h3>Atividade por loja</h3><div class="tw"><table class="tbl"><thead><tr><th>Loja</th><th>Situação</th><th class="r">Últimos 7 dias</th><th>Último envio</th><th class="r">No período</th><th class="r">Responderam</th><th class="r">Voltaram a comprar</th><th class="r">Valor comprado depois</th></tr></thead><tbody>'+
+      LOJAS_ENVIO.filter(function(l){ return !f.loja||l===f.loja; }).map(function(l){ var a=lojaMap[l]||{n:0,uaz:0,resp:0,fech:0,compF:0,comp:0,valor:0}, u=ultLoja[l], dd=u?dias(u,h):null;
+        var stt=dd==null?'<span class="pill late">nunca enviou</span>':dd>=3?'<span class="pill late">parada há '+dd+' dias</span>':'<span class="pill okp">ativa</span>';
+        return '<tr><td><b style="color:'+COR_LOJA[l]+'">'+esc(tituloProd(l))+'</b></td><td>'+stt+'</td><td class="r">'+num(sem7[l]||0)+'</td><td>'+(u?dBR(u)+' <small>('+(dd===0?'hoje':dd===1?'ontem':'há '+dd+'d')+')</small>':'—')+'</td><td class="r">'+num(a.n)+'</td>'+
+          '<td class="r">'+(a.uaz?num(a.resp)+' <small>('+pctTxt(a.resp,a.uaz)+')</small>':'—')+'</td><td class="r">'+num(a.comp)+' <small>('+pctTxt(a.compF,a.fech)+')</small></td><td class="r">'+brl(a.valor)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+    graficoDias(rows)+
+    tabelaAgg('Por quem enviou (computador)','Quem',agregar(rows,function(x){return x.quem;}))+
+    tabelaAgg('Por grupo de mensagem','Grupo',agregar(rows,function(x){return x.sit||'(sem grupo)';}),function(k){ return SITUACOES[k]?tagSit(k):esc(k==='padrao'?'Dica da semana':k); })+
+    tabelaAgg('Por produto oferecido (1º da mensagem)','Produto',agregar(rows,function(x){return x.prod?corte(x.prod):'(sem produto)';}).slice(0,30),function(k){ return esc(tituloProd(k)); })+
+    tabelaAgg('Por canal','Canal',agregar(rows,function(x){return x.canal;}))+
+    '<h3>Mensagens do período ('+num(rows.length)+')</h3><div class="tw"><table class="tbl"><thead><tr><th>Quando</th><th>Loja</th><th>Quem</th><th>Cliente</th><th>Grupo</th><th>Produto</th><th>Resposta do cliente</th><th>Comprou depois</th></tr></thead><tbody>'+
+      rows.slice().sort(function(a,b){ return a.r.em<b.r.em?1:-1; }).slice(0,300).map(function(x){ var r=x.r;
+        return '<tr'+(x.c?' class="click" data-cli="'+esc(x.c.chave)+'"':'')+'><td><small>'+new Date(r.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</small></td><td>'+esc(tituloProd(x.loja))+'</td><td><small>'+esc(x.quem)+'<br>'+esc(x.canal)+'</small></td><td><b>'+esc(r.nome||'')+'</b></td><td>'+tagSit(x.sit)+'</td><td><small>'+esc(tituloProd(x.prod))+'</small></td>'+
+          '<td>'+(r.resp?'<small'+(r.sair?' class="warn"':'')+'>💬 '+esc(r.resp.txt||'(mídia)')+'<br><span class="cod">'+new Date(r.resp.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span></small>':(x.uaz?'<small class="vazio">'+(r.respChk?'sem resposta':'aguardando leitura')+'</small>':'<small class="vazio">—</small>'))+'</td>'+
+          '<td>'+(x.comprou?'<span class="pill okp">✔ '+dBR(x.primeira).slice(0,5)+' · '+brl(x.valor)+'</span>'+(x.prodComp?' <small>levou o produto</small>':''):(x.aberto?'<small class="vazio">em aberto</small>':'<small class="vazio">não</small>'))+'</td></tr>'; }).join('')+'</tbody></table></div>'; }
 
 /* ---------- LINHAS EFETIVAS: importação nova prevalece no período/lojas dela, sem apagar a antiga ---------- */
 function cobre(n,L){ return L[0]>=n.periodoIni&&L[0]<=n.periodoFim&&(!n.lojas||!n.lojas.length||n.lojas.indexOf(L[1])>=0); }
@@ -861,7 +987,7 @@ function colMsg(c,sg){ var e=estadoContato(c), linha=(sg.mensagem||'').split('\n
   return '<td class="msgcol">'+tagSit(sg.situacao)+(e.bloqueado?' <span class="pill late" title="Já recebeu em '+esc(txtUltimo(e))+'">recebeu '+dBR(e.ultimo.dia).slice(0,5)+'</span>':'')+(optout(c)?' <span class="pill late">SAIR</span>':'')+
     '<small class="prev" title="'+esc(sg.mensagem)+'">'+esc(linha.length>110?linha.slice(0,108)+'…':linha)+'</small></td>'; }
 function acoesMsg(c,prod,modo){ var a=prod?' data-foco="'+esc(prod)+'" data-modo="'+esc(modo)+'"':'';
-  return '<td class="acoes"><button class="btn sec mini" data-copiarcli="'+esc(c.chave)+'"'+a+'>📋</button>'+(foneWa(c.celular)&&!optout(c)?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'"'+a+' title="'+esc(foneFmt(c.celular))+'">'+(uazAtivo()?'📤':'💬')+'</button>':'')+'</td>'; }
+  return '<td class="acoes"><button class="btn sec mini" data-copiarcli="'+esc(c.chave)+'"'+a+'>📋</button>'+(foneWa(c.celular)&&!optout(c)?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'"'+a+' title="'+esc(foneFmt(c.celular))+'">'+(uazPara(c)?'📤':'💬')+'</button>':'')+'</td>'; }
 /* clientes de um produto, com filtros da ficha */
 function clientesDoProduto(chave){ var m=S.model,p=m.produtos[chave], L=S.prodLoja, fonte=L&&p.porLoja[L]?p.porLoja[L].clientes:p.clientes, f=S.pm||{};
   var l=Object.keys(fonte).map(function(k){ var x=fonte[k],ds=Object.keys(x.datas).sort(), ult=ds[ds.length-1]; return {c:m.clientes[k],x:x,vezes:ds.length,ultima:ult,diasSem:dias(ult,m.refData)}; }).filter(function(y){ return y.c; });
@@ -1093,7 +1219,7 @@ function render(){
   document.querySelectorAll('.tabs button').forEach(function(b){ b.classList.toggle('on',b.dataset.aba===S.aba); b.disabled=!m&&b.dataset.aba!=='importacoes'; });
   $('#periodo').textContent=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens (sem funcionários)':'Nenhum relatório importado';
   var y=window.scrollY;
-  $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,qualidade:telaQualidade,exportar:telaExportar,importacoes:telaImportacoes}[S.aba])();
+  $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,qualidade:telaQualidade,exportar:telaExportar,importacoes:telaImportacoes,painel:telaPainel}[S.aba])();
   window.scrollTo(0,y);
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
@@ -1138,7 +1264,7 @@ function blocoSugestao(c){ var s=sgDoModal(c), fm=S.focoModal&&S.focoModal.cli==
     '<div><h4>Novidade da linha '+esc(c.linhaPrincipal)+'</h4>'+(s.novidades.length?s.novidades.map(function(o){return '<div class="chip nv"><b>'+esc(tituloProd(o.produto))+'</b><small>'+esc(o.motivo)+'</small></div>';}).join(''):'<p class="vazio">Já compra tudo da linha.</p>')+'</div></div>'+
     (optout(c)?'<div class="warn">🚫 Este cliente pediu para <b>não receber mensagens</b>. Envios bloqueados.</div>':'')+
     (fm?'<div class="dica" style="margin:8px 0">Mensagem focada em <b>'+esc(tituloProd((S.model.produtos[fm.prod]||{}).produto||''))+'</b> ('+(fm.modo==='recompra'?'aba Recompra':'ficha do produto')+'). '+(fm.modo==='produto'?'<button class="btn sec mini" data-prod="'+esc(fm.prod)+'">← Voltar ao produto</button>':'')+'</div>':'')+
-    '<h4>Mensagem '+tagSit(s.situacao)+' <small class="nota">variação '+esc(s.variante||'')+'</small></h4><textarea class="msg" id="msgCli" rows="7">'+esc(s.mensagem)+'</textarea><div class="filtros"><button class="btn sec" data-regen="'+esc(c.chave)+'" title="Gera outro texto para este cliente">🔄 Outra versão</button><button class="btn sec" data-optout="'+esc(c.chave)+'">'+(optout(c)?'✅ Voltar a receber mensagens':'🚫 Não quer receber mensagens')+'</button><button class="btn" data-copiar="msgCli">📋 Copiar mensagem</button><button class="btn sec" data-enviei="'+esc(c.chave)+'" title="Use quando mandou por fora (copiou e colou)">✓ Marcar como enviada</button>'+(foneWa(c.celular)?'<button class="btn wa" data-wa="'+esc(c.chave)+'">'+(uazAtivo()?'📤 Enviar pela Uazapi para ':'💬 Abrir no WhatsApp ')+esc(foneFmt(c.celular))+'</button>':'<span class="pill late">sem celular</span>')+(c.codigo?'<span class="pill okp">CRM '+esc(c.codigo)+'</span>':'<span class="pill late">sem código CRM</span>')+'</div></div>'; }
+    '<h4>Mensagem '+tagSit(s.situacao)+' <small class="nota">variação '+esc(s.variante||'')+'</small></h4><textarea class="msg" id="msgCli" rows="7">'+esc(s.mensagem)+'</textarea><div class="filtros"><button class="btn sec" data-regen="'+esc(c.chave)+'" title="Gera outro texto para este cliente">🔄 Outra versão</button><button class="btn sec" data-optout="'+esc(c.chave)+'">'+(optout(c)?'✅ Voltar a receber mensagens':'🚫 Não quer receber mensagens')+'</button><button class="btn" data-copiar="msgCli">📋 Copiar mensagem</button><button class="btn sec" data-enviei="'+esc(c.chave)+'" title="Use quando mandou por fora (copiou e colou)">✓ Marcar como enviada</button>'+(foneWa(c.celular)?'<button class="btn wa" data-wa="'+esc(c.chave)+'">'+(uazPara(c)?'📤 Enviar pelo número da '+esc(tituloProd(c.loja))+' para ':'💬 Abrir no WhatsApp ')+esc(foneFmt(c.celular))+'</button>':'<span class="pill late">sem celular</span>')+(c.codigo?'<span class="pill okp">CRM '+esc(c.codigo)+'</span>':'<span class="pill late">sem código CRM</span>')+'</div></div>'; }
 function barrasMensais(meses,valores){ var max=0; meses.forEach(function(x){max=Math.max(max,valores[x]||0);});
   return '<div class="meses">'+meses.map(function(x){ var v=valores[x]||0; return '<div class="mes" title="'+mesBR(x)+': '+brl(v)+'"><div class="col"><i style="height:'+(max?v/max*100:0)+'%"></i></div><span>'+mesBR(x)+'</span></div>'; }).join('')+'</div>'; }
 function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; var maxV=c.cestaArr.length?c.cestaArr[0].valor:1;
@@ -1181,7 +1307,7 @@ function telaSugestoes(){ var f=S.sug,l=filtrarSug();
     l.slice(0,S.limite).map(function(c){ var s=sugestoes(c), e=estadoContato(c); return '<tr class="click'+(e.bloqueado?' bloq':'')+'" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel('sug',c)+'</td><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+' · '+st(c.status)+' '+c.recencia+'d sem comprar'+(c.atrasado?' · <span class="warn">atrasado</span>':'')+' · '+esc(c.linhaPrincipal)+'</small></td>'+
       '<td>'+tagSit(s.situacao)+'</td><td>'+(e.ultimo?'<small>'+esc(txtUltimo(e))+'</small>'+(e.bloqueado?'<br><span class="pill late">liberado em '+dBR(e.liberaEm).slice(0,5)+'</span>':''):'<small class="vazio">nunca</small>')+'</td>'+
       '<td>'+s.ofertas.map(function(o){return '<span class="mchip of" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td><td>'+s.novidades.map(function(o){return '<span class="mchip nv" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td>'+
-      '<td class="acoes"><button class="btn sec mini" data-copiarcli="'+esc(c.chave)+'">📋 Copiar</button><button class="btn sec mini" data-enviei="'+esc(c.chave)+'" title="Marcar como enviada">✓</button>'+(foneWa(c.celular)?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'" title="'+esc(foneFmt(c.celular))+'">'+(uazAtivo()?'📤 Enviar':'💬 WhatsApp')+'</button>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+      '<td class="acoes"><button class="btn sec mini" data-copiarcli="'+esc(c.chave)+'">📋 Copiar</button><button class="btn sec mini" data-enviei="'+esc(c.chave)+'" title="Marcar como enviada">✓</button>'+(foneWa(c.celular)?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'" title="'+esc(foneFmt(c.celular))+'">'+(uazPara(c)?'📤 Enviar':'💬 WhatsApp')+'</button>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
 function tagSit(k){ var x=SITUACOES[k]; return x?'<span class="tag '+x.cor+'">'+esc(x.nome)+'</span>':''; }
 function abrirModeloMsg(){
@@ -1343,8 +1469,8 @@ function bind(){
     if(t.id==='fechar'||t.id==='modal'){ $('#modal').classList.remove('on'); return; }
     if(t.closest('summary')||t.closest('input')||t.closest('select')||t.closest('textarea')) return;
     if((b=t.closest('[data-copiar]'))){ copiar($('#'+b.dataset.copiar).value); return; }
-    if((b=t.closest('[data-wa]'))){ var cw=S.model.clientes[b.dataset.wa], sgm=sgDoModal(cw); if(await (uazAtivo()?enviarUazapi(cw,$('#msgCli').value,sgm):enviarContato(cw,$('#msgCli').value,sgm))){ abrirCliente(cw.chave); render(); toast('Mensagem registrada para '+cw.nome+'.','ok'); } return; }
-    if((b=t.closest('[data-wacli]'))){ var cw2=S.model.clientes[b.dataset.wacli], sgw=sugFoco(cw2,b.dataset.foco,b.dataset.modo); if(await (uazAtivo()?enviarUazapi(cw2,sgw.mensagem,sgw):enviarContato(cw2,sgw.mensagem,sgw))){ render(); if(b.closest('#modal')&&b.dataset.modo==='produto') abrirProduto(b.dataset.foco); toast('Mensagem registrada para '+cw2.nome+'.','ok'); } return; }
+    if((b=t.closest('[data-wa]'))){ var cw=S.model.clientes[b.dataset.wa], sgm=sgDoModal(cw); if(await (uazPara(cw)?enviarUazapi(cw,$('#msgCli').value,sgm):enviarContato(cw,$('#msgCli').value,sgm))){ abrirCliente(cw.chave); render(); toast('Mensagem registrada para '+cw.nome+'.','ok'); } return; }
+    if((b=t.closest('[data-wacli]'))){ var cw2=S.model.clientes[b.dataset.wacli], sgw=sugFoco(cw2,b.dataset.foco,b.dataset.modo); if(await (uazPara(cw2)?enviarUazapi(cw2,sgw.mensagem,sgw):enviarContato(cw2,sgw.mensagem,sgw))){ render(); if(b.closest('#modal')&&b.dataset.modo==='produto') abrirProduto(b.dataset.foco); toast('Mensagem registrada para '+cw2.nome+'.','ok'); } return; }
     if((b=t.closest('[data-enviei]'))){ var ce=S.model.clientes[b.dataset.enviei], noModal=!!b.closest('#modal'); if(await marcarEnviada(ce,noModal&&$('#msgCli')?$('#msgCli').value:sugestoes(ce).mensagem,noModal?sgDoModal(ce):sugestoes(ce))){ if(noModal) abrirCliente(ce.chave); render(); toast('Registrado: mensagem enviada para '+ce.nome+'.','ok'); } return; }
     if((b=t.closest('[data-exccont]'))){ if(confirm('Excluir este registro de mensagem?')){ var cid=b.dataset.exccont; await excluirContato(cid); var ab=$('#modal h2'); render(); var cc=S.model.lista.filter(function(x){return ab&&x.nome===ab.textContent;})[0]; if(cc) abrirCliente(cc.chave); } return; }
     if((b=t.closest('[data-usarabc]'))){ var pr=b.dataset.usarabc.split('|'); await trocarDono(pr[0],pr[1]); return; }
@@ -1380,10 +1506,8 @@ function bind(){
     else if(id==='uzLote'){ if(UZ.lote&&!UZ.lote.fim){ toast('Já tem um envio em andamento.','erro'); return; } loteUazapi(filtrarSug()); }
     else if(id==='loteParar'){ if(UZ.lote) UZ.lote.parar=true; toast('Parando depois da mensagem atual…'); }
     else if(id==='loteFechar'){ var lb=document.getElementById('lotebox'); if(lb) lb.remove(); UZ.lote=null; }
-    else if(id==='uzSalvar'){ var nc={url:$('#uzUrl').value.trim(),token:$('#uzTok').value.trim(),loteMax:$('#uzMax').value,intMin:$('#uzMin').value,intMax:$('#uzMaxI').value,ativo:$('#uzAtivo').checked}; uazSalvar(nc);
-      var inf=$('#uzInfo'); if(!nc.url||!nc.token){ inf.textContent='Preencha endereço e token.'; return; } inf.textContent='Testando…';
-      try{ var stt=await uazStatus(); inf.innerHTML=stt.ok?'<span class="pill okp">✔ conectado'+(stt.numero?' · '+esc(stt.numero):'')+(stt.nome?' · '+esc(stt.nome):'')+'</span>':'<span class="pill late">token OK, mas o WhatsApp está '+esc(stt.status)+' — clique em Conectar no painel da Uazapi e leia o QR code</span>'; }
-      catch(e){ inf.innerHTML='<span class="pill late">'+esc(e.message)+'</span>'; } }
+    else if(id==='uzSalvar'){ await salvarTestarUaz(); }
+    else if(id==='lerResp'){ t.disabled=true; t.textContent='Lendo respostas…'; await verificarRespostas(true); render(); }
     else if(id==='salvarRegras'){ var nr={diasCliente:Math.max(1,parseInt($('#rgCli').value)||7),diasProduto:Math.max(1,parseInt($('#rgProd').value)||7)}; S.cfg.regrasContato=nr; await salvarCfg('regrasContato',nr); limparSugestoes(); S.crmSujo=true; $('#modal').classList.remove('on'); render(); toast('Regras salvas: 1 mensagem a cada '+nr.diasCliente+' dias; produto não se repete por '+nr.diasProduto+' dias.','ok'); }
     else if(id==='salvarMsg'){ await salvarMsg($('#msgModelo').value); $('#modal').classList.remove('on'); render(); toast('Modelo salvo.','ok'); }
     else if(id==='padraoMsg'){ $('#msgModelo').value=MSG_PADRAO; }
@@ -1410,6 +1534,7 @@ function bind(){
     if(t.id==='metaCad'){ var v=Math.max(0,Math.min(100,parseFloat(t.value)||80)); S.cfg.metaCadastro=v; salvarCfg('metaCadastro',v).then(function(){ render(); toast('Meta de cadastro: '+v+'%','ok'); }); return; }
     if(t.matches('input[data-sel]')){ var sc=selCtx(t.dataset.ctx); if(t.checked) sc.itens[t.dataset.sel]={prod:t.dataset.selprod||'',modo:t.dataset.selmodo||''}; else delete sc.itens[t.dataset.sel];
       document.querySelectorAll('input[data-sel="'+CSS.escape(t.dataset.sel)+'"]').forEach(function(x){ if(x!==t) x.checked=t.checked&&(x.dataset.selprod||'')===(t.dataset.selprod||''); }); atualizarBarraSel(); return; }
+    if(t.id==='pnper'||t.id==='pnloja'||t.id==='pnjan'||t.id==='pnde'||t.id==='pnate'){ S.pn[{pnper:'per',pnloja:'loja',pnjan:'jan',pnde:'de',pnate:'ate'}[t.id]]=t.value; render(); return; }
     if(t.id==='rcont'){ S.rec.cont=t.value; S.limite=200; render(); return; }
     if(t.id==='rdmin'||t.id==='rdmax'||t.id==='rde'||t.id==='rate'){ S.rec[{rdmin:'dmin',rdmax:'dmax',rde:'de',rate:'ate'}[t.id]]=t.value; S.limite=200; render(); return; }
     if(t.id==='pmdmin'||t.id==='pmdmax'||t.id==='pmord'||t.id==='pmstatus'){ S.pm[{pmdmin:'dmin',pmdmax:'dmax',pmord:'ord',pmstatus:'status'}[t.id]]=t.value; abrirProduto(S.pm.chave); return; }
@@ -1432,7 +1557,8 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); await dbOpen(); await recarregar(); S.aba=S.model?'clientes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__dbTx=dbTx; window.__sugFoco=sugFoco;
+    lerSync(); await dbOpen(); await recarregar(); S.aba=S.model?'clientes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas;
+    setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },10*60*1000); window.__dbTx=dbTx; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
