@@ -448,7 +448,7 @@ async function salvarMsg(t){ S.cfg.msg=t||MSG_PADRAO; await salvarCfg('msg',S.cf
 
 /* ---------- SINCRONIZAÇÃO NA NUVEM (Firebase Realtime Database via REST — sem SDK, funciona em file://) ---------- */
 var SYNC_PADRAO={url:'https://motoboy-ddefa-default-rtdb.firebaseio.com',raiz:'cesta_rei_do_gado',token:'',computador:'',ativo:true};
-var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1}, CHUNK=8000, POLL_MS=30000;
+var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,atendentes:1}, CHUNK=8000, POLL_MS=30000;
 var SY={estado:'off',msg:'',ultima:null,ocupado:false,timer:null,revNuvem:null,renderPendente:false};
 function lerSync(){ try{ S.sync=Object.assign({},SYNC_PADRAO,JSON.parse(localStorage.getItem('cesta_sync')||'{}')); }catch(e){ S.sync=Object.assign({},SYNC_PADRAO); } }
 function gravarSync(){ try{ localStorage.setItem('cesta_sync',JSON.stringify(S.sync)); }catch(e){} }
@@ -710,6 +710,7 @@ async function checarRemoto(c){ if(!syncAtivo()) return null; try{ var ks=chaves
     for(var i=0;i<ks.length;i++){ var r=await fb('GET','contatos_ult/'+ks[i]); if(r&&r.em&&(!best||r.em>best.em)) best=r; } return best; }catch(e){ return null; } }
 /* confirma antes de enviar para quem já recebeu na janela; true = pode enviar */
 async function podeEnviar(c){ var R=regras(), e=estadoContato(c);
+  if(atendPendente(c.loja)){ abrirAtendentes('Escolha quem está enviando pela loja '+tituloProd(c.loja)+' neste computador — o nome vai na mensagem.'); return false; }
   if(optout(c)){ alert(c.nome+' pediu para não receber mensagens (SAIR). Para voltar a enviar, desmarque na ficha do cliente.'); return false; }
   if(e.bloqueado) return confirm(c.nome+' já recebeu mensagem em '+txtUltimo(e)+'.\nPela regra, a próxima mensagem fica liberada em '+dBR(e.liberaEm)+'.\n\nEnviar mesmo assim?');
   var rm=await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<R.diasCliente&&!(e.ultimo&&e.ultimo.em>=rm.em))
@@ -717,12 +718,12 @@ async function podeEnviar(c){ var R=regras(), e=estadoContato(c);
   return true; }
 async function registrarContato(c,tipo,msg,canal,sgx,extra){ var s=sgx||sugestoes(c), agora=new Date();
   var r={id:'m'+agora.getTime().toString(36)+Math.random().toString(36).slice(2,6),em:agora.toISOString(),dia:hoje(),canal:canal||'cesta',tipo:tipo,por:(S.sync&&S.sync.computador)||'',
-    cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(msg||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',pendente:true};
+    cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(msg||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',atendente:s.atendente||'',pendente:true};
   if(extra) Object.keys(extra).forEach(function(k){ if(extra[k]) r[k]=extra[k]; });
   await dbTx('contatos',function(st){ st.put(r); }); S.contatos.push(r); indexarContatos(); delete c._sug; delete c._sugF; S.crmSujo=true; agendarSync(300); return r; }
 async function registrarVarios(lista,canal){ var recs=[], agora=new Date(), d=hoje(), por=(S.sync&&S.sync.computador)||'';
   lista.forEach(function(c,i){ var s=sugestoes(c); recs.push({id:'m'+(agora.getTime()+i).toString(36)+Math.random().toString(36).slice(2,6),em:agora.toISOString(),dia:d,canal:canal,tipo:'lote',por:por,cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),
-    produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(s.mensagem||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',pendente:true}); });
+    produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(s.mensagem||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',atendente:s.atendente||'',pendente:true}); });
   await dbTx('contatos',function(st){ recs.forEach(function(r){ st.put(r); }); }); S.contatos=S.contatos.concat(recs); indexarContatos(); lista.forEach(function(c){ delete c._sug; delete c._sugF; }); S.crmSujo=true; agendarSync(300); return recs.length; }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
@@ -780,10 +781,10 @@ async function loteUazapi(lista,fnSug){ fnSug=fnSug||sugestoes;
   var foraLoja=base.filter(function(c){ return !uazPara(c); }), alvo=base.filter(function(c){ return !!uazPara(c); }).slice(0,max);
   if(!alvo.length){ toast(foraLoja.length?('Nenhum cliente dessa lista é das lojas configuradas neste computador ('+(uazLojas().map(tituloProd).join(', ')||'nenhuma')+'). '+foraLoja.length+' cliente(s) são de outra loja e devem ser enviados pelo computador/número da loja deles.'):'Ninguém liberado com celular nessa lista.','erro'); return; }
   var porLoja={}; alvo.forEach(function(c){ porLoja[c.loja]=(porLoja[c.loja]||0)+1; });
-  var lojas=Object.keys(porLoja);
+  var lojas=Object.keys(porLoja), pend=lojas.filter(atendPendente); if(pend.length){ abrirAtendentes('Escolha quem está enviando pela loja '+pend.map(tituloProd).join(' e ')+' neste computador — o nome vai na mensagem.'); return; }
   for(var q=0;q<lojas.length;q++){ try{ var stt=await uazStatus(uazInst(lojas[q])); if(!stt.ok){ toast('O WhatsApp da loja '+tituloProd(lojas[q])+' não está conectado (status: '+stt.status+'). Conecte o celular no painel da Uazapi.','erro'); return; } }catch(e){ toast(e.message,'erro'); return; } }
   var min=Math.round(alvo.length*(iMin+iMax)/2/60);
-  if(!confirm('Enviar a mensagem sugerida para '+alvo.length+' cliente(s) pelo WhatsApp da Uazapi?\n\n'+lojas.map(function(l){return '• '+porLoja[l]+' pelo número da loja '+tituloProd(l);}).join('\n')+
+  if(!confirm('Enviar a mensagem sugerida para '+alvo.length+' cliente(s) pelo WhatsApp da Uazapi?\n\n'+lojas.map(function(l){return '• '+porLoja[l]+' pelo número da loja '+tituloProd(l)+(atendenteDe(l)?' (assinando: '+atendenteDe(l)+')':'');}).join('\n')+
     (foraLoja.length?'\n\n'+foraLoja.length+' cliente(s) de outras lojas ficam de fora (o número da loja deles não está neste computador).':'')+
     '\n\nUma mensagem a cada '+iMin+'–'+iMax+' segundos (cerca de '+(min||1)+' min). Deixe esta página aberta até terminar.\nClientes que já receberam ficam de fora.')) return;
   UZ.lote={total:alvo.length,feitos:0,ok:0,pulados:0,erros:0,parar:false,log:[]}; painelLote();
@@ -909,13 +910,14 @@ function telaPainel(){ var m=S.model, f=S.pn, rows=linhasPainel(), tot=agregar(r
         return '<tr><td><b style="color:'+COR_LOJA[l]+'">'+esc(tituloProd(l))+'</b></td><td>'+stt+'</td><td class="r">'+num(sem7[l]||0)+'</td><td>'+(u?dBR(u)+' <small>('+(dd===0?'hoje':dd===1?'ontem':'há '+dd+'d')+')</small>':'—')+'</td><td class="r">'+num(a.n)+'</td>'+
           '<td class="r">'+(a.uaz?num(a.resp)+' <small>('+pctTxt(a.resp,a.uaz)+')</small>':'—')+'</td><td class="r">'+num(a.comp)+' <small>('+pctTxt(a.compF,a.fech)+')</small></td><td class="r">'+brl(a.valor)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     graficoDias(rows)+
-    tabelaAgg('Por quem enviou (computador)','Quem',agregar(rows,function(x){return x.quem;}))+
+    tabelaAgg('Por atendente','Atendente',agregar(rows,function(x){return x.r.atendente?x.r.atendente+' · '+tituloProd(x.loja):'(sem nome)';}))+
+    tabelaAgg('Por computador','Computador',agregar(rows,function(x){return x.quem;}))+
     tabelaAgg('Por grupo de mensagem','Grupo',agregar(rows,function(x){return x.sit||'(sem grupo)';}),function(k){ return SITUACOES[k]?tagSit(k):esc(k==='padrao'?'Dica da semana':k); })+
     tabelaAgg('Por produto oferecido (1º da mensagem)','Produto',agregar(rows,function(x){return x.prod?corte(x.prod):'(sem produto)';}).slice(0,30),function(k){ return esc(tituloProd(k)); })+
     tabelaAgg('Por canal','Canal',agregar(rows,function(x){return x.canal;}))+
     '<h3>Mensagens do período ('+num(rows.length)+')</h3><div class="tw"><table class="tbl"><thead><tr><th>Quando</th><th>Loja</th><th>Quem</th><th>Cliente</th><th>Grupo</th><th>Produto</th><th>Resposta do cliente</th><th>Comprou depois</th></tr></thead><tbody>'+
       rows.slice().sort(function(a,b){ return a.r.em<b.r.em?1:-1; }).slice(0,300).map(function(x){ var r=x.r;
-        return '<tr'+(x.c?' class="click" data-cli="'+esc(x.c.chave)+'"':'')+'><td><small>'+new Date(r.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</small></td><td>'+esc(tituloProd(x.loja))+'</td><td><small>'+esc(x.quem)+'<br>'+esc(x.canal)+'</small></td><td><b>'+esc(r.nome||'')+'</b></td><td>'+tagSit(x.sit)+'</td><td><small>'+esc(tituloProd(x.prod))+'</small></td>'+
+        return '<tr'+(x.c?' class="click" data-cli="'+esc(x.c.chave)+'"':'')+'><td><small>'+new Date(r.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</small></td><td>'+esc(tituloProd(x.loja))+'</td><td><small>'+(x.r.atendente?'<b>'+esc(x.r.atendente)+'</b><br>':'')+esc(x.quem)+'<br>'+esc(x.canal)+'</small></td><td><b>'+esc(r.nome||'')+'</b></td><td>'+tagSit(x.sit)+'</td><td><small>'+esc(tituloProd(x.prod))+'</small></td>'+
           '<td>'+(r.resp?'<small'+(r.sair?' class="warn"':'')+'>💬 '+esc(r.resp.txt||'(mídia)')+'<br><span class="cod">'+new Date(r.resp.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span></small>':(x.uaz?'<small class="vazio">'+(r.respChk?'sem resposta':'aguardando leitura')+'</small>':'<small class="vazio">—</small>'))+'</td>'+
           '<td>'+(x.comprou?'<span class="pill okp">✔ '+dBR(x.primeira).slice(0,5)+' · '+brl(x.valor)+'</span>'+(x.prodComp?' <small>levou o produto</small>':''):(x.aberto?'<small class="vazio">em aberto</small>':'<small class="vazio">não</small>'))+'</td></tr>'; }).join('')+'</tbody></table></div>'; }
 
@@ -963,7 +965,7 @@ function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(
     ' title="'+(ok?(e.bloqueado?'Já recebeu mensagem — fica de fora do envio em lote':'Marcar para enviar'):(optout(c)?'Pediu para não receber':'Sem celular'))+'">'; }
 function elegivel(c){ return foneWa(c.celular)&&!optout(c)&&!estadoContato(c).bloqueado; }
 function barraSel(ctx,total){ selCtx(ctx); var n=selN();
-  return '<div class="selbar" data-ctxbar="'+esc(ctx)+'"><b><span class="seln">'+n+'</span> marcado(s)</b>'+
+  return '<div class="selbar" data-ctxbar="'+esc(ctx)+'"><b><span class="seln">'+n+'</span> marcado(s)</b>'+chipAtendentes()+
     '<button class="btn sec mini" data-selall="'+esc(ctx)+'" title="Marca os clientes liberados e com celular desta lista">☑ Marcar todos liberados'+(total!=null?' ('+num(total)+')':'')+'</button>'+
     '<button class="btn sec mini" data-selnone="'+esc(ctx)+'">Limpar</button>'+
     (uazAtivo()?'<button class="btn wa mini" data-selenviar="'+esc(ctx)+'">📤 Enviar para os marcados (Uazapi)</button>':'<span class="nota" style="margin:0">Para enviar em lote, configure a Uazapi na aba Importar.</span>')+'</div>'; }
@@ -997,6 +999,29 @@ function clientesDoProduto(chave){ var m=S.model,p=m.produtos[chave], L=S.prodLo
   l.sort(function(a,b){ return o==='vezes'?b.vezes-a.vezes||b.x.valor-a.x.valor : o==='antiga'?(a.ultima<b.ultima?-1:a.ultima>b.ultima?1:0) : o==='recente'?(a.ultima<b.ultima?1:a.ultima>b.ultima?-1:0) : b.x.valor-a.x.valor; });
   return l; }
 
+/* ---------- ATENDENTES: nome de quem envia, por loja. Lista na nuvem; quem está enviando agora fica neste computador ---------- */
+function atendLista(loja){ var a=(S.cfg.atendentes||{})[loja]; return Array.isArray(a)?a.filter(Boolean):[]; }
+function atendSelLocal(){ try{ return JSON.parse(localStorage.getItem('cesta_atendente')||'{}'); }catch(e){ return {}; } }
+function atendenteDe(loja){ var l=atendLista(loja), s=atendSelLocal()[loja]; if(s&&l.indexOf(s)>=0) return s; return l[0]||''; }
+function atendPendente(loja){ var l=atendLista(loja), s=atendSelLocal()[loja]; return l.length>1&&!(s&&l.indexOf(s)>=0); }
+function chipAtendentes(){ var lojas=LOJAS_ENVIO.filter(function(l){ return atendLista(l).length; });
+  if(!lojas.length) return '<button class="btn sec mini" id="editAtend" title="Cadastre os atendentes de cada loja para o nome sair na mensagem">👤 Cadastrar atendentes</button>';
+  return '<button class="btn sec mini" id="editAtend" title="Trocar quem está enviando">👤 Enviando como: '+lojas.map(function(l){ return '<b>'+esc(atendenteDe(l))+'</b> ('+esc(tituloProd(l))+')'+(atendPendente(l)?' ⚠':''); }).join(' · ')+'</button>'; }
+function abrirAtendentes(motivo){ var sl=atendSelLocal();
+  $('#modal .modal-c').innerHTML='<div class="modal-h"><div><h2>Atendentes por loja</h2><div class="sub">O nome de quem está enviando entra na mensagem ("Aqui é a Joana, do Rei do Gado Coronel") e fica registrado, para o Painel mostrar o resultado de cada atendente.</div></div><button class="x" id="fechar">✕</button></div>'+
+    (motivo?'<div class="erro" style="margin:0 0 10px">'+esc(motivo)+'</div>':'')+
+    '<div class="sgrid">'+LOJAS_ENVIO.map(function(l){ var lista=atendLista(l);
+      return '<div class="uzloja"><b>Loja '+esc(tituloProd(l))+'</b><label class="bibl"><small>Atendentes da loja (um nome por linha, como o cliente conhece). Vale para todos os computadores.</small><textarea data-atlista="'+l+'" rows="4" placeholder="Ex.:\nJoana\nPedro">'+esc(lista.join('\n'))+'</textarea></label>'+
+        '<label class="bibl"><small>Quem está enviando agora <b>neste computador</b></small><select data-atsel="'+l+'"><option value="">'+(lista.length?'— escolha —':'cadastre os nomes acima')+'</option>'+lista.map(function(n){ return '<option'+(sl[l]===n?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'</select></label></div>'; }).join('')+'</div>'+
+    '<p class="nota">Depois de digitar nomes novos, clique em Salvar e abra de novo para escolher quem está enviando.</p><div class="filtros"><button class="btn" id="salvarAtend">Salvar</button></div>';
+  $('#modal').classList.add('on'); }
+async function salvarAtendentes(){ var lista={}, sel=atendSelLocal();
+  LOJAS_ENVIO.forEach(function(l){ var ta=$('[data-atlista="'+l+'"]'), s=$('[data-atsel="'+l+'"]'); var ns=(ta?ta.value:'').split('\n').map(function(x){ return x.trim().replace(/\s+/g,' '); }).filter(Boolean);
+    ns=ns.filter(function(x,i){ return ns.indexOf(x)===i; }).map(function(x){ return x.charAt(0).toUpperCase()+x.slice(1); }); if(ns.length) lista[l]=ns;
+    var v=s?s.value:''; if(v&&ns.indexOf(v)>=0) sel[l]=v; else if(ns.length===1) sel[l]=ns[0]; else delete sel[l]; });
+  S.cfg.atendentes=lista; await salvarCfg('atendentes',lista); try{ localStorage.setItem('cesta_atendente',JSON.stringify(sel)); }catch(e){}
+  limparSugestoes(); S.crmSujo=true; }
+
 /* ---------- MOTOR DE MENSAGENS: situação do cliente + variações + detalhes reais da cesta ---------- */
 var SITUACOES={
   reativar_inativo:{nome:'Reconquistar (sumido +60d)',cor:'off'},
@@ -1008,7 +1033,7 @@ var SITUACOES={
   padrao:{nome:'Dica da semana',cor:'oca'}
 };
 var BIB_PADRAO={
-  aberturas:['{saudacao}, {nome}! Tudo bem com você e com a família?','Oi, {nome}! Como você tá? 😊','{nome}, {saudacao_min}! Que bom falar com você.','Oi, {nome}, tudo certinho por aí?','{saudacao}, {nome}! Aqui é o pessoal do Rei do Gado {loja} 🐂','Olá, {nome}! Passando pra te dar um alô.'],
+  aberturas:['{saudacao}, {nome}! Tudo bem com você e com a família?','Oi, {nome}! Como você tá? 😊','{nome}, {saudacao_min}! Que bom falar com você.','Oi, {nome}, tudo certinho por aí?','{saudacao}, {nome}! Aqui é o pessoal do Rei do Gado {loja} 🐂','Olá, {nome}! Passando pra te dar um alô.','Oi, {nome}! Aqui é {atendente}, do Rei do Gado {loja} 😊','{saudacao}, {nome}! {atendente} aqui, do Rei do Gado {loja}. Tudo bem com você?','Oi, {nome}, tudo bem? Aqui é {atendente}, lá do Rei do Gado {loja} 🐂'],
   reativar_inativo:[
     'Faz {tempo} que a gente não se vê, e aqui no balcão sempre alguém pergunta de você 🙂 Fica o convite pra voltar e provar {novidade}, {desc_nov}.',
     'Lembrei de você hoje quando vi {o_fav} aqui no balcão, {desc_fav}. Faz {tempo} que você não passa aqui… bateu saudade!',
@@ -1049,7 +1074,7 @@ var BIB_PADRAO={
     'Já pensou no cardápio da semana? Se precisar de {ofertas}, é só me chamar que a gente prepara com carinho.'
   ],
   ctas:['Se quiser, é só me responder aqui que eu já deixo separado 😉','Me fala o que vai querer que a gente prepara com carinho.','Quer que eu separe pra você passar e pegar?','Te espero aqui! Se preferir, já deixo tudo prontinho.','É só responder essa mensagem, tá? Vai ser um prazer te atender.'],
-  assinaturas:['Um abraço da família Rei do Gado {loja} 🐂','Com carinho, equipe Rei do Gado {loja}','Abraço, pessoal do Rei do Gado {loja}','Rei do Gado {loja}: a sua casa de carnes 🥩'],
+  assinaturas:['Um abraço da família Rei do Gado {loja} 🐂','Com carinho, equipe Rei do Gado {loja}','Abraço, pessoal do Rei do Gado {loja}','Rei do Gado {loja}: a sua casa de carnes 🥩','Um abraço, {atendente} · Rei do Gado {loja} 🐂','Com carinho, {atendente} e toda a família Rei do Gado {loja}','{atendente}, do Rei do Gado {loja} 🥩'],
   oferta:'',
   sair:true
 };
@@ -1083,15 +1108,20 @@ function montarMensagem(c,sg){
   if(!corpos.length) corpos=[{t:'Passando pra lembrar do seu {fav}, {desc_fav}.',i:99}];
   var h=hashN(seed), pick=function(arr,k){ return arr[(hashN(seed+'|'+k))%arr.length]; };
   var corpo=corpos[h%corpos.length];
-  var v={nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),saudacao:saudacao(),saudacao_min:saudacao().toLowerCase(),fav:fav,desc_fav:descProd(fav),
+  var at=atendenteDe(c.loja), temAt=function(t){ return /\{atendente\}/.test(t); };
+  var v={atendente:at,nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),saudacao:saudacao(),saudacao_min:saudacao().toLowerCase(),fav:fav,desc_fav:descProd(fav),
     desc_fav_cap:(function(t){return t.charAt(0).toUpperCase()+t.slice(1);})(descProd(fav)),novidade:nv?tituloProd(nv.produto):'',desc_nov:nv?descProd(nv.produto):'',base:nv?tituloProd(nv.base):fav,
     o_fav:(fem(fav)?'a ':'o ')+fav,O_fav:(fem(fav)?'A ':'O ')+fav,do_fav:(fem(fav)?'da ':'do ')+fav,seu_fav:(fem(fav)?'sua ':'seu ')+fav,aquele_fav:(fem(fav)?'aquela ':'aquele ')+fav,a_fav:fem(fav)?'a':'o',desc_curta:descProd(fav).replace(/^(com|pra|do|um|uma|hamb|marmoreio) .*/,'do jeitinho que você gosta'),ofertas:listaPT(of)||fav,ofertas_cap:listaPT(of)||fav,ofertas2:listaPT(of.slice(1))||'o que mais precisar',tempo:tempoHumano(c.recencia),dias:c.recencia,ciclo:o0.ciclo||Math.round(c.intervaloMedio||0)||'',diaSemana:dSem,oferta:B.oferta||''};
   var fill=function(t){ return String(t).replace(/\{(\w+)\}/g,function(m,k){ return v[k]!=null&&v[k]!==''?v[k]:''; }).replace(/\s+([,.!?])/g,'$1').replace(/ {2,}/g,' ').trim(); };
-  var partes=[fill(pick(B.aberturas,'a')),fill(corpo.t)];
+  var abs=B.aberturas.filter(function(t){ return at||!temAt(t); }); if(!abs.length) abs=['Oi, {nome}!'];
+  var abertura=pick(abs,'a'), partes=[fill(abertura),fill(corpo.t)];
   if(B.oferta) partes.push(fill(pick(['E essa semana tem um mimo: {oferta} 😉','Ah, e essa semana tem {oferta}!','Detalhe: essa semana tem {oferta} 🙂'],'o')));
-  if(!/\?\s*\S{0,3}$/.test(fill(corpo.t))){ var ct=B.ctas.filter(function(x){ var w=x.split(' ').slice(0,2).join(' '); return corpo.t.indexOf(w)<0; }); partes.push(fill(pick(ct.length?ct:B.ctas,'c'))); } partes.push(fill(pick(B.assinaturas,'s')));
+  if(!/\?\s*\S{0,3}$/.test(fill(corpo.t))){ var ct=B.ctas.filter(function(x){ var w=x.split(' ').slice(0,2).join(' '); return corpo.t.indexOf(w)<0; }); partes.push(fill(pick(ct.length?ct:B.ctas,'c'))); } 
+  var jaDisse=at&&temAt(abertura), ass=(at&&!jaDisse)?B.assinaturas.filter(temAt):B.assinaturas.filter(function(t){ return !temAt(t); });
+  if(at&&!jaDisse&&!ass.length) partes.push(at+' · '+fill(pick(B.assinaturas.length?B.assinaturas:['Rei do Gado {loja}'],'s')));
+  else partes.push(fill(pick(ass.length?ass:['Rei do Gado {loja}'],'s')));
   if(B.sair) partes.push('Se preferir não receber nossas mensagens, é só responder SAIR, sem problema nenhum.');
-  sg.situacao=sit; sg.variante=sit+':'+corpo.i;
+  sg.situacao=sit; sg.variante=sit+':'+corpo.i; sg.atendente=at;
   return partes.join('\n'); }
 function abrirBiblioteca(){ var B=bib();
   var area=function(k,rot,dica){ return '<label class="bibl"><b>'+rot+'</b><small>'+dica+'</small><textarea data-bib="'+k+'" rows="'+Math.min(8,Math.max(3,B[k].length+1))+'">'+esc(B[k].join('\n'))+'</textarea></label>'; };
@@ -1503,6 +1533,8 @@ function bind(){
     else if(id==='salvarBib'){ await salvarBiblioteca(false); $('#modal').classList.remove('on'); render(); toast('Mensagens salvas para todos os computadores.','ok'); }
     else if(id==='padraoBib'){ if(confirm('Voltar todas as mensagens para o padrão?')){ await salvarBiblioteca(true); abrirBiblioteca(); render(); toast('Mensagens padrão restauradas.','ok'); } }
     else if(id==='editRegras') abrirRegras();
+    else if(id==='editAtend') abrirAtendentes();
+    else if(id==='salvarAtend'){ await salvarAtendentes(); var faltam=LOJAS_ENVIO.filter(atendPendente); if(faltam.length){ abrirAtendentes('Agora escolha quem está enviando neste computador ('+faltam.map(tituloProd).join(', ')+').'); } else { $('#modal').classList.remove('on'); toast('Atendentes salvos. As mensagens já saem com o nome.','ok'); } render(); }
     else if(id==='uzLote'){ if(UZ.lote&&!UZ.lote.fim){ toast('Já tem um envio em andamento.','erro'); return; } loteUazapi(filtrarSug()); }
     else if(id==='loteParar'){ if(UZ.lote) UZ.lote.parar=true; toast('Parando depois da mensagem atual…'); }
     else if(id==='loteFechar'){ var lb=document.getElementById('lotebox'); if(lb) lb.remove(); UZ.lote=null; }
