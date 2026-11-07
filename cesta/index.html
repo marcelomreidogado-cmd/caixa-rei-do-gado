@@ -984,7 +984,7 @@ function sgKit(c,k){ var _r=sgKit0(c,k); _r.promo=k.promo!==false; return _r; }
 function sgKit0(c,k){ var ls=legendasKit(k), i=hashN(c.chave+'|'+k.id+'|'+hoje())%ls.length, at=atendenteDe(c.loja), h=new Date().getHours();
   var v={nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),atendente:at||'o pessoal',kit:k.nome,itens:(k.itens||'').trim()||'tudo prontinho pra você',preco:k.preco?' Sai por '+k.preco+'.':'',saudacao:h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'};
   var txt=ls[i].replace(/\{(\w+)\}/g,function(a,x){ return v[x]!=null?v[x]:a; }).replace('Aqui é o pessoal, do','Aqui é o pessoal do');
-  if(bib().sair) txt+='\n\n'+'Se preferir não receber nossas mensagens, é só responder SAIR.';
+  if(bib().sair) txt+='\n'+'Para não receber mais, responda SAIR.';
   return {mensagem:txt,situacao:'kit',variante:'kit:'+k.id+':'+i,ofertas:[],novidades:[],atendente:at,kit:k.id,midia:{type:'image',file:kitImg(k.id)},produtos:[k.nome]}; }
 function telaKits(){ var ks=kits(), kc=S.kc||{};
   setTimeout(buscarImagensKits,50);
@@ -1224,57 +1224,18 @@ var SITUACOES={
   kit:{nome:'Campanha de kit',cor:'vip'}
 };
 var BIB_PADRAO={
-  primeiro_abertura:['{saudacao}, {nome}! Tudo bem? Aqui é {atendente}, do Rei do Gado {loja} 🐂 Agora a gente tem um WhatsApp só pra falar com você, cliente da casa.',
-    'Oi, {nome}! Que bom falar com você por aqui 😊 Sou {atendente}, do Rei do Gado {loja}.',
-    '{saudacao}, {nome}! Aqui é {atendente}, lá do Rei do Gado {loja}. Você é cliente querido da casa, então quis te dar um alô por aqui 😊',
-    'Oi, {nome}, tudo bem? Aqui é o pessoal do Rei do Gado {loja} 🐂 A partir de agora a gente vai te avisar por aqui das novidades e das carnes que você mais gosta.',
-    '{saudacao}, {nome}! Aqui é do Rei do Gado {loja} 😊 Como você é cliente da casa, a gente quis te dar um alô por aqui.'],
-  primeiro_fecho:['Salva nosso número aí pra fazer seus pedidos por aqui, tá? É só mandar mensagem que a gente separa tudo pra você 📲',
-    'Pode salvar este número: por aqui você faz pedido, pede pra separar e tira dúvida de preparo 😉',
-    'Salva a gente nos seus contatos! Assim você pede sem fila e a gente deixa tudo separadinho no seu nome.',
-    'Guarda esse número, tá? Quando quiser alguma coisa, é só chamar aqui que a gente prepara com carinho.'],
-  aberturas:['{saudacao}, {nome}! Tudo bem com você e com a família?','Oi, {nome}! Como você tá? 😊','{nome}, {saudacao_min}! Que bom falar com você.','Oi, {nome}, tudo certinho por aí?','{saudacao}, {nome}! Aqui é o pessoal do Rei do Gado {loja} 🐂','Olá, {nome}! Passando pra te dar um alô.','Oi, {nome}! Aqui é {atendente}, do Rei do Gado {loja} 😊','{saudacao}, {nome}! {atendente} aqui, do Rei do Gado {loja}. Tudo bem com você?','Oi, {nome}, tudo bem? Aqui é {atendente}, lá do Rei do Gado {loja} 🐂'],
-  reativar_inativo:[
-    'Faz {tempo} que a gente não se vê, e aqui no balcão sempre alguém pergunta de você 🙂 Fica o convite pra voltar e provar {novidade}, {desc_nov}.',
-    'Lembrei de você hoje quando vi {o_fav} aqui no balcão, {desc_fav}. Faz {tempo} que você não passa aqui… bateu saudade!',
-    'Por aqui a casa continua a mesma, só ficou faltando você 😄 Tem novidade boa: {novidade}, {desc_nov}. Acho que você vai gostar.',
-    'Sabe {aquele_fav} que você levava? Continua do mesmo jeitinho, {desc_fav}. Quando quiser matar a saudade, é só chamar.',
-    'Faz {tempo} da sua última visita e eu queria saber de verdade: tá tudo bem? Se teve qualquer coisa que não te agradou, me conta, que a gente quer acertar.'
-  ],
-  reativar_risco:[
-    'Faz {tempo} que você não aparece e a gente já tá com saudade 😊 {O_fav} continua {desc_curta}.',
-    'Senti sua falta por aqui essas semanas! Se quiser, separo {seu_fav} pra facilitar a sua correria.',
-    'Passando só pra lembrar que tem um cantinho seu aqui 😄 E pra quem gosta de {fav}, {novidade} é uma delícia também, {desc_nov}.',
-    'A semana corrida às vezes faz a gente esquecer de si, né? Se precisar de {fav} pro almoço da família, é só me falar.'
-  ],
-  recompra:[
-    'Acho que {seu_fav} já tá acabando por aí, né? 😄',
-    'Você costuma levar {fav} mais ou menos a cada {ciclo} dias, então lembrei de você. Quer que eu já prepare?',
-    'Antes que {o_fav} acabe aí em casa, lembrei de você. Se precisar, dá pra levar junto {ofertas2}.',
-    'Hoje separando {o_fav}, {desc_fav}, lembrei logo de você 🙂'
-  ],
-  novo:[
-    'Obrigado pela confiança! Como ficou {o_fav} aí na sua casa? A sua opinião é muito importante pra gente.',
-    'Que alegria ter você com a gente! Na próxima, se quiser variar, prova {novidade}, {desc_nov}.',
-    'Passei pra saber se a família gostou {do_fav}. Qualquer dúvida de preparo, é só me chamar que eu explico 😊'
-  ],
-  vip:[
-    'Você é de casa, então quis contar primeiro: {novidade} chegou e tá {desc_nov}. Separo um pra você provar?',
-    'Lembrei de você na hora que vi {o_fav} hoje, {desc_fav}. Quer que eu guarde a peça mais bonita?',
-    'Pra quem entende de carne como você: {novidade} combina muito com {o_fav} que você sempre leva 😉'
-  ],
-  fimdesemana:[
-    '{diaSemana} chegando, e nada melhor que reunir a família em volta da churrasqueira, né? 🔥 Quer que eu separe {seu_fav}?',
-    'Já tem plano pro fim de semana? Se tiver churrasco, {o_fav} tá esperando por você, {desc_fav}. E pra surpreender, {novidade}.',
-    'Fim de semana combina com mesa cheia e gente querida 😊 Posso deixar {o_fav} separad{a_fav} pra você?'
-  ],
-  padrao:[
-    'Passando com uma dica de casa: quem gosta de {base} costuma adorar {novidade}, {desc_nov}.',
-    'Hoje {o_fav} tá saindo bastante, {desc_fav}. Se quiser variar o almoço, {novidade} também é uma ótima pedida.',
-    'Já pensou no cardápio da semana? Se precisar de {ofertas}, é só me chamar que a gente prepara com carinho.'
-  ],
-  ctas:['Se quiser, é só me responder aqui que eu já deixo separado 😉','Me fala o que vai querer que a gente prepara com carinho.','Quer que eu separe pra você passar e pegar?','Te espero aqui! Se preferir, já deixo tudo prontinho.','É só responder essa mensagem, tá? Vai ser um prazer te atender.'],
-  assinaturas:['Um abraço da família Rei do Gado {loja} 🐂','Com carinho, equipe Rei do Gado {loja}','Abraço, pessoal do Rei do Gado {loja}','Rei do Gado {loja}: a sua casa de carnes 🥩','Um abraço, {atendente} · Rei do Gado {loja} 🐂','Com carinho, {atendente} e toda a família Rei do Gado {loja}','{atendente}, do Rei do Gado {loja} 🥩'],
+  primeiro_abertura:['{saudacao}, {nome}! Aqui é {atendente}, do Rei do Gado {loja} 😊','Oi, {nome}! Tudo bem? Aqui é {atendente}, do Rei do Gado {loja}.','{saudacao}, {nome}! Aqui é do Rei do Gado {loja} 😊','Oi, {nome}, tudo bem? Aqui é do Rei do Gado {loja} 🐂'],
+  salvar_numero:['Salva nosso número pra pedir por aqui quando quiser 📲','Se perdeu nosso contato, salva este número: é por aqui que a gente separa seu pedido.'],
+  aberturas:['{saudacao}, {nome}! Tudo bem?','Oi, {nome}! Tudo certo por aí? 😊','{saudacao}, {nome}! Aqui é {atendente}, do Rei do Gado {loja}.','Oi, {nome}! {atendente} aqui, do Rei do Gado {loja} 😊'],
+  reativar_inativo:['Faz {tempo} que você não aparece por aqui. Bateu saudade! Quer que eu separe {seu_fav}?','Chegou {novidade} e lembrei de você. Quer provar?','Faz {tempo} da sua última visita. Tá tudo bem? Se algo não agradou, me conta 🙏','Ainda tem {o_fav} que você gostava. Separo pra você?'],
+  reativar_risco:['Faz {tempo} que você não passa aqui. Quer que eu separe {seu_fav}?','Senti sua falta essas semanas! Separo {seu_fav} pra você?','Pra quem gosta de {fav}, {novidade} também é uma delícia. Quer provar?'],
+  recompra:['Acho que {seu_fav} já tá acabando, né? Quer que eu separe? 😄','Você costuma levar {fav} a cada {ciclo} dias. Já deixo separado?','Hoje separando {o_fav}, lembrei de você. Quer que eu guarde?'],
+  novo:['Obrigado pela confiança! Como ficou {o_fav}? 😊','Que bom ter você com a gente! Na próxima, prova {novidade}. Quer que eu separe?'],
+  vip:['Chegou {novidade} e quis te contar primeiro. Separo um pra você?','Hoje tem {o_fav} bem bonit{a_fav}. Quer que eu guarde a melhor peça?'],
+  fimdesemana:['Fim de semana chegando 🔥 Separo {seu_fav} pro churrasco?','Vai ter churrasco no fim de semana? Já deixo {o_fav} separad{a_fav}?'],
+  padrao:['Dica da semana: quem gosta de {base} costuma adorar {novidade}. Quer provar?','Hoje {o_fav} tá muito bonit{a_fav}. Separo pra você?'],
+  ctas:['Me responde aqui que eu já separo 😉','É só responder que a gente prepara.'],
+  assinaturas:['{atendente} · Rei do Gado {loja}','Rei do Gado {loja} 🐂'],
   oferta:'',
   sair:true
 };
@@ -1314,15 +1275,16 @@ function montarMensagem(c,sg){
     o_fav:(fem(fav)?'a ':'o ')+fav,O_fav:(fem(fav)?'A ':'O ')+fav,do_fav:(fem(fav)?'da ':'do ')+fav,seu_fav:(fem(fav)?'sua ':'seu ')+fav,aquele_fav:(fem(fav)?'aquela ':'aquele ')+fav,a_fav:fem(fav)?'a':'o',desc_curta:descProd(fav).replace(/^(com|pra|do|um|uma|hamb|marmoreio) .*/,'do jeitinho que você gosta'),ofertas:listaPT(of)||fav,ofertas_cap:listaPT(of)||fav,ofertas2:listaPT(of.slice(1))||'o que mais precisar',tempo:tempoHumano(c.recencia),dias:c.recencia,ciclo:o0.ciclo||Math.round(c.intervaloMedio||0)||'',diaSemana:dSem,oferta:B.oferta||''};
   var fill=function(t){ return String(t).replace(/\{(\w+)\}/g,function(m,k){ return v[k]!=null&&v[k]!==''?v[k]:''; }).replace(/\s+([,.!?])/g,'$1').replace(/ {2,}/g,' ').trim(); };
   var primeiro=!contatosDe(c).length; sg.primeiro=primeiro;
-  var abs=(primeiro&&B.primeiro_abertura&&B.primeiro_abertura.length?B.primeiro_abertura:B.aberturas).filter(function(t){ return at||!temAt(t); }); if(!abs.length) abs=B.aberturas.filter(function(t){ return !temAt(t); }); if(!abs.length) abs=['Oi, {nome}!'];
+  var base0=(primeiro&&B.primeiro_abertura&&B.primeiro_abertura.length?B.primeiro_abertura:B.aberturas), abs=base0.filter(function(t){ return at||!temAt(t); });
+  if(primeiro&&at){ var comAt=abs.filter(temAt); if(comAt.length) abs=comAt; } // na 1ª mensagem quem fala se apresenta
+  if(!abs.length) abs=B.aberturas.filter(function(t){ return !temAt(t); }); if(!abs.length) abs=['Oi, {nome}!'];
   var abertura=pick(abs,'a'), partes=[fill(abertura),fill(corpo.t)];
-  if(B.oferta) partes.push(fill(pick(['E essa semana tem um mimo: {oferta} 😉','Ah, e essa semana tem {oferta}!','Detalhe: essa semana tem {oferta} 🙂'],'o')));
-  if(primeiro&&B.primeiro_fecho&&B.primeiro_fecho.length) partes.push(fill(pick(B.primeiro_fecho,'f')));
-  else if(!/\?\s*\S{0,3}$/.test(fill(corpo.t))){ var ct=B.ctas.filter(function(x){ var w=x.split(' ').slice(0,2).join(' '); return corpo.t.indexOf(w)<0; }); partes.push(fill(pick(ct.length?ct:B.ctas,'c'))); } 
-  var jaDisse=at&&temAt(abertura), ass=(at&&!jaDisse)?B.assinaturas.filter(temAt):B.assinaturas.filter(function(t){ return !temAt(t); });
-  if(at&&!jaDisse&&!ass.length) partes.push(at+' · '+fill(pick(B.assinaturas.length?B.assinaturas:['Rei do Gado {loja}'],'s')));
-  else partes.push(fill(pick(ass.length?ass:['Rei do Gado {loja}'],'s')));
-  if(B.sair) partes.push('Se preferir não receber nossas mensagens, é só responder SAIR, sem problema nenhum.');
+  if(B.oferta) partes.push(fill(pick(['Essa semana tem {oferta} 😉','E essa semana: {oferta}!'],'o')));
+  var salvou=c.recencia>90&&B.salvar_numero&&B.salvar_numero.length; if(salvou) partes.push(fill(pick(B.salvar_numero,'f'))); // sumido há +90 dias: pode ter perdido nosso número
+  if(!salvou&&!/\?\s*\S{0,3}$/.test(fill(corpo.t))){ var ct=B.ctas.filter(function(x){ var w=x.split(' ').slice(0,2).join(' '); return corpo.t.indexOf(w)<0; }); partes.push(fill(pick(ct.length?ct:B.ctas,'c'))); }
+  var jaDisse=/Rei do Gado/.test(abertura); // a abertura já diz quem fala e a loja: sem assinatura
+  if(!jaDisse){ var ass=B.assinaturas.filter(function(t){ return at?true:!temAt(t); }); if(at){ var aa=ass.filter(temAt); if(aa.length) ass=aa; } partes.push(fill(pick(ass.length?ass:['Rei do Gado {loja}'],'s'))); }
+  if(B.sair) partes.push('Para não receber mais, responda SAIR.');
   sg.situacao=sit; sg.variante=sit+':'+corpo.i; sg.atendente=at;
   return partes.join('\n'); }
 function abrirBiblioteca(){ var B=bib();
@@ -1330,7 +1292,7 @@ function abrirBiblioteca(){ var B=bib();
   $('#modal .modal-c').innerHTML='<div class="modal-h"><div><h2>Mensagens</h2><div class="sub">Uma variação por linha. A ferramenta escolhe a situação de cada cliente, sorteia uma variação de cada parte e não repete o texto que ele recebeu nas últimas 3 mensagens. Vale para todos os computadores.</div></div><button class="x" id="fechar">✕</button></div>'+
     '<p class="nota">Campos: {nome} {loja} {saudacao} {fav} (produto que ele mais compra e não recebeu oferta recente) {desc_fav} {o_fav} / {O_fav} / {do_fav} / {seu_fav} (artigo certo: o/a) {novidade} {desc_nov} {base} {ofertas} {ofertas2} {tempo} ("quase dois meses") {ciclo} (dias) {diaSemana} {oferta} {atendente}</p>'+
     '<label class="bibl"><b>Oferta / ação da semana (opcional)</b><small>Ex.: "pão de alho de brinde nas compras acima de R$ 150". Vazio = mensagem sem oferta. Só coloque o que a loja vai cumprir.</small><input id="bibOferta" value="'+esc(B.oferta)+'"></label>'+
-    area('primeiro_abertura','Primeira mensagem — apresentação','Para quem nunca recebeu mensagem da loja: apresente a loja e quem está falando ({atendente})')+area('primeiro_fecho','Primeira mensagem — fecho','Pedir para salvar o número e explicar que dá para pedir por aqui')+
+    area('primeiro_abertura','Primeira mensagem — apresentação','Para quem nunca recebeu mensagem: curta, diz quem fala ({atendente}) e a loja')+area('salvar_numero','Pedir para salvar o número','Só entra para quem está há mais de 90 dias sem comprar (pode ter perdido nosso contato)')+
     area('aberturas','Aberturas (a partir da 2ª mensagem)','Início da mensagem')+area('reativar_inativo','Reconquistar — sem comprar há mais de 60 dias','Tom de convite e saudade; pode perguntar se algo não agradou')+area('reativar_risco','Sentimos sua falta — 31 a 60 dias','Lembrar do que ele gosta')+
     area('recompra','Hora de repor — ciclo do produto vencendo','Use {ciclo} e {fav}')+area('novo','Cliente novo (até 2 compras)','Agradecer e indicar a próxima')+area('vip','VIP (10% que mais gastam)','Exclusividade, primeiro a saber')+
     area('fimdesemana','Churrasco do fim de semana (qui/sex/sáb)','Para quem compra churrasco')+area('padrao','Dica da semana (ativos)','Novidade por afinidade')+area('ctas','Chamadas para ação','Pedir uma resposta concreta')+area('assinaturas','Assinaturas','Fecho com o nome da loja')+
