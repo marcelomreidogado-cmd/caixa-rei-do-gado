@@ -36,6 +36,10 @@ th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{backgroun
 .uzloja{border:1px solid #eadfd3;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fffdfa}
 .vermsg summary{font-size:11px;color:#777;cursor:pointer}.vermsg pre{white-space:pre-wrap;font:12px/1.4 inherit;margin:4px 0;background:#faf6f0;padding:6px;border-radius:6px}
 .pill.dias{font-size:13px;font-weight:800;padding:4px 10px}.pill.risk{background:#fff1d6;color:#9a5b00}.ultc b{font-size:14px;white-space:nowrap}.btn.wa.off{background:#ddd;color:#666;border-color:#ccc}h2.secao{margin:26px 0 8px;font-size:20px;border-bottom:2px solid #eadfd3;padding-bottom:6px}
+.lojabar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0 4px}.lojat{font-weight:700;color:#777;font-size:13px}
+.lojab{display:flex;align-items:center;gap:8px;border:2px solid #e3d8cc;background:#fff;border-radius:12px;padding:6px 12px;cursor:pointer;font:inherit;text-align:left}
+.lojab .lico{font-size:22px;line-height:1}.lojab b{display:block;font-size:14px;color:var(--cor)}.lojab small{display:block;font-size:11px;color:#888}
+.lojab:hover{border-color:var(--cor)}.lojab.on{background:var(--cor);border-color:var(--cor)}.lojab.on b,.lojab.on small{color:#fff}.lojanota{font-size:12.5px;color:#777;margin-left:6px}
 .bibl{display:block;font-weight:700;font-size:13px;margin:12px 0 4px}.bibl small{font-weight:400;color:#777}.bibta{width:100%;min-height:90px;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle}.dot.ok{background:var(--ok)}.dot.risk{background:var(--risk)}.dot.off{background:var(--off)}
 .pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}.pill.late{background:#fff1d6;color:#9a5b00}.pill.okp{background:#e3f4ea;color:var(--ok)}
@@ -77,7 +81,7 @@ textarea.msg{width:100%;font:inherit;padding:10px;border:1px solid var(--line);b
 @media print{header,.filtros,.mais{display:none}}
 </style></head><body>
 <header><div class="logo">RG</div><div><h1>Cesta de Produtos por Cliente</h1><div class="per" id="periodo"></div></div><button id="syncst" class="syncst off">○ Nuvem</button>
-<nav class="tabs"><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="clientes">Clientes</button><button data-aba="produtos">Produtos</button><button data-aba="painel">Painel</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="conferencia">Conferência</button><button data-aba="importacoes">Importar e configurar</button></nav></header>
+<nav class="tabs"><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="clientes">Clientes</button><button data-aba="produtos">Produtos</button><button data-aba="painel">Painel</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="conferencia">Conferência</button><button data-aba="importacoes">Importar e configurar</button></nav><div id="lojabar" class="lojabar"></div></header>
 <main id="main">Carregando…</main>
 <div id="modal"><div class="modal-c"></div></div><div id="toast" class="toast"></div>
 <script>/**
@@ -898,7 +902,6 @@ function telaPainel(){ var m=S.model, f=S.pn, rows=linhasPainel(), tot=agregar(r
   return '<p class="info">Acompanhe o que cada loja está fazendo com as mensagens e o resultado: quem <b>respondeu</b> (lido na Uazapi) e quem <b>voltou a comprar</b> depois da mensagem (cruzando com o Extrato de Produtos). Vendas na base até <b>'+dBR(m.refData)+'</b>.</p>'+
     '<div class="filtros">'+sel('pnper','Período',[['7','Últimos 7 dias'],['30','Últimos 30 dias'],['90','Últimos 90 dias'],['tudo','Tudo'],['custom','Escolher datas…']],f.per).replace('<option value="">Período</option>','')+
     (f.per==='custom'?'<input id="pnde" type="date" value="'+esc(f.de)+'"><input id="pnate" type="date" value="'+esc(f.ate)+'">':'')+
-    sel('pnloja','Todas as lojas',LOJAS_ENVIO.map(function(l){return [l,tituloProd(l)];}),f.loja)+
     '<select id="pnjan">'+[3,7,15,30].map(function(d){return '<option value="'+d+'"'+(+f.jan===d?' selected':'')+'>Volta à compra em até '+d+' dias</option>';}).join('')+'</select>'+
     (uazAtivo()?'<button class="btn sec" id="lerResp">🔄 Ler respostas agora</button>':'')+'<span class="nota" style="margin:0">'+(RESP.ult?'Respostas lidas às '+RESP.ult.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(RESP.info):(uazAtivo()?'As respostas são lidas a cada 10 minutos.':'Configure a Uazapi para ler as respostas.'))+'</span></div>'+
     '<div class="kpis">'+kpi('Mensagens',num(tot.n),num(tot.nCli)+' cliente(s)')+kpi('Responderam',tot.uaz?pctTxt(tot.resp,tot.uaz):'—',num(tot.resp)+' de '+num(tot.uaz)+' pela Uazapi')+
@@ -1255,9 +1258,20 @@ async function restaurar(file){ try{ var o=JSON.parse(await file.text()); if(!/^
   await recarregar(); render(); toast('Backup restaurado.','ok'); }catch(e){ toast('Erro ao restaurar: '+e.message,'erro'); } }
 
 /* ---------- telas ---------- */
+/* ---------- LOJA GLOBAL: um clique vale para todas as abas ---------- */
+var COR_LOJA_BAR={CORONEL:'#b3121b',CORREAS:'#d98a1c',BINGEN:'#2c4f86'};
+function setLoja(l){ S.loja=l||''; S.filtro.loja=S.sug.loja=S.rec.loja=S.pn.loja=S.prodLoja=S.loja; S.limite=200;
+  try{ localStorage.setItem('cesta_loja',S.loja); }catch(e){} }
+function barraLojas(){ var m=S.model; if(!m) return '';
+  var cont={}; m.lista.forEach(function(c){ cont[c.loja]=(cont[c.loja]||0)+1; });
+  var lojas=lojasTodas().filter(function(l){ return cont[l]; });
+  var b=function(l,rot,ico,cor){ var on=(S.loja||'')===l; return '<button class="lojab'+(on?' on':'')+'" data-loja="'+esc(l)+'" style="--cor:'+cor+'"><span class="lico">'+ico+'</span><span><b>'+esc(rot)+'</b><small>'+num(l?cont[l]||0:m.lista.length)+' clientes</small></span></button>'; };
+  return '<span class="lojat">Loja:</span>'+b('','Todas as lojas','🏬','#555')+lojas.map(function(l){ return b(l,tituloProd(l),'🏪',COR_LOJA_BAR[l]||'#777'); }).join('')+
+    (S.loja?'<span class="lojanota">Todas as abas mostram só a loja <b>'+esc(tituloProd(S.loja))+'</b></span>':''); }
 function render(){
   var m=S.model; if(!m&&S.aba!=='importacoes') S.aba='importacoes';
   document.querySelectorAll('.tabs button').forEach(function(b){ b.classList.toggle('on',b.dataset.aba===S.aba); b.disabled=!m&&b.dataset.aba!=='importacoes'; });
+  var lb=document.getElementById('lojabar'); if(lb){ lb.innerHTML=barraLojas(); lb.style.display=m&&S.aba!=='importacoes'?'':'none'; }
   $('#periodo').textContent=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens (sem funcionários)':'Nenhum relatório importado';
   var y=window.scrollY;
   $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel}[S.aba]||telaSugestoes)();
@@ -1291,7 +1305,7 @@ function filtrarClientes(){ var m=S.model,f=S.filtro,q=rgNorm(f.q),pq=rgNorm(f.p
 function th(c,r,cl,ord){ ord=ord||S.ordem; var on=ord.campo===c; return '<th class="sort '+(cl||'')+(on?' on':'')+'" data-ord="'+c+'">'+r+(on?(ord.dir<0?' ▼':' ▲'):'')+'</th>'; }
 function telaClientes(){ var f=S.filtro,l=filtrarClientes();
   return kpis()+'<div class="filtros"><input id="fq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'"><input id="fprod" list="dlprod" placeholder="Que compram o produto…" value="'+esc(f.produto)+'">'+dlProdutos()+
-    sel('floja','Loja do cliente: todas',lojasTodas(),f.loja)+sel('fstatus','Todos os status',['Ativo','Em risco','Inativo'],f.status)+sel('fperfil','Todos os perfis',['VIP','Frequente','Regular','Esporádico','Compra única','Recompra atrasada'],f.perfil)+
+    sel('fstatus','Todos os status',['Ativo','Em risco','Inativo'],f.status)+sel('fperfil','Todos os perfis',['VIP','Frequente','Regular','Esporádico','Compra única','Recompra atrasada'],f.perfil)+
     sel('fcod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+'<button class="btn sec" id="expFiltro">⬇ CSV desta lista</button></div>'+barraSel('cli',l.filter(elegivel).length)+
     '<div class="info">'+num(l.length)+' cliente(s) · '+brl(l.reduce(function(a,c){return a+c.total;},0))+' · digite o código do CRM e tecle Enter para vincular</div>'+
     '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th>'+th('codigo','Cód. CRM')+th('nome','Cliente')+'<th>Loja</th>'+th('perfil','Perfil')+th('total','Total','r')+th('nCompras','Compras','r')+th('ticketMedio','Ticket','r')+th('ultimaCompra','Última compra')+th('recencia','Dias s/ comprar','r')+th('intervaloMedio','Compra a cada','r')+'<th>Principais produtos</th></tr></thead><tbody>'+
@@ -1338,7 +1352,7 @@ function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
       return (estadoContato(a).bloqueado?1:0)-(estadoContato(b).bloqueado?1:0) || (b.atrasado?1:0)-(a.atrasado?1:0) || b.total-a.total; }); }
 function telaSugestoes(){ var f=S.sug,l=filtrarSug();
   return '<p class="info">Para cada cliente: os produtos que ele já compra (prioridade para o que está na hora de recomprar) + uma novidade da linha que ele mais compra, escolhida por afinidade ("quem compra X também leva Y"). Funcionários e uso interno ficam fora.</p>'+
-    '<div class="filtros"><input id="sq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'">'+sel('sloja','Loja do cliente: todas',lojasTodas(),f.loja)+
+    '<div class="filtros"><input id="sq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'">'+
     sel('sstatus','Todos os status',[['ativos','Ativos + em risco'],['Ativo','Só ativos'],['Em risco','Só em risco'],['Inativo','Só inativos (reativação)']],f.status)+
     sel('slinha','Todas as linhas',LINHAS,f.linha)+sel('scod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+
     sel('scont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam (bloqueados)'],['optout','Pediram para não receber (SAIR)']],f.cont)+
@@ -1371,7 +1385,7 @@ function telaRecompra(){ var r=S.rec,l=filtrarRecompra(), o=r.ord||{campo:'atras
   var thr=function(c,rot,cl){ return '<th class="ord'+(cl?' '+cl:'')+(o.campo===c?' on':'')+'" data-rord="'+c+'" title="Clique para ordenar">'+rot+(o.campo===c?(o.dir<0?' ▼':' ▲'):'')+'</th>'; };
   var nCli={}; l.forEach(function(x){ if(elegivel(x.c)) nCli[x.c.chave]=1; });
   return '<p class="info">Clientes que compram um produto com regularidade (pelo menos '+MIN_COMPRAS_CICLO+' vezes) e já passaram '+FATOR_ATRASO.toLocaleString('pt-BR')+'× do ciclo habitual sem comprar — nos últimos '+JANELA_RECOMPRA+' dias. A mensagem já fala do produto atrasado. Clique no título da coluna para ordenar (maior → menor).</p>'+
-    '<div class="filtros"><input id="rq" placeholder="Buscar cliente…" value="'+esc(r.q)+'"><input id="rprod" list="dlprod" placeholder="Produto…" value="'+esc(r.produto)+'">'+dlProdutos()+sel('rloja','Loja do cliente: todas',lojasTodas(),r.loja)+
+    '<div class="filtros"><input id="rq" placeholder="Buscar cliente…" value="'+esc(r.q)+'"><input id="rprod" list="dlprod" placeholder="Produto…" value="'+esc(r.produto)+'">'+dlProdutos()+
     sel('rcont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam'],['marcados','Só os marcados']],r.cont)+'<button class="btn" id="expRec">⬇ CSV para contato</button></div>'+
     '<div class="filtros"><span class="nota" style="margin:0">Dias sem comprar o produto:</span><input id="rdmin" type="number" min="0" placeholder="de" value="'+esc(r.dmin)+'" style="width:80px"><input id="rdmax" type="number" min="0" placeholder="até" value="'+esc(r.dmax)+'" style="width:80px">'+
     '<span class="nota" style="margin:0 0 0 10px">Última compra entre</span><input id="rde" type="date" value="'+esc(r.de)+'"><input id="rate" type="date" value="'+esc(r.ate)+'">'+
@@ -1387,7 +1401,7 @@ function telaProdutos(){ var m=S.model,q=rgNorm(S.prodQ),o=S.prodOrdem;
   var l=m.produtosArr.map(vistaProd).filter(function(p){return p&&(!q||rgNorm(p.produto+' '+p.cod+' '+p.linha).indexOf(q)>=0);}).sort(function(a,b){var x=a[o.campo],y=b[o.campo]; if(typeof x==='string') return x.localeCompare(y)*o.dir; return (x-y)*o.dir;});
   var maxV=l.reduce(function(a,p){return Math.max(a,p.valor);},1), tot=l.reduce(function(a,p){return a+p.valor;},0);
   var thp=function(c,r,cl){ return th(c,r,cl,o).replace('data-ord','data-pord'); };
-  return '<div class="filtros"><input id="pq" placeholder="Buscar produto, código ou linha…" value="'+esc(S.prodQ)+'">'+sel('ploja','Todas as lojas',lojasTodas(),S.prodLoja)+'</div>'+
+  return '<div class="filtros"><input id="pq" placeholder="Buscar produto, código ou linha…" value="'+esc(S.prodQ)+'">'+'</div>'+
     '<div class="info">'+l.length+' produto(s)'+(S.prodLoja?' vendidos na loja <b>'+esc(tituloProd(S.prodLoja))+'</b>':'')+' · '+brl(tot)+'. A <b>linha</b> define as sugestões — ajuste quando a automática estiver errada (fica salvo). Clique no nome para ver quem compra.</div>'+
     '<div class="tw"><table class="tbl"><thead><tr><th>Cód.</th>'+thp('produto','Produto')+thp('linha','Linha')+thp('qtd','Qtd','r')+thp('valor','Valor','r')+'<th></th>'+thp('precoMediano','Preço mediano','r')+thp('nClientes','Clientes','r')+'<th>Última venda</th></tr></thead><tbody>'+
     l.map(function(p){ return '<tr><td><small>'+esc(p.cod)+'</small></td><td class="click" data-prod="'+esc(p.chave)+'"><b>'+esc(p.produto)+'</b>'+(p.ativo?'':' <span class="pill late" title="Sem venda há mais de '+DIAS_PRODUTO_ATIVO+' dias'+(S.prodLoja?' nesta loja':'')+'">parado</span>')+'</td>'+
@@ -1468,9 +1482,9 @@ function periodoCad(){ var m=S.model, ref=m.refData, p=S.cad.periodo;
 function agrega(cups){ var o={cupons:0,nome:0,anon:0,valor:0,valorNome:0}; cups.forEach(function(c){ o.cupons++; o.valor+=c.valor; if(c.anon) o.anon++; else { o.nome++; o.valorNome+=c.valor; } }); o.pct=o.cupons?o.nome/o.cupons:0; o.pctValor=o.valor?o.valorNome/o.valor:0; return o; }
 function corMeta(p,meta){ return p>=meta?'ok':p>=meta-0.1?'quase':'ruim'; }
 function celPct(o,meta){ if(!o||!o.cupons) return '<td class="r vazio">—</td>'; return '<td class="r hm '+corMeta(o.pct,meta)+'" title="'+o.nome+' com nome de '+o.cupons+' cupons">'+pct0(o.pct)+'</td>'; }
-function telaCadastro(){ var m=S.model, meta=(S.cfg.metaCadastro||80)/100, pr=periodoCad(), lojas=lojasTodas();
+function telaCadastro(){ var m=S.model, meta=(S.cfg.metaCadastro||80)/100, pr=periodoCad(), lojas=lojasTodas().filter(function(l){ return !S.loja||l===S.loja; });
   var noPer=m.cupons.filter(function(c){return c.data>=pr[0]&&c.data<=pr[1];});
-  var cards=lojas.concat(['TODAS']).map(function(lj){ var o=agrega(noPer.filter(function(c){return lj==='TODAS'||c.loja===lj;}));
+  var cards=lojas.concat(S.loja?[]:['TODAS']).map(function(lj){ var o=agrega(noPer.filter(function(c){return lj==='TODAS'||c.loja===lj;}));
     var falta=Math.max(0,Math.ceil(meta*o.cupons-o.nome)), cor=corMeta(o.pct,meta);
     return '<div class="kpi cad '+(lj==='TODAS'?'tot':'')+'"><span>'+(lj==='TODAS'?'Todas as lojas':esc(tituloProd(lj)))+'</span><b class="'+cor+'">'+pct(o.pct)+'</b><small>cupons com nome do cliente</small>'+
       '<div class="metabar"><i class="'+cor+'" style="width:'+Math.min(100,o.pct*100)+'%"></i><em style="left:'+(meta*100)+'%" title="Meta '+pct0(meta)+'"></em></div>'+
@@ -1512,6 +1526,7 @@ function exportCad(){ var m=S.model, lojas=lojasTodas(), rows=[]; var meses={}; 
 /* ---------- eventos ---------- */
 function bind(){
   document.addEventListener('click',async function(e){ var t=e.target,b;
+    if((b=t.closest('[data-loja]'))&&b.classList.contains('lojab')){ setLoja(b.dataset.loja); render(); if($('#modal').classList.contains('on')&&S.pm&&S.pm.chave&&document.querySelector('#modal [data-ctxbar^="prod:"]')) abrirProduto(S.pm.chave); return; }
     if((b=t.closest('.tabs button'))&&!b.disabled){ S.aba=b.dataset.aba; S.limite=200; window.scrollTo(0,0); render(); return; }
     if(t.id==='fechar'||t.id==='modal'){ $('#modal').classList.remove('on'); return; }
     if(t.closest('summary')||t.closest('input')||t.closest('select')||t.closest('textarea')) return;
@@ -1607,7 +1622,7 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); await dbOpen(); await recarregar(); S.aba=S.model?'sugestoes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas;
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'sugestoes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas;
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },10*60*1000); window.__dbTx=dbTx; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
