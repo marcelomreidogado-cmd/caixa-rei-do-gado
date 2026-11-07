@@ -35,6 +35,7 @@ th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{backgroun
 .gdias{display:flex;gap:3px;align-items:flex-end;background:#fff;border:1px solid #eadfd3;border-radius:12px;padding:10px;overflow-x:auto}.gd{flex:1;min-width:14px;text-align:center}.gd span{font-size:10px;color:#888}.gd.dom span{color:var(--red2);font-weight:700}.gcol{height:120px;display:flex;flex-direction:column-reverse;justify-content:flex-start}.gcol i{display:block;width:100%;border-radius:2px 2px 0 0}
 .uzloja{border:1px solid #eadfd3;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fffdfa}
 .vermsg summary{font-size:11px;color:#777;cursor:pointer}.vermsg pre{white-space:pre-wrap;font:12px/1.4 inherit;margin:4px 0;background:#faf6f0;padding:6px;border-radius:6px}
+.pill.dias{font-size:13px;font-weight:800;padding:4px 10px}.pill.risk{background:#fff1d6;color:#9a5b00}.ultc b{font-size:14px;white-space:nowrap}.btn.wa.off{background:#ddd;color:#666;border-color:#ccc}h2.secao{margin:26px 0 8px;font-size:20px;border-bottom:2px solid #eadfd3;padding-bottom:6px}
 .bibl{display:block;font-weight:700;font-size:13px;margin:12px 0 4px}.bibl small{font-weight:400;color:#777}.bibta{width:100%;min-height:90px;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle}.dot.ok{background:var(--ok)}.dot.risk{background:var(--risk)}.dot.off{background:var(--off)}
 .pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}.pill.late{background:#fff1d6;color:#9a5b00}.pill.okp{background:#e3f4ea;color:var(--ok)}
@@ -76,7 +77,7 @@ textarea.msg{width:100%;font:inherit;padding:10px;border:1px solid var(--line);b
 @media print{header,.filtros,.mais{display:none}}
 </style></head><body>
 <header><div class="logo">RG</div><div><h1>Cesta de Produtos por Cliente</h1><div class="per" id="periodo"></div></div><button id="syncst" class="syncst off">○ Nuvem</button>
-<nav class="tabs"><button data-aba="clientes">Clientes</button><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="painel">Painel</button><button data-aba="produtos">Produtos</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="funcionarios">Funcionários</button><button data-aba="qualidade">Qualidade</button><button data-aba="exportar">Exportar p/ CRM</button><button data-aba="importacoes">Importar</button></nav></header>
+<nav class="tabs"><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="clientes">Clientes</button><button data-aba="produtos">Produtos</button><button data-aba="painel">Painel</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="conferencia">Conferência</button><button data-aba="importacoes">Importar e configurar</button></nav></header>
 <main id="main">Carregando…</main>
 <div id="modal"><div class="modal-c"></div></div><div id="toast" class="toast"></div>
 <script>/**
@@ -463,7 +464,7 @@ function fbUrl(path,qs){ var u=S.sync.url.replace(/\/+$/,'')+'/'+[S.sync.raiz].c
 async function fb(method,path,body,qs){
   var opt={method:method,cache:'no-store'}; if(body!==undefined){ opt.body=JSON.stringify(body); opt.headers={'Content-Type':'application/json'}; }
   var r; try{ r=await fetch(fbUrl(path,qs),opt); }catch(e){ var er=new Error('Sem conexão com a nuvem'); er.offline=true; throw er; }
-  if(r.status===401||r.status===403) throw new Error('O Firebase recusou o acesso (regras do banco). Veja "Sincronização" na aba Importar.');
+  if(r.status===401||r.status===403) throw new Error('O Firebase recusou o acesso (regras do banco). Veja "Sincronização" na aba Importar e configurar.');
   if(!r.ok){ var t=''; try{ t=(await r.json()).error||''; }catch(_){} throw new Error('Firebase respondeu '+r.status+(t?': '+t:'')); }
   return r.json(); }
 function setSync(estado,msg){ SY.estado=estado; SY.msg=msg||''; var el=document.getElementById('syncst'); if(!el) return;
@@ -558,7 +559,7 @@ async function sincronizar(forcar){
     SY.ultima=new Date(); setSync('ok','Última sincronização: '+SY.ultima.toLocaleString('pt-BR'));
   }catch(e){ console.warn(e); setSync(e.offline?'offline':'erro',e.message); }
   finally{ SY.ocupado=false; }
-  if(mudou){ var vazio=!S.model; await recarregar(); if(vazio&&S.model&&S.aba==='importacoes') S.aba='clientes'; atualizarTela(); }
+  if(mudou){ var vazio=!S.model; await recarregar(); if(vazio&&S.model&&S.aba==='importacoes') S.aba='sugestoes'; atualizarTela(); }
   if(SY.estado==='ok'&&S.model&&S.crmSujo) await publicarCRM();
   abrirDeepLink();
   return mudou; }
@@ -727,7 +728,7 @@ async function registrarVarios(lista,canal){ var recs=[], agora=new Date(), d=ho
   await dbTx('contatos',function(st){ recs.forEach(function(r){ st.put(r); }); }); S.contatos=S.contatos.concat(recs); indexarContatos(); lista.forEach(function(c){ delete c._sug; delete c._sugF; }); S.crmSujo=true; agendarSync(300); return recs.length; }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
-async function enviarContato(c,msg,sg){ if(!(await podeEnviar(c))) return false; window.open(waLink(c.celular,msg),'_blank'); await registrarContato(c,'whatsapp',msg,null,sg); return true; }
+async function enviarContato(c,msg,sg){ /* desativado: todo envio é pela Uazapi */ toast('O envio é só pela Uazapi.','erro'); return false; if(!(await podeEnviar(c))) return false; await registrarContato(c,'whatsapp',msg,null,sg); return true; }
 async function marcarEnviada(c,msg,sg){ if(!(await podeEnviar(c))) return false; await registrarContato(c,'manual',msg,null,sg); return true; }
 function blocoHistorico(c){ var e=estadoContato(c), R=regras();
   return '<h3>Mensagens enviadas ('+e.historico.length+')</h3>'+(e.historico.length?'<div class="tw"><table class="tbl mini"><thead><tr><th>Quando</th><th>Por</th><th>Canal</th><th>Produtos oferecidos</th><th>Resposta do cliente</th><th></th></tr></thead><tbody>'+
@@ -767,7 +768,7 @@ async function uazStatus(inst){ var j=await uazReq(inst,'GET','/instance/status'
   return {ok:ok,status:st||'?',nome:ii.profileName||ii.name||'',numero:(ii.owner||ii.wid||'').toString().replace(/\D/g,''),bruto:j}; }
 async function uazEnviar(inst,numero,texto){ var j=await uazReq(inst,'POST','/send/text',{number:numero,text:texto,delay:1500,linkPreview:false,track_source:'cesta-rei-do-gado'});
   return {chatid:j.chatid||j.wa_chatid||(j.key&&j.key.remoteJid)||(j.message&&j.message.chatid)||'',msgid:j.messageid||j.id||(j.key&&j.key.id)||(j.message&&j.message.messageid)||''}; }
-function semLojaMsg(c){ return c.nome+' é cliente da loja '+tituloProd(c.loja||'?')+', e o número dessa loja não está configurado neste computador (aba Importar → WhatsApp pela Uazapi).'; }
+function semLojaMsg(c){ return c.nome+' é cliente da loja '+tituloProd(c.loja||'?')+', e o número dessa loja não está configurado neste computador. Configure na aba Importar e configurar → WhatsApp pela Uazapi, ou envie pelo computador da loja '+tituloProd(c.loja||'?')+'.'; }
 /* envio de 1 cliente pela Uazapi da loja dele: confere regras, envia, registra */
 async function enviarUazapi(c,msg,sg){ var w=foneWa(c.celular); if(!w){ toast(c.nome+' não tem celular.','erro'); return false; }
   var inst=uazPara(c); if(!inst){ toast(semLojaMsg(c),'erro'); return false; }
@@ -942,7 +943,17 @@ function lacunasVendas(diasGeral,diasLoja,ini,fim){ var out=[];
 function avisoLacunas(){ var m=S.model; if(!m||!m.lacunas||!m.lacunas.length) return '';
   return '<div class="erro lacuna">⚠ <b>Faltam vendas na base</b> — os clientes que compraram nesses dias aparecem com a última compra errada: '+
     m.lacunas.slice(0,6).map(function(x){ return '<b>'+dBR(x.ini)+(x.dias>1?' a '+dBR(x.fim):'')+'</b> ('+x.dias+' dias'+(x.loja?', só loja '+esc(tituloProd(LOJAS[x.loja]||x.loja)):', todas as lojas')+')'; }).join(' · ')+
-    (m.lacunas.length>6?' e mais '+(m.lacunas.length-6):'')+'. Importe o <b>Extrato de Produtos</b> desse período na aba Importar (pode ser um PDF só cobrindo esses dias).</div>'; }
+    (m.lacunas.length>6?' e mais '+(m.lacunas.length-6):'')+'. Importe o <b>Extrato de Produtos</b> desse período na aba Importar e configurar (pode ser um PDF só cobrindo esses dias).</div>'; }
+
+
+/* ---------- BOTÃO ÚNICO DE ENVIO: tudo sai pela Uazapi (número da loja do cliente) ---------- */
+function btnEnviar(c,prod,modo,grande){ var a=prod?' data-foco="'+esc(prod)+'" data-modo="'+esc(modo)+'"':'', cl='btn wa'+(grande?'':' mini');
+  if(optout(c)) return '<span class="pill late" title="Pediu para não receber mensagens">SAIR</span>';
+  if(!foneWa(c.celular)) return '<span class="pill late">sem celular</span>';
+  if(!uazPara(c)) return '<button class="'+cl+' off" data-wacli="'+esc(c.chave)+'"'+a+' title="O número da loja '+esc(tituloProd(c.loja||''))+' não está configurado neste computador">📤 '+(grande?'Número da '+esc(tituloProd(c.loja||''))+' não configurado':'Nº '+esc(tituloProd(c.loja||'')))+'</button>';
+  return '<button class="'+cl+'" data-wacli="'+esc(c.chave)+'"'+a+' title="Enviar pelo número da loja '+esc(tituloProd(c.loja))+' para '+esc(foneFmt(c.celular))+'">📤 '+(grande?'Enviar pelo número da '+esc(tituloProd(c.loja))+' para '+esc(foneFmt(c.celular)):'Enviar')+'</button>'; }
+function diaSemanaCurto(d){ return d?['domingo','segunda','terça','quarta','quinta','sexta','sábado'][new Date(d+'T12:00:00').getDay()]:''; }
+function seloDias(d){ var cls=d<=30?'okp':d<=60?'risk':'late'; return '<span class="pill dias '+cls+'">'+d+' dia'+(d===1?'':'s')+'</span>'; }
 
 /* ---------- MENSAGEM COM FOCO NUM PRODUTO (Recompra e ficha do produto) ---------- */
 function sugFoco(c,prod,modo){
@@ -968,11 +979,12 @@ function barraSel(ctx,total){ selCtx(ctx); var n=selN();
   return '<div class="selbar" data-ctxbar="'+esc(ctx)+'"><b><span class="seln">'+n+'</span> marcado(s)</b>'+chipAtendentes()+
     '<button class="btn sec mini" data-selall="'+esc(ctx)+'" title="Marca os clientes liberados e com celular desta lista">☑ Marcar todos liberados'+(total!=null?' ('+num(total)+')':'')+'</button>'+
     '<button class="btn sec mini" data-selnone="'+esc(ctx)+'">Limpar</button>'+
-    (uazAtivo()?'<button class="btn wa mini" data-selenviar="'+esc(ctx)+'">📤 Enviar para os marcados (Uazapi)</button>':'<span class="nota" style="margin:0">Para enviar em lote, configure a Uazapi na aba Importar.</span>')+'</div>'; }
+    (uazAtivo()?'<button class="btn wa mini" data-selenviar="'+esc(ctx)+'">📤 Enviar para os marcados (Uazapi)</button>':'<span class="nota" style="margin:0">Para enviar em lote, configure a Uazapi na aba Importar e configurar.</span>')+'</div>'; }
 function atualizarBarraSel(){ document.querySelectorAll('.selbar .seln').forEach(function(x){ x.textContent=selN(); }); }
 /* lista completa (filtrada) de cada tela, para "Marcar todos" */
 function itensCtx(ctx){
   if(ctx==='sug') return filtrarSug().map(function(c){ return {c:c}; });
+  if(ctx==='cli') return filtrarClientes().map(function(c){ return {c:c}; });
   if(ctx==='rec'){ var vis={}, out=[]; filtrarRecompra().forEach(function(x){ if(!vis[x.c.chave]){ vis[x.c.chave]=1; out.push({c:x.c,prod:x.e.chave,modo:'recompra'}); } }); return out; }
   if(ctx.indexOf('prod:')===0){ var ch=ctx.slice(5); return clientesDoProduto(ch).map(function(y){ return {c:y.c,prod:ch,modo:'produto'}; }); }
   return []; }
@@ -988,8 +1000,7 @@ function reabrirModalCtx(ctx){ if(ctx.indexOf('prod:')===0&&$('#modal').classLis
 function colMsg(c,sg){ var e=estadoContato(c), linha=(sg.mensagem||'').split('\n')[1]||'';
   return '<td class="msgcol">'+tagSit(sg.situacao)+(e.bloqueado?' <span class="pill late" title="Já recebeu em '+esc(txtUltimo(e))+'">recebeu '+dBR(e.ultimo.dia).slice(0,5)+'</span>':'')+(optout(c)?' <span class="pill late">SAIR</span>':'')+
     '<small class="prev" title="'+esc(sg.mensagem)+'">'+esc(linha.length>110?linha.slice(0,108)+'…':linha)+'</small></td>'; }
-function acoesMsg(c,prod,modo){ var a=prod?' data-foco="'+esc(prod)+'" data-modo="'+esc(modo)+'"':'';
-  return '<td class="acoes"><button class="btn sec mini" data-copiarcli="'+esc(c.chave)+'"'+a+'>📋</button>'+(foneWa(c.celular)&&!optout(c)?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'"'+a+' title="'+esc(foneFmt(c.celular))+'">'+(uazPara(c)?'📤':'💬')+'</button>':'')+'</td>'; }
+function acoesMsg(c,prod,modo){ return '<td class="acoes">'+btnEnviar(c,prod,modo)+'</td>'; }
 /* clientes de um produto, com filtros da ficha */
 function clientesDoProduto(chave){ var m=S.model,p=m.produtos[chave], L=S.prodLoja, fonte=L&&p.porLoja[L]?p.porLoja[L].clientes:p.clientes, f=S.pm||{};
   var l=Object.keys(fonte).map(function(k){ var x=fonte[k],ds=Object.keys(x.datas).sort(), ult=ds[ds.length-1]; return {c:m.clientes[k],x:x,vezes:ds.length,ultima:ult,diasSem:dias(ult,m.refData)}; }).filter(function(y){ return y.c; });
@@ -1249,7 +1260,7 @@ function render(){
   document.querySelectorAll('.tabs button').forEach(function(b){ b.classList.toggle('on',b.dataset.aba===S.aba); b.disabled=!m&&b.dataset.aba!=='importacoes'; });
   $('#periodo').textContent=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens (sem funcionários)':'Nenhum relatório importado';
   var y=window.scrollY;
-  $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,qualidade:telaQualidade,exportar:telaExportar,importacoes:telaImportacoes,painel:telaPainel}[S.aba])();
+  $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel}[S.aba]||telaSugestoes)();
   window.scrollTo(0,y);
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
@@ -1281,10 +1292,10 @@ function th(c,r,cl,ord){ ord=ord||S.ordem; var on=ord.campo===c; return '<th cla
 function telaClientes(){ var f=S.filtro,l=filtrarClientes();
   return kpis()+'<div class="filtros"><input id="fq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'"><input id="fprod" list="dlprod" placeholder="Que compram o produto…" value="'+esc(f.produto)+'">'+dlProdutos()+
     sel('floja','Loja do cliente: todas',lojasTodas(),f.loja)+sel('fstatus','Todos os status',['Ativo','Em risco','Inativo'],f.status)+sel('fperfil','Todos os perfis',['VIP','Frequente','Regular','Esporádico','Compra única','Recompra atrasada'],f.perfil)+
-    sel('fcod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+'<button class="btn sec" id="expFiltro">⬇ CSV desta lista</button></div>'+
+    sel('fcod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+'<button class="btn sec" id="expFiltro">⬇ CSV desta lista</button></div>'+barraSel('cli',l.filter(elegivel).length)+
     '<div class="info">'+num(l.length)+' cliente(s) · '+brl(l.reduce(function(a,c){return a+c.total;},0))+' · digite o código do CRM e tecle Enter para vincular</div>'+
-    '<div class="tw"><table class="tbl"><thead><tr>'+th('codigo','Cód. CRM')+th('nome','Cliente')+'<th>Loja</th>'+th('perfil','Perfil')+th('total','Total','r')+th('nCompras','Compras','r')+th('ticketMedio','Ticket','r')+th('ultimaCompra','Última compra')+th('recencia','Dias s/ comprar','r')+th('intervaloMedio','Compra a cada','r')+'<th>Principais produtos</th></tr></thead><tbody>'+
-    l.slice(0,S.limite).map(function(c){ return '<tr class="click" data-cli="'+esc(c.chave)+'"><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.celular?'<small class="cod">📱 '+esc(foneFmt(c.celular))+(c.bairro?' · '+esc(c.bairro):'')+'</small>':'')+(c.nomesAlt.length?'<small class="cod warn" title="'+esc(c.nomesAlt.join(', '))+'">+'+c.nomesAlt.length+' grafia(s)</small>':'')+'</td><td>'+lojaTxt(c)+'</td><td>'+tag(c.perfil)+'</td>'+
+    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th>'+th('codigo','Cód. CRM')+th('nome','Cliente')+'<th>Loja</th>'+th('perfil','Perfil')+th('total','Total','r')+th('nCompras','Compras','r')+th('ticketMedio','Ticket','r')+th('ultimaCompra','Última compra')+th('recencia','Dias s/ comprar','r')+th('intervaloMedio','Compra a cada','r')+'<th>Principais produtos</th></tr></thead><tbody>'+
+    l.slice(0,S.limite).map(function(c){ return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel('cli',c)+'</td><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.celular?'<small class="cod">📱 '+esc(foneFmt(c.celular))+(c.bairro?' · '+esc(c.bairro):'')+'</small>':'')+(c.nomesAlt.length?'<small class="cod warn" title="'+esc(c.nomesAlt.join(', '))+'">+'+c.nomesAlt.length+' grafia(s)</small>':'')+'</td><td>'+lojaTxt(c)+'</td><td>'+tag(c.perfil)+'</td>'+
       '<td class="r">'+brl(c.total)+'</td><td class="r">'+c.nCompras+'</td><td class="r">'+brl(c.ticketMedio)+'</td><td>'+dBR(c.ultimaCompra)+'</td><td class="r">'+c.recencia+' '+st(c.status)+(c.atrasado?' <span class="pill late">atrasado</span>':'')+'</td>'+
       '<td class="r">'+(c.intervaloMedio==null?'—':Math.round(c.intervaloMedio)+' dias')+'</td><td class="tp">'+esc(c.topProdutos.join(' · '))+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
@@ -1294,7 +1305,7 @@ function blocoSugestao(c){ var s=sgDoModal(c), fm=S.focoModal&&S.focoModal.cli==
     '<div><h4>Novidade da linha '+esc(c.linhaPrincipal)+'</h4>'+(s.novidades.length?s.novidades.map(function(o){return '<div class="chip nv"><b>'+esc(tituloProd(o.produto))+'</b><small>'+esc(o.motivo)+'</small></div>';}).join(''):'<p class="vazio">Já compra tudo da linha.</p>')+'</div></div>'+
     (optout(c)?'<div class="warn">🚫 Este cliente pediu para <b>não receber mensagens</b>. Envios bloqueados.</div>':'')+
     (fm?'<div class="dica" style="margin:8px 0">Mensagem focada em <b>'+esc(tituloProd((S.model.produtos[fm.prod]||{}).produto||''))+'</b> ('+(fm.modo==='recompra'?'aba Recompra':'ficha do produto')+'). '+(fm.modo==='produto'?'<button class="btn sec mini" data-prod="'+esc(fm.prod)+'">← Voltar ao produto</button>':'')+'</div>':'')+
-    '<h4>Mensagem '+tagSit(s.situacao)+' <small class="nota">variação '+esc(s.variante||'')+'</small></h4><textarea class="msg" id="msgCli" rows="7">'+esc(s.mensagem)+'</textarea><div class="filtros"><button class="btn sec" data-regen="'+esc(c.chave)+'" title="Gera outro texto para este cliente">🔄 Outra versão</button><button class="btn sec" data-optout="'+esc(c.chave)+'">'+(optout(c)?'✅ Voltar a receber mensagens':'🚫 Não quer receber mensagens')+'</button><button class="btn" data-copiar="msgCli">📋 Copiar mensagem</button><button class="btn sec" data-enviei="'+esc(c.chave)+'" title="Use quando mandou por fora (copiou e colou)">✓ Marcar como enviada</button>'+(foneWa(c.celular)?'<button class="btn wa" data-wa="'+esc(c.chave)+'">'+(uazPara(c)?'📤 Enviar pelo número da '+esc(tituloProd(c.loja))+' para ':'💬 Abrir no WhatsApp ')+esc(foneFmt(c.celular))+'</button>':'<span class="pill late">sem celular</span>')+(c.codigo?'<span class="pill okp">CRM '+esc(c.codigo)+'</span>':'<span class="pill late">sem código CRM</span>')+'</div></div>'; }
+    '<h4>Mensagem '+tagSit(s.situacao)+' <small class="nota">variação '+esc(s.variante||'')+'</small></h4><textarea class="msg" id="msgCli" rows="7">'+esc(s.mensagem)+'</textarea><div class="filtros"><button class="btn sec" data-regen="'+esc(c.chave)+'" title="Gera outro texto para este cliente">🔄 Outra versão</button><button class="btn sec" data-optout="'+esc(c.chave)+'">'+(optout(c)?'✅ Voltar a receber mensagens':'🚫 Não quer receber mensagens')+'</button>'+(optout(c)?'':(!foneWa(c.celular)?'<span class="pill late">sem celular</span>':'<button class="btn wa'+(uazPara(c)?'':' off')+'" data-wa="'+esc(c.chave)+'">'+(uazPara(c)?'📤 Enviar pelo número da '+esc(tituloProd(c.loja))+' para '+esc(foneFmt(c.celular)):'📤 Número da '+esc(tituloProd(c.loja||''))+' não configurado neste computador')+'</button>'))+(c.codigo?'<span class="pill okp">CRM '+esc(c.codigo)+'</span>':'<span class="pill late">sem código CRM</span>')+'</div></div>'; }
 function barrasMensais(meses,valores){ var max=0; meses.forEach(function(x){max=Math.max(max,valores[x]||0);});
   return '<div class="meses">'+meses.map(function(x){ var v=valores[x]||0; return '<div class="mes" title="'+mesBR(x)+': '+brl(v)+'"><div class="col"><i style="height:'+(max?v/max*100:0)+'%"></i></div><span>'+mesBR(x)+'</span></div>'; }).join('')+'</div>'; }
 function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; var maxV=c.cestaArr.length?c.cestaArr[0].valor:1;
@@ -1322,22 +1333,26 @@ function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
     if(f.cont){ var bl=estadoContato(c).bloqueado; if(f.cont==='liberados'&&bl) return false; if(f.cont==='bloqueados'&&!bl) return false; }
     if(f.status==='ativos'&&c.status==='Inativo') return false; if(f.status&&f.status!=='ativos'&&c.status!==f.status) return false;
     if(f.loja&&c.loja!==f.loja) return false; if(f.cod==='com'&&!c.codigo) return false; if(f.cod==='sem'&&c.codigo) return false;
-    if(f.linha&&c.linhaPrincipal!==f.linha) return false; if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false; return true; })
-    .sort(function(a,b){ return (estadoContato(a).bloqueado?1:0)-(estadoContato(b).bloqueado?1:0) || (b.atrasado?1:0)-(a.atrasado?1:0) || b.total-a.total; }); }
+    if(f.linha&&c.linhaPrincipal!==f.linha) return false; if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false; if(f.dmin&&c.recencia<+f.dmin) return false; if(f.dmax&&c.recencia>+f.dmax) return false; return true; })
+    .sort(function(a,b){ var o=S.sug.ord||''; if(o==='dias_desc') return b.recencia-a.recencia||b.total-a.total; if(o==='dias_asc') return a.recencia-b.recencia||b.total-a.total; if(o==='total') return b.total-a.total; if(o==='ultima_desc') return a.recencia-b.recencia;
+      return (estadoContato(a).bloqueado?1:0)-(estadoContato(b).bloqueado?1:0) || (b.atrasado?1:0)-(a.atrasado?1:0) || b.total-a.total; }); }
 function telaSugestoes(){ var f=S.sug,l=filtrarSug();
   return '<p class="info">Para cada cliente: os produtos que ele já compra (prioridade para o que está na hora de recomprar) + uma novidade da linha que ele mais compra, escolhida por afinidade ("quem compra X também leva Y"). Funcionários e uso interno ficam fora.</p>'+
     '<div class="filtros"><input id="sq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'">'+sel('sloja','Loja do cliente: todas',lojasTodas(),f.loja)+
     sel('sstatus','Todos os status',[['ativos','Ativos + em risco'],['Ativo','Só ativos'],['Em risco','Só em risco'],['Inativo','Só inativos (reativação)']],f.status)+
     sel('slinha','Todas as linhas',LINHAS,f.linha)+sel('scod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+
     sel('scont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam (bloqueados)'],['optout','Pediram para não receber (SAIR)']],f.cont)+
-    sel('ssit','Todas as situações',Object.keys(SITUACOES).map(function(k){return [k,SITUACOES[k].nome];}),f.sit)+'<button class="btn" id="expSug">⬇ CSV para o CRM</button><button class="btn sec" id="editMsg">✎ Mensagens</button><button class="btn sec" id="editRegras">⚙ Regras de envio</button></div>'+barraSel('sug',l.filter(elegivel).length)+
+    sel('ssit','Todas as situações',Object.keys(SITUACOES).map(function(k){return [k,SITUACOES[k].nome];}),f.sit)+
+    '<select id="sord">'+[['','Ordem: prioridade (recompra atrasada, maior gasto)'],['dias_desc','Ordem: mais dias sem comprar'],['dias_asc','Ordem: menos dias sem comprar'],['total','Ordem: maior gasto']].map(function(o){return '<option value="'+o[0]+'"'+((f.ord||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'+
+    '<input id="sdmin" type="number" min="0" placeholder="dias sem comprar: de" value="'+esc(f.dmin||'')+'" style="width:150px"><input id="sdmax" type="number" min="0" placeholder="até" value="'+esc(f.dmax||'')+'" style="width:80px">'+'<button class="btn" id="expSug">⬇ CSV para o CRM</button><button class="btn sec" id="editMsg">✎ Mensagens</button><button class="btn sec" id="editRegras">⚙ Regras de envio</button></div>'+barraSel('sug',l.filter(elegivel).length)+
     (function(){ var R=regras(), tot=S.model.lista.filter(function(c){return estadoContato(c).bloqueado;}).length, hj=(S.contatos||[]).filter(function(r){return !r.excluido&&r.dia===hoje();}).length;
       return '<div class="info">'+num(l.length)+' cliente(s) na lista · <b>'+num(hj)+' mensagem(ns) hoje</b> · '+num(tot)+' cliente(s) bloqueado(s) por ter recebido nos últimos '+R.diasCliente+' dias. Clique no cliente para ver a mensagem completa.</div>'; })()+
-    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cód. CRM</th><th>Cliente</th><th>Situação</th><th>Última mensagem</th><th>Oferecer (cesta)</th><th>Novidade da linha</th><th></th></tr></thead><tbody>'+
-    l.slice(0,S.limite).map(function(c){ var s=sugestoes(c), e=estadoContato(c); return '<tr class="click'+(e.bloqueado?' bloq':'')+'" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel('sug',c)+'</td><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+' · '+st(c.status)+' '+c.recencia+'d sem comprar'+(c.atrasado?' · <span class="warn">atrasado</span>':'')+' · '+esc(c.linhaPrincipal)+'</small></td>'+
+    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cód. CRM</th><th>Cliente</th><th class="r">Sem comprar</th><th>Última compra</th><th>Situação</th><th>Última mensagem</th><th>Oferecer (cesta)</th><th>Novidade da linha</th><th></th></tr></thead><tbody>'+
+    l.slice(0,S.limite).map(function(c){ var s=sugestoes(c), e=estadoContato(c); return '<tr class="click'+(e.bloqueado?' bloq':'')+'" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel('sug',c)+'</td><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+' · '+st(c.status)+' '+esc(c.status)+(c.atrasado?' · <span class="warn">recompra atrasada</span>':'')+' · '+esc(c.linhaPrincipal)+'</small></td>'+
+      '<td class="r">'+seloDias(c.recencia)+'</td><td class="ultc"><b>'+dBR(c.ultimaCompra)+'</b><small class="cod">'+esc(diaSemanaCurto(c.ultimaCompra))+' · '+c.nCompras+' compra(s)</small></td>'+
       '<td>'+tagSit(s.situacao)+'</td><td>'+(e.ultimo?'<small>'+esc(txtUltimo(e))+'</small>'+(e.bloqueado?'<br><span class="pill late">liberado em '+dBR(e.liberaEm).slice(0,5)+'</span>':''):'<small class="vazio">nunca</small>')+'</td>'+
       '<td>'+s.ofertas.map(function(o){return '<span class="mchip of" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td><td>'+s.novidades.map(function(o){return '<span class="mchip nv" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td>'+
-      '<td class="acoes"><button class="btn sec mini" data-copiarcli="'+esc(c.chave)+'">📋 Copiar</button><button class="btn sec mini" data-enviei="'+esc(c.chave)+'" title="Marcar como enviada">✓</button>'+(foneWa(c.celular)?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'" title="'+esc(foneFmt(c.celular))+'">'+(uazPara(c)?'📤 Enviar':'💬 WhatsApp')+'</button>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+      '<td class="acoes">'+btnEnviar(c)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
 function tagSit(k){ var x=SITUACOES[k]; return x?'<span class="tag '+x.cor+'">'+esc(x.nome)+'</span>':''; }
 function abrirModeloMsg(){
@@ -1404,6 +1419,8 @@ function telaFuncs(){ var m=S.model;
     '<div class="tw"><table class="tbl"><thead><tr><th>Nome</th><th>Lojas</th><th class="r">Total</th><th class="r">Compras</th><th>Última</th><th>Principais produtos</th><th></th></tr></thead><tbody>'+
     m.funcs.map(function(f){ return '<tr><td><b>'+esc(f.nome)+'</b>'+(f.auto?'':'<small class="cod">marcado manualmente</small>')+'</td><td>'+esc(f.lojasArr.join(', '))+'</td><td class="r">'+brl(f.total)+'</td><td class="r">'+f.nCompras+'</td><td>'+dBR(f.ultima)+'</td><td class="tp">'+esc(f.top.join(' · '))+'</td><td><button class="btn sec mini" data-ehcliente="'+esc(f.chave)+'">É cliente</button></td></tr>'; }).join('')+'</tbody></table></div>'; }
 
+function telaConferencia(){ return '<h2 class="secao">Qualidade dos dados</h2>'+telaQualidade()+'<h2 class="secao">Funcionários e uso interno</h2>'+telaFuncs(); }
+function telaConfigurar(){ return telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
 function telaQualidade(){ var m=S.model;
   var h='<p class="info">Pontos que afetam a cesta e o vínculo com o CRM.</p>';
   h+='<h3>Vendas sem cliente identificado</h3><p class="nota">"Cliente padrão para vendas": <b>'+brl(m.anon.valor)+'</b> em '+num(m.anon.docs)+' cupons ('+pct(m.anon.valor/m.somaValor)+' do faturamento). Acompanhe por loja na aba <b>Cadastro</b>.</p>';
@@ -1499,8 +1516,8 @@ function bind(){
     if(t.id==='fechar'||t.id==='modal'){ $('#modal').classList.remove('on'); return; }
     if(t.closest('summary')||t.closest('input')||t.closest('select')||t.closest('textarea')) return;
     if((b=t.closest('[data-copiar]'))){ copiar($('#'+b.dataset.copiar).value); return; }
-    if((b=t.closest('[data-wa]'))){ var cw=S.model.clientes[b.dataset.wa], sgm=sgDoModal(cw); if(await (uazPara(cw)?enviarUazapi(cw,$('#msgCli').value,sgm):enviarContato(cw,$('#msgCli').value,sgm))){ abrirCliente(cw.chave); render(); toast('Mensagem registrada para '+cw.nome+'.','ok'); } return; }
-    if((b=t.closest('[data-wacli]'))){ var cw2=S.model.clientes[b.dataset.wacli], sgw=sugFoco(cw2,b.dataset.foco,b.dataset.modo); if(await (uazPara(cw2)?enviarUazapi(cw2,sgw.mensagem,sgw):enviarContato(cw2,sgw.mensagem,sgw))){ render(); if(b.closest('#modal')&&b.dataset.modo==='produto') abrirProduto(b.dataset.foco); toast('Mensagem registrada para '+cw2.nome+'.','ok'); } return; }
+    if((b=t.closest('[data-wa]'))){ var cw=S.model.clientes[b.dataset.wa], sgm=sgDoModal(cw); if(!uazPara(cw)){ toast(semLojaMsg(cw),'erro'); return; } if(await enviarUazapi(cw,$('#msgCli').value,sgm)){ abrirCliente(cw.chave); render(); toast('Mensagem registrada para '+cw.nome+'.','ok'); } return; }
+    if((b=t.closest('[data-wacli]'))){ var cw2=S.model.clientes[b.dataset.wacli], sgw=sugFoco(cw2,b.dataset.foco,b.dataset.modo); if(!uazPara(cw2)){ toast(semLojaMsg(cw2),'erro'); return; } if(await enviarUazapi(cw2,sgw.mensagem,sgw)){ render(); if(b.closest('#modal')&&b.dataset.modo==='produto') abrirProduto(b.dataset.foco); toast('Mensagem registrada para '+cw2.nome+'.','ok'); } return; }
     if((b=t.closest('[data-enviei]'))){ var ce=S.model.clientes[b.dataset.enviei], noModal=!!b.closest('#modal'); if(await marcarEnviada(ce,noModal&&$('#msgCli')?$('#msgCli').value:sugestoes(ce).mensagem,noModal?sgDoModal(ce):sugestoes(ce))){ if(noModal) abrirCliente(ce.chave); render(); toast('Registrado: mensagem enviada para '+ce.nome+'.','ok'); } return; }
     if((b=t.closest('[data-exccont]'))){ if(confirm('Excluir este registro de mensagem?')){ var cid=b.dataset.exccont; await excluirContato(cid); var ab=$('#modal h2'); render(); var cc=S.model.lista.filter(function(x){return ab&&x.nome===ab.textContent;})[0]; if(cc) abrirCliente(cc.chave); } return; }
     if((b=t.closest('[data-usarabc]'))){ var pr=b.dataset.usarabc.split('|'); await trocarDono(pr[0],pr[1]); return; }
@@ -1567,6 +1584,7 @@ function bind(){
     if(t.matches('input[data-sel]')){ var sc=selCtx(t.dataset.ctx); if(t.checked) sc.itens[t.dataset.sel]={prod:t.dataset.selprod||'',modo:t.dataset.selmodo||''}; else delete sc.itens[t.dataset.sel];
       document.querySelectorAll('input[data-sel="'+CSS.escape(t.dataset.sel)+'"]').forEach(function(x){ if(x!==t) x.checked=t.checked&&(x.dataset.selprod||'')===(t.dataset.selprod||''); }); atualizarBarraSel(); return; }
     if(t.id==='pnper'||t.id==='pnloja'||t.id==='pnjan'||t.id==='pnde'||t.id==='pnate'){ S.pn[{pnper:'per',pnloja:'loja',pnjan:'jan',pnde:'de',pnate:'ate'}[t.id]]=t.value; render(); return; }
+    if(t.id==='sord'||t.id==='sdmin'||t.id==='sdmax'){ S.sug[{sord:'ord',sdmin:'dmin',sdmax:'dmax'}[t.id]]=t.value; S.limite=200; render(); return; }
     if(t.id==='rcont'){ S.rec.cont=t.value; S.limite=200; render(); return; }
     if(t.id==='rdmin'||t.id==='rdmax'||t.id==='rde'||t.id==='rate'){ S.rec[{rdmin:'dmin',rdmax:'dmax',rde:'de',rate:'ate'}[t.id]]=t.value; S.limite=200; render(); return; }
     if(t.id==='pmdmin'||t.id==='pmdmax'||t.id==='pmord'||t.id==='pmstatus'){ S.pm[{pmdmin:'dmin',pmdmax:'dmax',pmord:'ord',pmstatus:'status'}[t.id]]=t.value; abrirProduto(S.pm.chave); return; }
@@ -1589,7 +1607,7 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); await dbOpen(); await recarregar(); S.aba=S.model?'clientes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas;
+    lerSync(); await dbOpen(); await recarregar(); S.aba=S.model?'sugestoes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas;
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },10*60*1000); window.__dbTx=dbTx; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
