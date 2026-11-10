@@ -54,6 +54,7 @@ th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{backgroun
 .kprev img{max-width:260px;border-radius:8px;margin-top:6px}
 @media(max-width:800px){.campanha{grid-template-columns:1fr}}
 .pill.promo{background:#efe3ff;color:#5b2a9a}.convbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
+.numeros{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px}
 .bibl{display:block;font-weight:700;font-size:13px;margin:12px 0 4px}.bibl small{display:block;font-weight:400;color:#777;margin:2px 0 4px}.bibta{width:100%;min-height:90px;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle}.dot.ok{background:var(--ok)}.dot.risk{background:var(--risk)}.dot.off{background:var(--off)}
 .pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}.pill.late{background:#fff1d6;color:#9a5b00}.pill.okp{background:#e3f4ea;color:var(--ok)}
@@ -778,6 +779,8 @@ function uazCfg(){ var c; try{ c=JSON.parse(localStorage.getItem('cesta_uazapi')
   return c; }
 function uazSalvar(c){ try{ localStorage.setItem('cesta_uazapi',JSON.stringify(c)); }catch(e){} }
 function uazInst(loja){ var i=(uazCfg().inst||{})[loja]; return i&&i.url&&i.token&&i.ativo!==false?Object.assign({loja:loja},i):null; }
+function uazLeitura(loja){ var i=(uazCfg().inst||{})[loja]; return i&&i.url&&i.token?Object.assign({loja:loja},i):null; }
+function uazLojasLeitura(){ return LOJAS_ENVIO.filter(function(l){ return !!uazLeitura(l); }); }
 function uazLojas(){ return LOJAS_ENVIO.filter(function(l){ return !!uazInst(l); }); }
 function uazAtivo(){ return uazLojas().length>0; }
 function uazPara(c){ return c?uazInst(c.loja):null; }
@@ -860,18 +863,18 @@ function tsMs(t){ t=+t||0; return t<1e12?t*1000:t; }
 function txtMsgUaz(m){ var c=m.content&&typeof m.content==='object'?m.content:{}; return String(m.text||c.text||c.caption||c.conversation||(m.messageType?'['+m.messageType.replace(/Message$/,'')+']':'')).trim(); }
 function jidsDe(r,c){ var out=[]; if(r.chatid) out.push(r.chatid); var w=foneWa(c&&c.celular||'')||''; if(w){ out.push(w+'@s.whatsapp.net'); if(/^55\d{2}9\d{8}$/.test(w)) out.push(w.slice(0,4)+w.slice(5)+'@s.whatsapp.net'); }
   return out.filter(function(x,i){ return out.indexOf(x)===i; }); }
-async function verificarRespostas(manual,forcar){ if(RESP.rodando||!S.model) return; if(!uazAtivo()){ if(manual) toast('Configure a Uazapi de pelo menos uma loja para ler as respostas.','erro'); return; }
+async function verificarRespostas(manual,forcar){ if(RESP.rodando||!S.model) return; if(!uazLojasLeitura().length){ if(manual) toast('Configure a Uazapi de pelo menos uma loja para ler as respostas.','erro'); return; }
   RESP.rodando=true; var agora=Date.now(), idx=indiceClientesContato(), feitos=0, achou=0, sairs=0, promos=0, novasNomes=[];
   try{
     // próximo envio do mesmo cliente: resposta depois dele pertence ao envio seguinte
     var porCli={}; (S.contatos||[]).forEach(function(r){ if(r.excluido) return; var k=(r.chaves||[])[0]||r.nome; (porCli[k]=porCli[k]||[]).push(r); });
     var proximo={}; Object.keys(porCli).forEach(function(k){ var l=porCli[k].sort(function(a,b){ return a.em<b.em?-1:1; }); for(var i=0;i<l.length-1;i++) proximo[l[i].id]=Date.parse(l[i+1].em); });
     var cand=(S.contatos||[]).filter(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')) return false; var idade=agora-Date.parse(r.em); if(idade>10*864e5) return false;
-        if(!uazInst(r.envioLoja||'CORONEL')) return false; if(forcar) return !!forcar[r.id]; if(manual) return true;
+        if(!uazLeitura(r.envioLoja||'CORONEL')) return false; if(forcar) return !!forcar[r.id]; if(manual) return true;
         var ult=r.respChk?agora-Date.parse(r.respChk):1e15, ativo=r.resp&&agora-Date.parse((r.conversa&&r.conversa.length?r.conversa[r.conversa.length-1].em:r.resp.em))<3*864e5;
         return ult>(ativo?3:(idade<864e5?8:25))*60*1000; })
       .sort(function(a,b){ return (a.respChk||'')<(b.respChk||'')?-1:1; }).slice(0,manual?150:40);
-    for(var i=0;i<cand.length;i++){ var r=cand[i], inst=uazInst(r.envioLoja||'CORONEL'), c=clienteDoContato(r,idx), envio=Date.parse(r.em), limite=proximo[r.id]||9e15, ms=[];
+    for(var i=0;i<cand.length;i++){ var r=cand[i], inst=uazLeitura(r.envioLoja||'CORONEL'), c=clienteDoContato(r,idx), envio=Date.parse(r.em), limite=proximo[r.id]||9e15, ms=[];
       var js=jidsDe(r,c);
       for(var k=0;k<js.length&&!ms.length;k++){ var d; try{ d=await uazReq(inst,'POST','/message/find',{chatid:js[k],limit:30,offset:0,sort:'-messageTimestamp',fromMe:false}); }catch(e){ if(/Token|conexão/i.test(e.message)) throw e; continue; }
         ms=(d.messages||d.data||[]).filter(function(m){ var t=tsMs(m.messageTimestamp); return !m.fromMe&&t>envio&&t<limite; }).sort(function(a,b){ return tsMs(a.messageTimestamp)-tsMs(b.messageTimestamp); });
@@ -937,13 +940,14 @@ function telaAprendizado(){ var A=aprendizado(), B=bib();
   return h; }
 
 /* ---------- VARREDURA: traz para a cesta as conversas feitas direto no celular da loja ---------- */
-async function varrerCelular(desde){ if(!uazAtivo()){ toast('Configure a Uazapi da loja para buscar as conversas do celular.','erro'); return; }
+async function varrerCelular(desde){ if(!uazLojasLeitura().length){ toast('Configure a Uazapi da loja para buscar as conversas do celular.','erro'); return; }
   var desdeMs=Date.parse(desde+'T00:00:00-03:00'), porNum={}, conhecidas={}, novos=0, chats=0, fora=0, jaTinha=0, maisAntiga=9e15;
   S.model.lista.forEach(function(c){ digitosVariantes(foneWa(c.celular)||'').forEach(function(x){ if(x) porNum[x]=c; }); });
   (S.contatos||[]).forEach(function(r){ if(r.msgid) conhecidas[r.msgid]=1; (r.conversa||[]).forEach(function(x){ if(x.id) conhecidas[x.id]=1; }); });
-  var lojas=uazLojas(), box=document.getElementById('varrInfo');
+  var lojas=uazLojasLeitura(), box=document.getElementById('varrInfo'), porLojaRes={};
   var info=function(t){ S.varrInfo=t; var b2=document.getElementById('varrInfo'); if(b2) b2.textContent=t; };
-  for(var li=0;li<lojas.length;li++){ var loja=lojas[li], inst=uazInst(loja), off=0, fim=false;
+  for(var li=0;li<lojas.length;li++){ var loja=lojas[li], inst=uazLeitura(loja), off=0, fim=false, antes=novos, chatsAntes=chats;
+    try{ var stv=await uazStatus(inst); if(!stv.ok){ porLojaRes[loja]='WhatsApp '+stv.status+' — conecte o celular da loja no painel da Uazapi'; continue; } }catch(e){ porLojaRes[loja]=e.message; continue; }
     while(!fim){ var d; info('Loja '+tituloProd(loja)+': lendo conversas… ('+chats+' conversas, '+novos+' contatos novos)');
       try{ d=await uazReq(inst,'POST','/chat/find',{limit:100,offset:off,sort:'-wa_lastMsgTimestamp',wa_isGroup:false}); }catch(e){ toast(e.message,'erro'); break; }
       var cs=d.chats||d.data||[]; if(!cs.length) break;
@@ -969,21 +973,22 @@ async function varrerCelular(desde){ if(!uazAtivo()){ toast('Configure a Uazapi 
             respChk:agora,visto:agora,atu:agora,pendente:true};
           if(cli.length) r.resp={em:new Date(tsMs(cli[0].messageTimestamp)).toISOString(),txt:cli.map(txtMsgUaz).filter(Boolean).join(' | ').slice(0,300),n:cli.length};
           await dbTx('contatos',function(st){ st.put(r); }); S.contatos.push(r); diasReg[dia]=1; novos++; } }
-      if(fim||cs.length<100) break; off+=100; } }
+      if(fim||cs.length<100) break; off+=100; }
+    if(!porLojaRes[loja]) porLojaRes[loja]=(chats-chatsAntes)+' conversas lidas, '+(novos-antes)+' trazidas'; }
   indexarContatos(); limparSugestoes(); agendarSync(500); S.apr=null;
-  info('Pronto: '+chats+' conversas lidas desde '+dBR(desde)+' · '+novos+' contato(s) do celular trazido(s) para a cesta'+(jaTinha?' · '+jaTinha+' dia(s) já estavam registrados':'')+(fora?' · '+fora+' conversa(s) de números que não estão na base':'')+'.'+
+  info(Object.keys(porLojaRes).map(function(l){ return tituloProd(l)+': '+porLojaRes[l]; }).join(' · ')+' — Pronto: '+chats+' conversas lidas desde '+dBR(desde)+' · '+novos+' contato(s) do celular trazido(s) para a cesta'+(jaTinha?' · '+jaTinha+' dia(s) já estavam registrados':'')+(fora?' · '+fora+' conversa(s) de números que não estão na base':'')+'.'+
     (maisAntiga<9e15&&maisAntiga>desdeMs+864e5?' Atenção: a Uazapi só tem mensagens a partir de '+new Date(maisAntiga).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' (quando o número foi conectado). O que foi mandado antes disso não está lá — registre pela ficha do cliente (📅 Contato feito pelo celular).':''));
   toast(novos+' contato(s) feitos pelo celular agora estão na cesta. Esses clientes ficam bloqueados pela regra da semana.','ok'); render(); }
 
 /* ---------- RADAR: a cada 45 s pergunta à Uazapi quais conversas tiveram mensagem nova (1 chamada por loja) e lê só essas ---------- */
 function digitosVariantes(n){ n=String(n||'').replace(/\D/g,''); var o=[n]; if(/^55\d{2}9\d{8}$/.test(n)) o.push(n.slice(0,4)+n.slice(5)); else if(/^55\d{10}$/.test(n)) o.push(n.slice(0,4)+'9'+n.slice(4)); return o; }
-async function radarRespostas(){ if(RESP.rodando||RESP.radar||!S.model||!uazAtivo()) return; RESP.radar=true;
+async function radarRespostas(){ if(RESP.rodando||RESP.radar||!S.model||!uazLojasLeitura().length) return; RESP.radar=true;
   try{ var agora=Date.now(), idx=null, porNum={}, ids={}, n=0;
     (S.contatos||[]).forEach(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')||agora-Date.parse(r.em)>10*864e5) return; idx=idx||indiceClientesContato(); var c=clienteDoContato(r,idx), lj=r.envioLoja||'CORONEL';
       var nums=[].concat(digitosVariantes((r.chatid||'').split('@')[0]),digitosVariantes(c&&foneWa(c.celular)||'')).filter(Boolean);
       nums.forEach(function(x){ var k=lj+'|'+x; if(!porNum[k]||porNum[k].em<r.em) porNum[k]=r; }); });
-    var lojas=uazLojas();
-    for(var i=0;i<lojas.length;i++){ var inst=uazInst(lojas[i]), d;
+    var lojas=uazLojasLeitura();
+    for(var i=0;i<lojas.length;i++){ var inst=uazLeitura(lojas[i]), d;
       try{ d=await uazReq(inst,'POST','/chat/find',{limit:60,offset:0,sort:'-wa_lastMsgTimestamp',wa_isGroup:false}); }catch(e){ continue; }
       (d.chats||d.data||[]).forEach(function(ch){ var ts=tsMs(ch.wa_lastMsgTimestamp), num=String(ch.wa_chatid||'').split('@')[0], r=null;
         digitosVariantes(num).some(function(x){ r=porNum[lojas[i]+'|'+x]; return !!r; });
@@ -991,6 +996,26 @@ async function radarRespostas(){ if(RESP.rodando||RESP.radar||!S.model||!uazAtiv
     RESP.radarEm=new Date();
     if(n) await verificarRespostas(false,ids);
   }catch(e){} finally{ RESP.radar=false; } }
+
+/* ---------- DIAGNÓSTICO: o que cada computador está lendo/enviando (vai para a nuvem, sem token) ---------- */
+var DIAG={st:{},em:null};
+async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
+  for(var i=0;i<lojas.length;i++){ var l=lojas[i], inst=uazLeitura(l); if(!inst){ out[l]={cfg:false}; continue; }
+    try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
+  DIAG.st=out; DIAG.em=new Date();
+  if(syncAtivo()){ try{ var id=String(S.sync.computador||'sem nome').replace(/[.#$\[\]\/]/g,'_').slice(0,60);
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',versao:'3.15'}); }catch(e){} }
+  if(S.aba==='conversas'||S.aba==='painel') render(); }
+function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
+  return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
+    var t=!x.cfg?'<span class="pill">não configurado neste computador</span>':x.ok?'<span class="pill okp">✔ conectado'+(x.numero?' · '+esc(x.numero):'')+'</span>'+(x.envia?'':' <span class="pill late">envio desligado</span>'):'<span class="pill late">✖ '+esc(x.erro||('WhatsApp '+(x.status||'desconectado')+' — conecte no painel da Uazapi'))+'</span>';
+    return '<span><b>'+esc(tituloProd(l))+':</b> '+t+'</span>'; }).join('')+'</div>'; }
+function telaComputadores(){ var cs=S.computadores||{}, ks=Object.keys(cs); if(!ks.length) return '';
+  return '<h3>Computadores e números de WhatsApp</h3><div class="tw"><table class="tbl"><thead><tr><th>Computador</th><th>Visto por último</th>'+LOJAS_ENVIO.map(function(l){return '<th>'+esc(tituloProd(l))+'</th>';}).join('')+'<th>Última leitura de respostas</th></tr></thead><tbody>'+
+    ks.sort().map(function(k){ var c=cs[k], n=c.numeros||{}; return '<tr><td><b>'+esc(c.nome||k)+'</b></td><td><small>'+(c.em?new Date(c.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—')+'</small></td>'+
+      LOJAS_ENVIO.map(function(l){ var x=n[l]||{}; return '<td><small>'+(!x.cfg?'—':x.ok?'✔ '+esc(x.numero||'conectado')+(x.envia?'':' (só leitura)'):'✖ '+esc(x.erro||x.status||'desconectado'))+'</small></td>'; }).join('')+'<td><small>'+(c.leitura?new Date(c.leitura).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—')+(c.varredura?'<br>'+esc(c.varredura).slice(0,160):'')+'</small></td></tr>'; }).join('')+'</tbody></table></div>'+
+    '<p class="nota">Se uma loja aparece conectada com o número de outra loja, o token foi colocado no bloco errado em Importar e configurar → WhatsApp pela Uazapi.</p>'; }
+async function lerComputadores(){ if(!syncAtivo()) return; try{ S.computadores=await fb('GET','computadores')||{}; if(S.aba==='painel') render(); }catch(e){} }
 
 /* ---------- CONVERSAS: respostas dos clientes e resposta da loja, tudo pela Uazapi ---------- */
 function ultimaDoCliente(r){ var cv=(r.conversa||[]).filter(function(x){return x.de==='c';}); return cv.length?cv[cv.length-1].em:(r.resp?r.resp.em:''); }
@@ -1003,10 +1028,10 @@ function telaConversas(){ var m=S.model, f=S.cv||(S.cv={filtro:'novas',q:''}), i
       if(f.filtro==='novas') return conversaNova(r); if(f.filtro==='respondidas') return !!r.resp; if(f.filtro==='sem') return !r.resp; if(f.filtro==='sair') return c?optout(c):!!r.sair; if(f.filtro==='promo') return c?soPromo(c):!!r.promo; return true; })
     .sort(function(a,b){ var x=ultimaDoCliente(a)||a.em, y=ultimaDoCliente(b)||b.em; return x<y?1:-1; });
   var tot=(S.contatos||[]).filter(function(r){ return !r.excluido&&/uazapi/.test(r.tipo||''); }), nResp=tot.filter(function(r){return r.resp;}).length;
-  return '<p class="info">Aqui aparecem as respostas dos clientes às mensagens enviadas pela Uazapi. A cesta lê as respostas sozinha a cada poucos minutos e avisa quando chega mensagem nova. Responda daqui mesmo: sai pelo número da loja.</p>'+
+  return '<div class="info"><b>Números lidos neste computador:</b> '+linhaNumeros()+'</div><p class="info">Aqui aparecem as respostas dos clientes às mensagens enviadas pela Uazapi. A cesta lê as respostas sozinha a cada poucos minutos e avisa quando chega mensagem nova. Responda daqui mesmo: sai pelo número da loja.</p>'+
     '<div class="filtros">'+['novas','respondidas','sair','promo','sem','todas'].map(function(k){ return '<button class="btn '+(f.filtro===k?'':'sec ')+'mini" data-cvf="'+k+'">'+{novas:'🔔 Novas sem atendimento ('+nConversasNovas()+')',respondidas:'💬 Responderam ('+nResp+')',sair:'🚫 Pediram SAIR',promo:'🏷 Só promoções',sem:'Sem resposta',todas:'Todas'}[k]+'</button>'; }).join('')+
-      '<input id="cvq" placeholder="Buscar cliente…" value="'+esc(f.q||'')+'">'+(uazAtivo()?'<button class="btn sec" id="lerResp">🔄 Ler respostas agora</button>':'')+'</div>'+
-    (uazAtivo()?'<div class="filtros varr"><b>Mensagens mandadas direto pelo celular da loja:</b> buscar desde <input type="date" id="varrDesde" value="'+hoje().slice(0,8)+'01"><button class="btn" id="varrer">🔎 Trazer para a cesta</button><span class="nota" id="varrInfo" style="margin:0">'+esc(S.varrInfo||'Registra quem já foi contactado pelo WhatsApp do celular, para não repetir mensagem na semana.')+'</span></div>':'')+'<div class="filtros">'+
+      '<input id="cvq" placeholder="Buscar cliente…" value="'+esc(f.q||'')+'">'+(uazLojasLeitura().length?'<button class="btn sec" id="lerResp">🔄 Ler respostas agora</button>':'')+'</div>'+
+    (uazLojasLeitura().length?'<div class="filtros varr"><b>Mensagens mandadas direto pelo celular da loja:</b> buscar desde <input type="date" id="varrDesde" value="'+hoje().slice(0,8)+'01"><button class="btn" id="varrer">🔎 Trazer para a cesta</button><span class="nota" id="varrInfo" style="margin:0">'+esc(S.varrInfo||'Registra quem já foi contactado pelo WhatsApp do celular, para não repetir mensagem na semana.')+'</span></div>':'')+'<div class="filtros">'+
       '<span class="nota" style="margin:0">'+(RESP.ult?'Lidas às '+RESP.ult.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(RESP.info):(uazAtivo()?'Lendo respostas…':'Configure a Uazapi para ler as respostas.'))+'</span></div>'+
     (lista.length?lista.slice(0,80).map(function(r){ var c=clienteDoContato(r,idx), nova=conversaNova(r), l=r.envioLoja||r.lojaCli||(c&&c.loja)||'';
       var bal=function(x){ return '<div class="bal '+(x.de==='c'?'cli':'loja')+'"><div>'+esc(x.txt||'(mídia)').replace(/\n/g,'<br>')+'</div><small>'+(x.de==='c'?esc(primeiroNome(r.nome||'')):esc(x.por||'loja'))+' · '+new Date(x.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</small></div>'; };
@@ -1163,7 +1188,7 @@ function telaPainel(){ var m=S.model, f=S.pn, rows=linhasPainel(), tot=agregar(r
         return '<tr><td><b style="color:'+COR_LOJA[l]+'">'+esc(tituloProd(l))+'</b></td><td>'+stt+'</td><td class="r">'+num(sem7[l]||0)+'</td><td>'+(u?dBR(u)+' <small>('+(dd===0?'hoje':dd===1?'ontem':'há '+dd+'d')+')</small>':'—')+'</td><td class="r">'+num(a.n)+'</td>'+
           '<td class="r">'+(a.uaz?num(a.resp)+' <small>('+pctTxt(a.resp,a.uaz)+')</small>':'—')+'</td><td class="r">'+num(a.comp)+' <small>('+pctTxt(a.compF,a.fech)+')</small></td><td class="r">'+brl(a.valor)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     graficoDias(rows)+
-    telaAprendizado()+
+    telaComputadores()+telaAprendizado()+
     tabelaAgg('Por atendente','Atendente',agregar(rows,function(x){return x.r.atendente?x.r.atendente+' · '+tituloProd(x.loja):'(sem nome)';}))+
     tabelaAgg('Por computador','Computador',agregar(rows,function(x){return x.quem;}))+
     tabelaAgg('Por grupo de mensagem','Grupo',agregar(rows,function(x){return x.sit||'(sem grupo)';}),function(k){ return SITUACOES[k]?tagSit(k):esc(k==='padrao'?'Dica da semana':k); })+
@@ -1184,10 +1209,15 @@ function linhasEfetivas(imports,fn){
     im.linhas.forEach(function(L){ for(var j=0;j<novas.length;j++) if(cobre(novas[j],L)){ cob++; return; } fn(L,im); });
     im._cobertas=cob; }); }
 /* dias sem nenhuma venda dentro da base (relatório faltando) */
-function lacunasVendas(diasGeral,diasLoja,ini,fim){ var out=[];
+function contarAbertos(a,b,abre){ var n=0; for(var d=a;d<=b;d=addDias(d,1)) if(abre(d)) n++; return n; }
+function diasFechados(diasGeral,ini,fim){ var sem={}, tot={}, d=ini; while(d<=fim){ var w=new Date(d+'T12:00:00').getDay(); tot[w]=(tot[w]||0)+1; if(diasGeral[d]) sem[w]=(sem[w]||0)+1; d=addDias(d,1); }
+  var f={}; Object.keys(tot).forEach(function(w){ if(tot[w]>=4&&(sem[w]||0)/tot[w]<0.3) f[w]=1; }); return f; }
+function lacunasVendas(diasGeral,diasLoja,ini,fim){ var out=[], fech=diasFechados(diasGeral,ini,fim);
+  if(fim===hoje()&&!diasGeral[fim]) fim=addDias(fim,-1); // relatório tirado hoje cedo: hoje ainda não tem venda
+  var abre=function(d){ return !fech[new Date(d+'T12:00:00').getDay()]; };
   function varre(set,minimo,loja){ var d=ini, run=null;
-    while(d<=fim){ if(!set[d]){ if(!run) run={ini:d,fim:d}; else run.fim=d; } else if(run){ var n=dias(run.ini,run.fim)+1; if(n>=minimo) out.push({ini:run.ini,fim:run.fim,dias:n,loja:loja}); run=null; } d=addDias(d,1); }
-    if(run){ var n2=dias(run.ini,run.fim)+1; if(n2>=minimo) out.push({ini:run.ini,fim:run.fim,dias:n2,loja:loja}); } }
+    while(d<=fim){ if(!abre(d)){ d=addDias(d,1); continue; } if(!set[d]){ if(!run) run={ini:d,fim:d}; else run.fim=d; } else if(run){ var n=contarAbertos(run.ini,run.fim,abre); if(n>=minimo) out.push({ini:run.ini,fim:run.fim,dias:n,loja:loja}); run=null; } d=addDias(d,1); }
+    if(run){ var n2=contarAbertos(run.ini,run.fim,abre); if(n2>=minimo) out.push({ini:run.ini,fim:run.fim,dias:n2,loja:loja}); } }
   varre(diasGeral,2,'');
   Object.keys(diasLoja).forEach(function(l){ if(l==='900') return; var s=diasLoja[l], ks=Object.keys(s).sort(); if(ks.length<30) return;
     varre(s,3,l); });
@@ -1836,7 +1866,7 @@ function bind(){
     else if(id==='uzLote'){ if(UZ.lote&&!UZ.lote.fim){ toast('Já tem um envio em andamento.','erro'); return; } loteUazapi(filtrarSug()); }
     else if(id==='loteParar'){ if(UZ.lote) UZ.lote.parar=true; toast('Parando depois da mensagem atual…'); }
     else if(id==='loteFechar'){ var lb=document.getElementById('lotebox'); if(lb) lb.remove(); UZ.lote=null; }
-    else if(id==='uzSalvar'){ await salvarTestarUaz(); }
+    else if(id==='uzSalvar'){ await salvarTestarUaz(); checarNumeros(); }
     else if(id==='varrer'){ t.disabled=true; t.textContent='Buscando…'; try{ await varrerCelular($('#varrDesde').value||hoje().slice(0,8)+'01'); }finally{ t.disabled=false; t.textContent='🔎 Trazer para a cesta'; } }
     else if(id==='lerResp'){ t.disabled=true; t.textContent='Lendo respostas…'; await verificarRespostas(true); render(); }
     else if(id==='salvarRegras'){ var nr={diasCliente:Math.max(7,parseInt($('#rgCli').value)||7),diasProduto:Math.max(1,parseInt($('#rgProd').value)||7),ciclo:$('#rgCiclo').checked,cicloMax:Math.max(7,parseInt($('#rgCicloMax').value)||30)}; S.cfg.regrasContato=nr; await salvarCfg('regrasContato',nr); limparSugestoes(); S.crmSujo=true; $('#modal').classList.remove('on'); render(); toast('Regras salvas: 1 mensagem a cada '+nr.diasCliente+' dias; produto não se repete por '+nr.diasProduto+' dias.','ok'); }
@@ -1894,7 +1924,8 @@ async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'sugestoes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
-    setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000); window.__dbTx=dbTx; window.__sugFoco=sugFoco;
+    setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
+    setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
