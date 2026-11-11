@@ -55,6 +55,7 @@ th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{backgroun
 @media(max-width:800px){.campanha{grid-template-columns:1fr}}
 .pill.promo{background:#efe3ff;color:#5b2a9a}.convbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
 .numeros{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px}
+.metas{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 10px}.meta{background:#fff;border:1px solid #eadfd3;border-radius:12px;padding:10px 14px;min-width:260px;flex:1}.meta .bar{height:8px;background:#f0e8de;border-radius:6px;margin:6px 0 8px;overflow:hidden}.meta .bar i{display:block;height:100%;background:#1b6b3c}
 .bibl{display:block;font-weight:700;font-size:13px;margin:12px 0 4px}.bibl small{display:block;font-weight:400;color:#777;margin:2px 0 4px}.bibta{width:100%;min-height:90px;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle}.dot.ok{background:var(--ok)}.dot.risk{background:var(--risk)}.dot.off{background:var(--off)}
 .pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}.pill.late{background:#fff1d6;color:#9a5b00}.pill.okp{background:#e3f4ea;color:var(--ok)}
@@ -96,7 +97,7 @@ textarea.msg{width:100%;font:inherit;padding:10px;border:1px solid var(--line);b
 @media print{header,.filtros,.mais{display:none}}
 </style></head><body>
 <header><div class="logo">RG</div><div><h1>Cesta de Produtos por Cliente</h1><div class="per" id="periodo"></div></div><button id="syncst" class="syncst off">○ Nuvem</button>
-<nav class="tabs"><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="clientes">Clientes</button><button data-aba="produtos">Produtos</button><button data-aba="kits">Kits</button><button data-aba="conversas">Conversas</button><button data-aba="painel">Painel</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="conferencia">Conferência</button><button data-aba="importacoes">Importar e configurar</button></nav><div id="lojabar" class="lojabar"></div></header>
+<nav class="tabs"><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="reconquista">Reconquista</button><button data-aba="clientes">Clientes</button><button data-aba="produtos">Produtos</button><button data-aba="kits">Kits</button><button data-aba="conversas">Conversas</button><button data-aba="painel">Painel</button><button data-aba="cadastro">Cadastro</button><button data-aba="vinculos">Vínculos</button><button data-aba="conferencia">Conferência</button><button data-aba="importacoes">Importar e configurar</button></nav><div id="lojabar" class="lojabar"></div></header>
 <main id="main">Carregando…</main>
 <div id="modal"><div class="modal-c"></div></div><div id="toast" class="toast"></div>
 <script>/**
@@ -468,7 +469,7 @@ async function salvarMsg(t){ S.cfg.msg=t||MSG_PADRAO; await salvarCfg('msg',S.cf
 
 /* ---------- SINCRONIZAÇÃO NA NUVEM (Firebase Realtime Database via REST — sem SDK, funciona em file://) ---------- */
 var SYNC_PADRAO={url:'https://motoboy-ddefa-default-rtdb.firebaseio.com',raiz:'cesta_rei_do_gado',token:'',computador:'',ativo:true};
-var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,atendentes:1,kits:1}, CHUNK=8000, POLL_MS=30000;
+var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,atendentes:1,kits:1,reconquista:1,metaDiaria:1}, CHUNK=8000, POLL_MS=30000;
 var SY={estado:'off',msg:'',ultima:null,ocupado:false,timer:null,revNuvem:null,renderPendente:false};
 function lerSync(){ try{ S.sync=Object.assign({},SYNC_PADRAO,JSON.parse(localStorage.getItem('cesta_sync')||'{}')); }catch(e){ S.sync=Object.assign({},SYNC_PADRAO); } }
 function gravarSync(){ try{ localStorage.setItem('cesta_sync',JSON.stringify(S.sync)); }catch(e){} }
@@ -711,8 +712,8 @@ function telaVinculos(){ var m=S.model, info=S.cfg.abcInfo, temAbc=!!(m.abcPorCo
   return h; }
 
 /* ---------- HISTÓRICO DE MENSAGENS (anti-duplicidade) ---------- */
-var REGRAS_PADRAO={diasCliente:7,diasProduto:7,ciclo:true,cicloMax:30};
-function regras(){ var r=S.cfg.regrasContato||{}; return {diasCliente:Math.max(7,+r.diasCliente>0?+r.diasCliente:REGRAS_PADRAO.diasCliente),diasProduto:+r.diasProduto>0?+r.diasProduto:REGRAS_PADRAO.diasProduto,ciclo:r.ciclo!==false,cicloMax:+r.cicloMax>0?+r.cicloMax:REGRAS_PADRAO.cicloMax}; }
+var REGRAS_PADRAO={diasCliente:7,diasProduto:7,ciclo:false,cicloMax:30};
+function regras(){ var r=S.cfg.regrasContato||{}; return {diasCliente:Math.max(7,+r.diasCliente>0?+r.diasCliente:REGRAS_PADRAO.diasCliente),diasProduto:+r.diasProduto>0?+r.diasProduto:REGRAS_PADRAO.diasProduto,ciclo:r.ciclo===true,cicloMax:+r.cicloMax>0?+r.cicloMax:REGRAS_PADRAO.cicloMax}; }
 /* quantos dias esperar depois de uma mensagem: nunca menos de 7 (a semana); se o cliente tem ciclo de compra maior, espera o ciclo (até o limite) */
 function esperaCliente(c,R){ R=R||regras(); var d=R.diasCliente, mot='mínimo de '+R.diasCliente+' dias';
   if(R.ciclo&&c&&c.intervaloMedio&&c.diasCompra&&c.diasCompra.length>=2){ var cc=Math.min(Math.round(c.intervaloMedio),R.cicloMax); if(cc>d){ d=cc; mot='ciclo de compra dele: a cada '+Math.round(c.intervaloMedio)+' dias'+(Math.round(c.intervaloMedio)>R.cicloMax?' (limitado a '+R.cicloMax+')':''); } }
@@ -725,8 +726,8 @@ function hoje(){ return new Date().toLocaleDateString('sv-SE'); }
 function chavesContato(c){ var ks=[]; if(c.codigo) ks.push('C_'+c.codigo); c.nomeKeysArr.forEach(function(nk){ ks.push('N_'+nk); }); return ks; }
 function indexarContatos(){ var idx={}; (S.contatos||[]).forEach(function(r){ if(r.excluido) return; (r.chaves||[]).forEach(function(k){ (idx[k]=idx[k]||[]).push(r); }); }); S.contatosIdx=idx; }
 function contatosDe(c){ var vis={}, out=[]; chavesContato(c).forEach(function(k){ (S.contatosIdx&&S.contatosIdx[k]||[]).forEach(function(r){ if(!vis[r.id]){ vis[r.id]=1; out.push(r); } }); }); return out.sort(function(a,b){return a.em<b.em?1:-1;}); }
-function estadoContato(c){ var R=regras(), hs=contatosDe(c), ult=hs[0]||null, h=hoje(), recentes={};
-  hs.forEach(function(r){ if(dias(r.dia,h)<R.diasProduto) (r.produtos||[]).forEach(function(p){ recentes[corte(p)]=r.dia; }); });
+function estadoContato(c){ var R=regras(), hs=contatosDe(c), ult=hs.filter(function(r){ return !r.semTrava; })[0]||null, h=hoje(), recentes={};
+  hs.forEach(function(r){ if(!r.semTrava&&dias(r.dia,h)<R.diasProduto) (r.produtos||[]).forEach(function(p){ recentes[corte(p)]=r.dia; }); });
   var esp=esperaCliente(c,R), liberaEm=ult?addDias(ult.dia,esp.dias):null;
   return {historico:hs,ultimo:ult,diasDesde:ult?dias(ult.dia,h):null,bloqueado:!!(ult&&liberaEm>h),liberaEm:liberaEm,espera:esp,produtosRecentes:recentes}; }
 function txtUltimo(e){ if(!e.ultimo) return ''; var u=e.ultimo; return dBR(u.dia)+' ('+(e.diasDesde===0?'hoje':e.diasDesde===1?'ontem':'há '+e.diasDesde+'d')+')'+(u.por?' · '+u.por:'')+(u.canal&&u.canal!=='cesta'?' · '+u.canal.toUpperCase():''); }
@@ -767,7 +768,8 @@ function abrirRegras(){ var R=regras();
     '<label>Não repetir o mesmo produto para o mesmo cliente por (dias)<input id="rgProd" type="number" min="1" max="90" value="'+R.diasProduto+'"></label></div>'+
     '<label class="chk" style="margin-top:10px"><input type="checkbox" id="rgCiclo" '+(R.ciclo?'checked':'')+'> respeitar o ciclo de compra do cliente: se ele compra a cada 20 dias, a próxima mensagem só sai 20 dias depois da última</label>'+
     '<div class="sgrid"><label>Limite de espera pelo ciclo (dias)<input id="rgCicloMax" type="number" min="7" max="90" value="'+R.cicloMax+'"></label></div>'+
-    '<p class="nota">Não existe "enviar mesmo assim": quem recebeu mensagem fica bloqueado até a data liberada, em todas as abas e campanhas.</p>'+
+    '<p class="nota">Promoções (kits marcados como promoção) e Reconquista não esperam a regra: vão também para quem recebeu mensagem na semana. Só não vão para quem pediu SAIR.</p>'+
+    '<h4>Meta de mensagens por dia</h4><div class="sgrid">'+LOJAS_ENVIO.map(function(l){ return '<label>'+esc(tituloProd(l))+'<input type="number" min="0" max="500" data-meta="'+l+'" value="'+metaDia(l)+'"></label>'; }).join('')+'</div>'+
     '<div class="filtros"><button class="btn" id="salvarRegras">Salvar regras</button></div>';
   $('#modal').classList.add('on'); }
 
@@ -804,13 +806,14 @@ function semLojaMsg(c){ return c.nome+' é cliente da loja '+tituloProd(c.loja||
 /* envio de 1 cliente pela Uazapi da loja dele: confere regras, envia, registra */
 async function enviarUazapi(c,msg,sg){ var w=foneWa(c.celular); if(!w){ toast(c.nome+' não tem celular.','erro'); return false; }
   var inst=uazPara(c); if(!inst){ toast(semLojaMsg(c),'erro'); return false; }
-  if(!(await podeEnviar(c))) return false;
+  if(sg&&sg.semTrava){ if(optout(c)){ toast(c.nome+' pediu SAIR.','erro'); return false; } if(sg.campanha&&jaRecebeuCampanha(c,sg.campanha,sg.campanhaDias||1)){ toast(c.nome+' já recebeu essa campanha.','erro'); return false; } if(atendPendente(c.loja)){ abrirAtendentes('Escolha quem está enviando pela loja '+tituloProd(c.loja)+'.'); return false; } }
+  else if(!(await podeEnviar(c))) return false;
   var rs; try{ toast('Enviando para '+c.nome+' pelo número da '+tituloProd(inst.loja)+'…'); rs=await uazEnviar(inst,w,msg); }catch(e){ toast('Não enviou: '+e.message,'erro'); return false; }
-  await registrarContato(c,'uazapi',msg,null,sg,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid}); return true; }
+  await registrarContato(c,'uazapi',msg,null,sg,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid,semTrava:sg&&sg.semTrava,campanha:sg&&sg.campanha,abordagem:sg&&sg.abordagem,produtos:sg&&sg.campanha?sg.produtos:null}); return true; }
 /* envio em lote: cada cliente sai pelo número da loja dele; intervalo aleatório entre mensagens */
 async function loteUazapi(lista,fnSug){ fnSug=fnSug||sugestoes;
   var cfg=uazCfg(), max=Math.max(1,parseInt(cfg.loteMax)||30), iMin=Math.max(5,parseInt(cfg.intMin)||20), iMax=Math.max(iMin,parseInt(cfg.intMax)||45);
-  var base=lista.filter(function(c){ return elegivel(c,!!fnSug(c).promo); });
+  var base=lista.filter(function(c){ var g=fnSug(c); if(g.semTrava&&g.campanha&&jaRecebeuCampanha(c,g.campanha,g.campanhaDias||1)) return false; return elegivel(c,!!g.promo); });
   var foraLoja=base.filter(function(c){ return !uazPara(c); }), alvo=base.filter(function(c){ return !!uazPara(c); }).slice(0,max);
   if(!alvo.length){ toast(foraLoja.length?('Nenhum cliente dessa lista é das lojas configuradas neste computador ('+(uazLojas().map(tituloProd).join(', ')||'nenhuma')+'). '+foraLoja.length+' cliente(s) são de outra loja e devem ser enviados pelo computador/número da loja deles.'):'Ninguém liberado com celular nessa lista.','erro'); return; }
   var porLoja={}; alvo.forEach(function(c){ porLoja[c.loja]=(porLoja[c.loja]||0)+1; });
@@ -819,13 +822,13 @@ async function loteUazapi(lista,fnSug){ fnSug=fnSug||sugestoes;
   var min=Math.round(alvo.length*(iMin+iMax)/2/60);
   if(!confirm('Enviar '+(alvo[0]&&fnSug(alvo[0]).midia?'a foto do kit com a legenda':'a mensagem sugerida')+' para '+alvo.length+' cliente(s) pelo WhatsApp da Uazapi?\n\n'+lojas.map(function(l){return '• '+porLoja[l]+' pelo número da loja '+tituloProd(l)+(atendenteDe(l)?' (assinando: '+atendenteDe(l)+')':'');}).join('\n')+
     (foraLoja.length?'\n\n'+foraLoja.length+' cliente(s) de outras lojas ficam de fora (o número da loja deles não está neste computador).':'')+
-    '\n\nUma mensagem a cada '+iMin+'–'+iMax+' segundos (cerca de '+(min||1)+' min). Deixe esta página aberta até terminar.\nClientes que já receberam ficam de fora.')) return;
+    '\n\nUma mensagem a cada '+iMin+'–'+iMax+' segundos (cerca de '+(min||1)+' min). Deixe esta página aberta até terminar.'+(fnSug(alvo[0]).semTrava?'\nCampanha de promoção: vai também para quem já recebeu mensagem esta semana.':'\nClientes que já receberam ficam de fora.'))) return;
   UZ.lote={total:alvo.length,feitos:0,ok:0,pulados:0,erros:0,parar:false,log:[]}; painelLote();
   for(var i=0;i<alvo.length;i++){ if(UZ.lote.parar) break; var c=alvo[i], inst=uazPara(c);
-    var e=estadoContato(c); if(e.bloqueado){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — já recebeu'); UZ.lote.feitos++; painelLote(); continue; }
-    var rm=await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<regras().diasCliente){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — outro computador acabou de enviar'); UZ.lote.feitos++; painelLote(); continue; }
-    var sgL=fnSug(c), msg=sgL.mensagem;
-    try{ var rs=sgL.midia?await uazEnviarMidia(inst,foneWa(c.celular),sgL.midia,msg):await uazEnviar(inst,foneWa(c.celular),msg); await registrarContato(c,sgL.midia?'uazapi-kit':'uazapi-lote',msg,null,sgL,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid,kit:sgL.kit,produtos:sgL.produtos}); UZ.lote.ok++; UZ.lote.log.unshift('✔ '+c.nome+' · '+foneFmt(c.celular)+' · '+tituloProd(inst.loja)); }
+    var sgL=fnSug(c), e=estadoContato(c); if(!sgL.semTrava&&e.bloqueado){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — já recebeu'); UZ.lote.feitos++; painelLote(); continue; }
+    var rm=sgL.semTrava?null:await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<regras().diasCliente){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — outro computador acabou de enviar'); UZ.lote.feitos++; painelLote(); continue; }
+    var msg=sgL.mensagem;
+    try{ var rs=sgL.midia?await uazEnviarMidia(inst,foneWa(c.celular),sgL.midia,msg):await uazEnviar(inst,foneWa(c.celular),msg); await registrarContato(c,sgL.midia?'uazapi-kit':'uazapi-lote',msg,null,sgL,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid,kit:sgL.kit,produtos:sgL.produtos,semTrava:sgL.semTrava,campanha:sgL.campanha,abordagem:sgL.abordagem}); UZ.lote.ok++; UZ.lote.log.unshift('✔ '+c.nome+' · '+foneFmt(c.celular)+' · '+tituloProd(inst.loja)); }
     catch(err){ UZ.lote.erros++; UZ.lote.log.unshift('✖ '+c.nome+' — '+err.message); if(/Token|conexão|conectado/i.test(err.message)){ UZ.lote.parar=true; UZ.lote.log.unshift('⛔ Envio interrompido: '+err.message); } }
     UZ.lote.feitos++; painelLote();
     if(i<alvo.length-1&&!UZ.lote.parar){ var esp=(iMin+Math.random()*(iMax-iMin))*1000; UZ.lote.proxima=Date.now()+esp; painelLote();
@@ -924,7 +927,7 @@ function pesoTexto(sit,t){ var A=aprendizado(), o=A.var[sit+'|'+hashN(t)]; if(!o
 function escolherPonderado(lista,peso,u){ var ws=lista.map(peso), s=ws.reduce(function(a,b){return a+b;},0), x=u*s; for(var i=0;i<lista.length;i++){ x-=ws[i]; if(x<=0) return lista[i]; } return lista[lista.length-1]; }
 function fatorProduto(nome){ var A=aprendizado(), o=A.prod[corte(nome)]; return o?o.fator:1; }
 function telaAprendizado(){ var A=aprendizado(), B=bib();
-  var linhas=[]; Object.keys(SITUACOES).filter(function(k){return k!=='kit';}).forEach(function(sit){ (B[sit]||[]).forEach(function(t){ var o=A.var[sit+'|'+hashN(t)]||{n:0,uaz:0,resp:0,fech:0,comp:0}; linhas.push({sit:sit,t:t,o:o,w:pesoTexto(sit,t)}); }); });
+  var linhas=[], rqc=rqCfg(); Object.keys(SITUACOES).filter(function(k){return k!=='kit';}).forEach(function(sit){ (sit==='reconquista_incentivo'?rqc.incentivo:sit==='reconquista_feedback'?rqc.feedback:(B[sit]||[])).forEach(function(t){ var o=A.var[sit+'|'+hashN(t)]||{n:0,uaz:0,resp:0,fech:0,comp:0}; linhas.push({sit:sit,t:t,o:o,w:pesoTexto(sit,t)}); }); });
   var porSit={}; linhas.forEach(function(l){ (porSit[l.sit]=porSit[l.sit]||[]).push(l); });
   var pct=function(a,b){ return b?Math.round(a/b*100)+'%':'—'; };
   var h='<h3>🧠 Aprendizado das mensagens</h3><p class="nota">Todo dia, a cada mensagem com resposta ou compra, a cesta recalcula quais textos funcionam melhor e passa a usá-los mais (sem parar de testar os outros). Texto com menos de 5 envios está em teste. Mensagens enviadas antes desta versão não entram nesta conta.</p>'+
@@ -979,6 +982,84 @@ async function varrerCelular(desde){ if(!uazLojasLeitura().length){ toast('Confi
   info(Object.keys(porLojaRes).map(function(l){ return tituloProd(l)+': '+porLojaRes[l]; }).join(' · ')+' — Pronto: '+chats+' conversas lidas desde '+dBR(desde)+' · '+novos+' contato(s) do celular trazido(s) para a cesta'+(jaTinha?' · '+jaTinha+' dia(s) já estavam registrados':'')+(fora?' · '+fora+' conversa(s) de números que não estão na base':'')+'.'+
     (maisAntiga<9e15&&maisAntiga>desdeMs+864e5?' Atenção: a Uazapi só tem mensagens a partir de '+new Date(maisAntiga).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' (quando o número foi conectado). O que foi mandado antes disso não está lá — registre pela ficha do cliente (📅 Contato feito pelo celular).':''));
   toast(novos+' contato(s) feitos pelo celular agora estão na cesta. Esses clientes ficam bloqueados pela regra da semana.','ok'); render(); }
+
+/* ---------- CAMPANHAS SEM TRAVA: promoção e reconquista não esperam a semana (só respeitam SAIR e não repetem a mesma campanha) ---------- */
+function jaRecebeuCampanha(c,camp,diasJanela){ var h=hoje(); return contatosDe(c).some(function(r){ return r.campanha===camp&&dias(r.dia,h)<diasJanela; }); }
+
+/* ---------- META DO DIA: movimento todo dia, por loja ---------- */
+function metaDia(loja){ var m=S.cfg.metaDiaria||{}; return +m[loja]>0?+m[loja]:40; }
+function enviadasHoje(loja){ var h=hoje(), idx=null, n=0; (S.contatos||[]).forEach(function(r){ if(r.excluido||r.dia!==h||r.tipo==='lote'||/celular/.test(r.tipo||'')) return; var l=r.envioLoja||r.lojaCli; if(!l){ idx=idx||indiceClientesContato(); var c=clienteDoContato(r,idx); l=c&&c.loja; } if(l===loja) n++; }); return n; }
+/* fila do dia: quem é mais importante falar hoje, de quem ainda pode receber */
+function filaDoDia(loja,n){ var m=S.model, rec={}; (m.recompra||[]).forEach(function(x){ rec[x.c.chave]=Math.max(rec[x.c.chave]||0,x.atraso); });
+  var l=m.lista.filter(function(c){ return c.loja===loja&&c.recencia<=90&&elegivel(c,false); });
+  var pri=function(c){ var e=estadoContato(c), nunca=!e.ultimo; return (rec[c.chave]?4000+Math.min(rec[c.chave],300):0)+(c.status==='Em risco'?3000:c.status==='Ativo'?2000:1000)+(nunca?500:Math.min(e.diasDesde||0,400))+Math.min(c.total/50,200); };
+  return l.sort(function(a,b){ return pri(b)-pri(a); }).slice(0,n); }
+function painelMeta(){ var lojas=S.loja?[S.loja]:LOJAS_ENVIO.filter(function(l){ return S.model.lista.some(function(c){return c.loja===l;}); });
+  return '<div class="metas">'+lojas.map(function(l){ var f=enviadasHoje(l), m=metaDia(l), falta=Math.max(0,m-f), p=Math.min(100,Math.round(f/m*100));
+    return '<div class="meta"><b>'+esc(tituloProd(l))+'</b> hoje: <b>'+f+'</b> de '+m+' mensagens<div class="bar"><i style="width:'+p+'%"></i></div>'+(falta?'<button class="btn mini" data-fila="'+esc(l)+'" title="Marca os clientes mais importantes para hoje, de quem ainda pode receber">⚡ Montar a fila de hoje ('+falta+')</button>':'<span class="pill okp">✔ meta do dia batida</span>')+'</div>'; }).join('')+'</div>'; }
+
+/* ---------- RECONQUISTA: clientes há mais de 90 dias sem comprar ---------- */
+var RECONQ_PADRAO={oferta:'',validade:'',abordagem:'auto',
+  incentivo:['{saudacao}, {nome}! {quem} Rei do Gado {loja} 😊 Sentimos sua falta! Pra você voltar, tem uma condição só sua: {oferta}{validade}. Separo {seu_fav}?',
+    'Oi, {nome}! {quem} Rei do Gado {loja}. Faz {tempo} da sua última compra e preparei algo especial pra você: {oferta}{validade}. Posso separar {seu_fav}?',
+    '{saudacao}, {nome}! {quem} Rei do Gado {loja}. {O_fav} que você levava tá te esperando 😄 E pra matar a saudade: {oferta}{validade}. Quer que eu reserve?'],
+  feedback:['{saudacao}, {nome}. {quem} Rei do Gado {loja}. Faz {tempo} que você não compra com a gente e queria te perguntar com sinceridade: aconteceu alguma coisa? E se quiser voltar: {oferta}{validade}.',
+    'Oi, {nome}! {quem} Rei do Gado {loja}. Senti sua falta por aqui. Foi algo no atendimento, no produto ou no preço? Me conta, de verdade. Pra você voltar, separei {oferta}{validade}.',
+    '{nome}, posso te pedir uma coisa? Faz {tempo} que você não aparece no Rei do Gado {loja} e queria entender o motivo pra gente melhorar. Como agradecimento: {oferta}{validade} 🙏']};
+var DIAS_REPETE_RECONQ=15;
+function rqCfg(){ var c=S.cfg.reconquista||{}; return {oferta:c.oferta||'',validade:c.validade||'',abordagem:c.abordagem||'auto',
+  incentivo:(c.incentivo&&c.incentivo.length?c.incentivo:RECONQ_PADRAO.incentivo),feedback:(c.feedback&&c.feedback.length?c.feedback:RECONQ_PADRAO.feedback)}; }
+function abordagemDe(c,cfg){ if(cfg.abordagem==='incentivo'||cfg.abordagem==='feedback') return cfg.abordagem;
+  var A=aprendizado(), ag=function(sit){ var o={n:0,fech:0,comp:0,uaz:0,resp:0}; Object.keys(A.var).forEach(function(k){ var v=A.var[k]; if(v.sit===sit){ o.n+=v.n; o.fech+=v.fech; o.comp+=v.comp; o.uaz+=v.uaz; o.resp+=v.resp; } }); return o; };
+  var a=ag('reconquista_incentivo'), b=ag('reconquista_feedback'), u=(hashN(c.chave+'|abord')%1000)/1000;
+  if(a.n>=20&&b.n>=20){ var ta=A.taxa(a), tb=A.taxa(b); return u<ta/(ta+tb)?'incentivo':'feedback'; } // aprendeu: usa mais a que traz mais gente de volta
+  return u<0.5?'incentivo':'feedback'; } // ainda testando: metade de cada
+function sgReconq(c){ var cfg=rqCfg(), ab=abordagemDe(c,cfg), sit='reconquista_'+ab, ls=cfg[ab], usados={}; contatosDe(c).slice(0,3).forEach(function(r){ if(r.vh) usados[r.vh]=1; });
+  var cands=ls.filter(function(t){ return !usados[sit+'|'+hashN(t)]; }); if(!cands.length) cands=ls;
+  var t=escolherPonderado(cands,function(x){ return pesoTexto(sit,x); },(hashN(c.chave+'|'+hoje()+'|rq')%100000)/100000);
+  var at=atendenteDe(c.loja), fav=c.cestaArr[0]?tituloProd(c.cestaArr[0].produto):'seu corte preferido', fm=fem(fav);
+  var v={saudacao:saudacao(),nome:primeiroNome(c.nome),quem:at?'Aqui é '+at+', do':'Aqui é do',loja:tituloProd(c.loja||''),tempo:tempoHumano(c.recencia),fav:fav,
+    seu_fav:(fm?'sua ':'seu ')+fav,O_fav:(fm?'A ':'O ')+fav,o_fav:(fm?'a ':'o ')+fav,oferta:cfg.oferta||'[defina a oferta]',validade:cfg.validade?' (válido até '+dBR(cfg.validade).slice(0,5)+')':''};
+  var txt=t.replace(/\{(\w+)\}/g,function(a,k){ return v[k]!=null?v[k]:''; }).replace(/\s+([,.!?])/g,'$1').replace(/ {2,}/g,' ').trim();
+  if(bib().sair) txt+='\nPara não receber mais, responda SAIR.';
+  return {mensagem:txt,situacao:sit,variante:sit+':'+ls.indexOf(t),vh:sit+'|'+hashN(t),vtxt:t,ofertas:[],novidades:[],atendente:at,promo:true,semTrava:true,campanha:'reconquista',campanhaDias:DIAS_REPETE_RECONQ,abordagem:ab,produtos:c.cestaArr.slice(0,1).map(function(e){return e.produto;})}; }
+function filtrarReconq(){ var f=S.rq||(S.rq={faixa:'',ord:'total',q:''}), q=rgNorm(f.q||'');
+  return S.model.lista.filter(function(c){ if(c.recencia<=90||optout(c)) return false; if(S.loja&&c.loja!==S.loja) return false;
+      if(f.faixa==='90-180'&&c.recencia>180) return false; if(f.faixa==='180-365'&&(c.recencia<=180||c.recencia>365)) return false; if(f.faixa==='365'&&c.recencia<=365) return false;
+      if(f.min&&c.total<+f.min) return false; if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false; return true; })
+    .sort(function(a,b){ var o=f.ord; if(o==='compras') return b.nCompras-a.nCompras; if(o==='recentes') return a.recencia-b.recencia; if(o==='antigos') return b.recencia-a.recencia; return b.total-a.total; }); }
+function telaReconquista(){ var f=S.rq||(S.rq={faixa:'',ord:'total',q:''}), cfg=rqCfg(), l=filtrarReconq(), ctx='reconq';
+  var ex=l[0], sgx=ex?sgReconq(ex):null, ok=function(c){ return elegivel(c,true)&&!jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ); };
+  var A=aprendizado(), ag=function(sit){ var o={n:0,fech:0,comp:0,uaz:0,resp:0}; Object.keys(A.var).forEach(function(k){ var v=A.var[k]; if(v.sit===sit){ o.n+=v.n; o.fech+=v.fech; o.comp+=v.comp; o.uaz+=v.uaz; o.resp+=v.resp; } }); return o; };
+  var ai=ag('reconquista_incentivo'), af=ag('reconquista_feedback'), pct=function(a,b){ return b?Math.round(a/b*100)+'%':'—'; };
+  return '<p class="info">Clientes há <b>mais de 90 dias</b> sem comprar. Campanha exclusiva, com uma condição especial para eles voltarem. É promoção: <b>não espera a regra da semana</b>, só respeita quem pediu SAIR e não manda a reconquista de novo para o mesmo cliente em '+DIAS_REPETE_RECONQ+' dias. Esses clientes saem das Sugestões e ficam só aqui.</p>'+
+    '<div class="campanha"><div class="camp-prev">'+(sgx?'<pre>'+esc(sgx.mensagem)+'</pre><small class="nota">Prévia para '+esc(ex.nome)+' · abordagem '+(sgx.abordagem==='incentivo'?'incentivo direto':'feedback sincero')+'</small>':'<div class="vazio">Ninguém nesse filtro.</div>')+'</div>'+
+      '<div class="camp-cfg"><label class="bibl"><b>Oferta para quem voltar</b><small>Seja específico e cumpra o que prometer. Ex.: "10% de desconto em qualquer compra", "picanha a R$ 79,90 o kg", "pão de alho de presente".</small><input id="rqOferta" value="'+esc(cfg.oferta)+'" placeholder="Ex.: 10% de desconto em qualquer compra"></label>'+
+        '<div class="sgrid"><label class="bibl"><b>Válido até</b><input type="date" id="rqValidade" value="'+esc(cfg.validade)+'"></label><label class="bibl"><b>Abordagem</b><select id="rqAbord">'+[['auto','Automática (testa as duas e usa mais a que funciona)'],['incentivo','Só incentivo direto'],['feedback','Só feedback sincero + oferta']].map(function(o){ return '<option value="'+o[0]+'"'+(cfg.abordagem===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></label></div>'+
+        '<details><summary>✎ Editar os textos (um por linha)</summary><label class="bibl"><b>Incentivo direto</b><textarea id="rqInc" rows="4">'+esc(cfg.incentivo.join('\n'))+'</textarea></label><label class="bibl"><b>Feedback sincero + oferta</b><textarea id="rqFeed" rows="4">'+esc(cfg.feedback.join('\n'))+'</textarea></label><p class="nota">Campos: {saudacao} {nome} {quem} (Aqui é a Leticia, do) {loja} {tempo} {seu_fav} {O_fav} {o_fav} {oferta} {validade}</p></details>'+
+        '<div class="filtros"><button class="btn" id="rqSalvar">Salvar campanha</button><button class="btn sec mini" id="rqPadrao">Textos padrão</button></div>'+
+        '<div class="nota">Resultado até agora — incentivo: '+ai.n+' envios, '+pct(ai.resp,ai.uaz)+' responderam, '+pct(ai.comp,ai.fech)+' voltaram · feedback: '+af.n+' envios, '+pct(af.resp,af.uaz)+' responderam, '+pct(af.comp,af.fech)+' voltaram</div></div></div>'+
+    '<div class="filtros"><input id="rqq" placeholder="Buscar cliente…" value="'+esc(f.q||'')+'">'+sel('rqfaixa','Mais de 90 dias (todos)',[['90-180','90 a 180 dias'],['180-365','6 meses a 1 ano'],['365','Mais de 1 ano']],f.faixa)+
+      '<input id="rqmin" type="number" min="0" placeholder="gastou pelo menos R$" value="'+esc(f.min||'')+'" style="width:170px">'+
+      '<select id="rqord">'+[['total','Ordem: quem mais gastou'],['compras','Ordem: mais compras'],['recentes','Ordem: sumiu há menos tempo'],['antigos','Ordem: sumiu há mais tempo']].map(function(o){ return '<option value="'+o[0]+'"'+(f.ord===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'+
+    (cfg.oferta?'':'<div class="erro">Defina a oferta e clique em Salvar campanha antes de enviar.</div>')+
+    barraSel(ctx,l.filter(ok).length).replace('Enviar para os marcados (Uazapi)','Enviar a reconquista para os marcados')+
+    '<div class="info">'+num(l.length)+' cliente(s) há mais de 90 dias sem comprar'+(S.loja?' na loja '+esc(tituloProd(S.loja)):'')+(l.length>S.limite?' (mostrando '+S.limite+')':'')+'.</div>'+
+    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th class="r">Sem comprar</th><th>Última compra</th><th class="r">Já gastou</th><th class="r">Compras</th><th>O que mais levava</th><th>Reconquista</th><th></th></tr></thead><tbody>'+
+    l.slice(0,S.limite).map(function(c){ var ult=contatosDe(c).filter(function(r){return r.campanha==='reconquista';})[0];
+      return '<tr class="click" data-cli="'+esc(c.chave)+'" data-foco="x" data-modo="reconq"><td class="ck">'+chkSelReconq(ctx,c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+(c.celular?'':' · sem celular')+(soPromo(c)?' · só promoções':'')+'</small></td><td class="r">'+seloDias(c.recencia)+'</td><td>'+dBR(c.ultimaCompra)+'</td><td class="r">'+brl(c.total)+'</td><td class="r">'+c.nCompras+'</td>'+
+        '<td><small>'+esc(c.cestaArr.slice(0,2).map(function(e){return tituloProd(e.produto);}).join(', '))+'</small></td><td>'+(ult?'<span class="pill'+(ult.resp?' okp':'')+'">'+dBR(ult.dia).slice(0,5)+(ult.resp?' · respondeu':'')+'</span>':'<small class="vazio">—</small>')+'</td>'+
+        '<td class="acoes">'+(ok(c)&&uazPara(c)&&cfg.oferta?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'" data-foco="x" data-modo="reconq">📤 Enviar</button>':(!c.celular?'<span class="pill late">sem celular</span>':!uazPara(c)?'<span class="pill">Nº '+esc(tituloProd(c.loja||''))+'</span>':''))+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+    (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
+function chkSelReconq(ctx,c){ var s=selCtx(ctx), ok=elegivel(c,true)&&!jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ), on=ok&&!!s.itens[c.chave]; if(!ok) delete s.itens[c.chave];
+  return '<input type="checkbox" class="selcli" data-sel="'+esc(c.chave)+'" data-ctx="'+ctx+'" data-selprod="x" data-selmodo="reconq"'+(on?' checked':'')+(ok?'':' disabled')+' title="'+(ok?'Marcar para enviar':optout(c)?'Pediu SAIR':!foneWa(c.celular)?'Sem celular':'Já recebeu a reconquista nos últimos '+DIAS_REPETE_RECONQ+' dias')+'">'; }
+async function salvarReconq(padrao){ var c=padrao?Object.assign({},rqCfg(),{incentivo:RECONQ_PADRAO.incentivo,feedback:RECONQ_PADRAO.feedback}):{oferta:$('#rqOferta').value.trim(),validade:$('#rqValidade').value,abordagem:$('#rqAbord').value,
+    incentivo:$('#rqInc').value.split('\n').map(function(x){return x.trim();}).filter(Boolean),feedback:$('#rqFeed').value.split('\n').map(function(x){return x.trim();}).filter(Boolean)};
+  S.cfg.reconquista=c; await salvarCfg('reconquista',c); toast(padrao?'Textos padrão restaurados.':'Campanha de reconquista salva para todos os computadores.','ok'); render(); }
+
+/* ---------- RECOMPRA: uma linha por cliente, com os produtos que já passaram da hora ---------- */
+function gruposRecompra(){ var g={}; (S.model.recompra||[]).forEach(function(x){ if(x.c.recencia>90) return; var a=g[x.c.chave]||(g[x.c.chave]={c:x.c,itens:[]}); a.itens.push(x); });
+  return Object.keys(g).map(function(k){ var a=g[k]; a.itens.sort(function(p,q){ return q.atraso-p.atraso; }); a.e=a.itens[0].e; a.atraso=a.itens[0].atraso; a.previsto=addDias(a.e.ultima,Math.round(a.e.ciclo)); return a; }); }
 
 /* ---------- RADAR: a cada 45 s pergunta à Uazapi quais conversas tiveram mensagem nova (1 chamada por loja) e lê só essas ---------- */
 function digitosVariantes(n){ n=String(n||'').replace(/\D/g,''); var o=[n]; if(/^55\d{2}9\d{8}$/.test(n)) o.push(n.slice(0,4)+n.slice(5)); else if(/^55\d{10}$/.test(n)) o.push(n.slice(0,4)+'9'+n.slice(4)); return o; }
@@ -1086,7 +1167,7 @@ function publicoKit(k,f){ var m=S.model;
     if(f.pub==='churrasco') return LINHAS_CHURRASCO.test(linhas); if(f.pub==='dia') return LINHAS_DIA.test(linhas)||!LINHAS_CHURRASCO.test(c.linhaPrincipal||''); return true; })
     .sort(function(a,b){ return b.total-a.total; }); }
 function legendasKit(k){ var t=(S.kc&&S.kc.kit===k.id&&S.kc.legendas)||(k.legendas&&k.legendas.length?k.legendas.join('\n---\n'):KIT_LEGENDAS[k.tipo||'outro'].join('\n---\n')); return t.split(/\n\s*---\s*\n/).map(function(x){return x.trim();}).filter(Boolean); }
-function sgKit(c,k){ var _r=sgKit0(c,k); _r.promo=k.promo!==false; return _r; }
+function sgKit(c,k){ var _r=sgKit0(c,k); _r.promo=k.promo!==false; if(_r.promo){ _r.semTrava=true; _r.campanha='kit:'+k.id; _r.campanhaDias=1; } return _r; }
 function sgKit0(c,k){ var ls=legendasKit(k), i=hashN(c.chave+'|'+k.id+'|'+hoje())%ls.length, at=atendenteDe(c.loja), h=new Date().getHours();
   var v={nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),atendente:at||'o pessoal',kit:k.nome,itens:(k.itens||'').trim()||'tudo prontinho pra você',preco:k.preco?' Sai por '+k.preco+'.':'',saudacao:h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'};
   var txt=ls[i].replace(/\{(\w+)\}/g,function(a,x){ return v[x]!=null?v[x]:a; }).replace('Aqui é o pessoal, do','Aqui é o pessoal do');
@@ -1109,7 +1190,7 @@ function telaKits(){ var ks=kits(), kc=S.kc||{};
       barraSel(ctx,pub.filter(elegivel).length).replace('Enviar para os marcados (Uazapi)','Enviar o kit para os marcados (Uazapi)')+
       '<div class="info">'+num(pub.length)+' cliente(s) no público'+(S.loja?' da loja '+esc(tituloProd(S.loja)):'')+(pub.length>300?' (mostrando 300)':'')+'.</div>'+
       '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th>Loja</th><th class="r">Sem comprar</th><th>Última compra</th><th>Linha principal</th><th class="r">Total</th><th>Mensagens</th></tr></thead><tbody>'+
-      pub.slice(0,300).map(function(c){ var e=estadoContato(c), ph=soPromo(c)?' <span class="pill promo">só promoções</span>':''; return '<tr class="click'+(e.bloqueado?' bloq':'')+'" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.celular?'':'<small class="cod">sem celular</small>')+'</td><td>'+esc(lojaTxtCurto(c))+'</td><td class="r">'+seloDias(c.recencia)+'</td><td>'+dBR(c.ultimaCompra)+'</td><td><small>'+esc(c.linhaPrincipal)+'</small></td><td class="r">'+brl(c.total)+'</td><td>'+(e.bloqueado?'<span class="pill late" title="'+esc(e.espera.motivo)+'">recebeu '+dBR(e.ultimo.dia).slice(0,5)+' · libera '+dBR(e.liberaEm).slice(0,5)+'</span>':(optout(c)?'<span class="pill late">SAIR</span>':'<span class="pill okp">liberado</span>'))+ph+'</td></tr>'; }).join('')+'</tbody></table></div>'; }
+      pub.slice(0,300).map(function(c){ var e=estadoContato(c), ph=soPromo(c)?' <span class="pill promo">só promoções</span>':''; return '<tr class="click'+(e.bloqueado?' bloq':'')+'" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.celular?'':'<small class="cod">sem celular</small>')+'</td><td>'+esc(lojaTxtCurto(c))+'</td><td class="r">'+seloDias(c.recencia)+'</td><td>'+dBR(c.ultimaCompra)+'</td><td><small>'+esc(c.linhaPrincipal)+'</small></td><td class="r">'+brl(c.total)+'</td><td>'+(optout(c)?'<span class="pill late">SAIR</span>':jaRecebeuCampanha(c,'kit:'+k.id,1)?'<span class="pill late">recebeu este kit hoje</span>':(k.promo!==false?'<span class="pill okp">liberado (promoção)</span>'+(e.ultimo?' <small class="cod">última msg '+dBR(e.ultimo.dia).slice(0,5)+'</small>':''):(e.bloqueado?'<span class="pill late">libera '+dBR(e.liberaEm).slice(0,5)+'</span>':'<span class="pill okp">liberado</span>')))+ph+'</td></tr>'; }).join('')+'</tbody></table></div>'; }
   return h; }
 function abrirKit(id){ var k=kits().filter(function(x){return x.id===id;})[0]||{id:'',nome:'',tipo:'churrasco',preco:'',itens:''}, img=k.id?kitImg(k.id):'';
   S.kitNovaImg=null;
@@ -1182,10 +1263,10 @@ function telaPainel(){ var m=S.model, f=S.pn, rows=linhasPainel(), tot=agregar(r
       kpi('Voltaram a comprar',pctTxt(tot.compF,tot.fech),num(tot.comp)+' cliente(s)'+(abertas?' · '+num(abertas)+' msg ainda em aberto':''),'ok')+kpi('Compraram o produto oferecido',pctTxt(tot.prodF,tot.fech),num(tot.prodF)+' com janela fechada')+
       kpi('Valor comprado depois',brl(tot.valor),'em até '+f.jan+' dias da mensagem','ok')+kpi('Pediram SAIR',num(tot.sair),'',tot.sair?'risk':'')+'</div>'+
     (abertas?'<p class="nota">“Voltaram a comprar” em % considera só as mensagens cuja janela de '+f.jan+' dias já está dentro da base de vendas (até '+dBR(m.refData)+'). Importe o Extrato mais recente para fechar as demais.</p>':'')+
-    '<h3>Atividade por loja</h3><div class="tw"><table class="tbl"><thead><tr><th>Loja</th><th>Situação</th><th class="r">Últimos 7 dias</th><th>Último envio</th><th class="r">No período</th><th class="r">Responderam</th><th class="r">Voltaram a comprar</th><th class="r">Valor comprado depois</th></tr></thead><tbody>'+
+    '<h3>Atividade por loja</h3><div class="tw"><table class="tbl"><thead><tr><th>Loja</th><th>Situação</th><th class="r">Hoje / meta</th><th class="r">Últimos 7 dias</th><th>Último envio</th><th class="r">No período</th><th class="r">Responderam</th><th class="r">Voltaram a comprar</th><th class="r">Valor comprado depois</th></tr></thead><tbody>'+
       LOJAS_ENVIO.filter(function(l){ return !f.loja||l===f.loja; }).map(function(l){ var a=lojaMap[l]||{n:0,uaz:0,resp:0,fech:0,compF:0,comp:0,valor:0}, u=ultLoja[l], dd=u?dias(u,h):null;
         var stt=dd==null?'<span class="pill late">nunca enviou</span>':dd>=3?'<span class="pill late">parada há '+dd+' dias</span>':'<span class="pill okp">ativa</span>';
-        return '<tr><td><b style="color:'+COR_LOJA[l]+'">'+esc(tituloProd(l))+'</b></td><td>'+stt+'</td><td class="r">'+num(sem7[l]||0)+'</td><td>'+(u?dBR(u)+' <small>('+(dd===0?'hoje':dd===1?'ontem':'há '+dd+'d')+')</small>':'—')+'</td><td class="r">'+num(a.n)+'</td>'+
+        return '<tr><td><b style="color:'+COR_LOJA[l]+'">'+esc(tituloProd(l))+'</b></td><td>'+stt+'</td><td class="r"><b>'+enviadasHoje(l)+'</b> / '+metaDia(l)+'</td><td class="r">'+num(sem7[l]||0)+'</td><td>'+(u?dBR(u)+' <small>('+(dd===0?'hoje':dd===1?'ontem':'há '+dd+'d')+')</small>':'—')+'</td><td class="r">'+num(a.n)+'</td>'+
           '<td class="r">'+(a.uaz?num(a.resp)+' <small>('+pctTxt(a.resp,a.uaz)+')</small>':'—')+'</td><td class="r">'+num(a.comp)+' <small>('+pctTxt(a.compF,a.fech)+')</small></td><td class="r">'+brl(a.valor)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     graficoDias(rows)+
     telaComputadores()+telaAprendizado()+
@@ -1243,6 +1324,7 @@ function seloDias(d){ var cls=d<=30?'okp':d<=60?'risk':'late'; return '<span cla
 
 /* ---------- MENSAGEM COM FOCO NUM PRODUTO (Recompra e ficha do produto) ---------- */
 function sugFoco(c,prod,modo){
+  if(modo==='reconq') return sgReconq(c);
   if(!prod) return sugestoes(c);
   c._sugF=c._sugF||{}; var k=modo+'|'+prod; if(c._sugF[k]) return c._sugF[k];
   var base=sugestoes(c), m=S.model, p=m.produtos[prod]; if(!p) return base;
@@ -1252,17 +1334,17 @@ function sugFoco(c,prod,modo){
   var sg={foco:prod,ofertas:[foco].concat(base.ofertas.filter(function(o){return corte(o.produto)!==ct;})).slice(0,3),
     novidades:base.novidades.filter(function(o){return corte(o.produto)!==ct;})};
   sg.mensagem=montarMensagem(c,sg); c._sugF[k]=sg; return sg; }
-function sgDoModal(c){ var f=S.focoModal; return f&&f.cli===c.chave?sugFoco(c,f.prod,f.modo):sugestoes(c); }
+function sgDoModal(c){ var f=S.focoModal; if(!f&&c.recencia>90) return sgReconq(c); return f&&f.cli===c.chave?sugFoco(c,f.prod,f.modo):sugestoes(c); }
 
 /* ---------- SELEÇÃO DE CLIENTES PARA ENVIO ---------- */
 function selCtx(ctx){ if(!S.sel||S.sel.ctx!==ctx) S.sel={ctx:ctx,itens:{}}; return S.sel; }
 function selN(){ return S.sel?Object.keys(S.sel.itens).length:0; }
-function ctxPromo(ctx){ if(!ctx||ctx.indexOf('kit:')!==0) return false; var k=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return !!(k&&k.promo!==false); }
-function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(it&&(it.prod||'')===(prod||'')), e=estadoContato(c), pr=ctxPromo(ctx), ok=elegivel(c,pr);
+function ctxPromo(ctx){ if(ctx==='reconq') return true; if(!ctx||ctx.indexOf('kit:')!==0) return false; var k=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return !!(k&&k.promo!==false); }
+function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(it&&(it.prod||'')===(prod||'')), e=estadoContato(c), pr=ctxPromo(ctx), ok=elegivel(c,pr)&&!(ctx.indexOf('kit:')===0&&jaRecebeuCampanha(c,ctx,1));
   if(!ok&&on) delete s.itens[c.chave], on=false;
   return '<input type="checkbox" class="selcli" data-sel="'+esc(c.chave)+'" data-ctx="'+esc(ctx)+'"'+(prod?' data-selprod="'+esc(prod)+'" data-selmodo="'+esc(modo)+'"':'')+(on?' checked':'')+(ok?'':' disabled')+
     ' title="'+(ok?'Marcar para enviar':optout(c)?'Pediu SAIR — não recebe mensagens':(soPromo(c)&&!pr)?'Só promoções — entra apenas em campanha de promoção':!foneWa(c.celular)?'Sem celular':'Já recebeu mensagem — liberado em '+dBR(e.liberaEm)+' ('+e.espera.motivo+')')+'">'; }
-function elegivel(c,promo){ return !!foneWa(c.celular)&&!optout(c)&&(promo||!soPromo(c))&&!estadoContato(c).bloqueado; }
+function elegivel(c,promo){ if(promo) return !!foneWa(c.celular)&&!optout(c); return !!foneWa(c.celular)&&!optout(c)&&!soPromo(c)&&!estadoContato(c).bloqueado; }
 function barraSel(ctx,total){ selCtx(ctx); var n=selN();
   return '<div class="selbar" data-ctxbar="'+esc(ctx)+'"><b><span class="seln">'+n+'</span> marcado(s)</b>'+chipAtendentes()+
     '<button class="btn sec mini" data-selall="'+esc(ctx)+'" title="Marca os clientes liberados e com celular desta lista">☑ Marcar todos liberados'+(total!=null?' ('+num(total)+')':'')+'</button>'+
@@ -1273,14 +1355,16 @@ function atualizarBarraSel(){ document.querySelectorAll('.selbar .seln').forEach
 function itensCtx(ctx){
   if(ctx==='sug') return filtrarSug().map(function(c){ return {c:c}; });
   if(ctx==='cli') return filtrarClientes().map(function(c){ return {c:c}; });
+  if(ctx==='reconq') return filtrarReconq().filter(function(c){ return !jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ); }).map(function(c){ return {c:c,prod:'x',modo:'reconq'}; });
   if(ctx.indexOf('kit:')===0){ var kx=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return kx?publicoKit(kx,S.kc||{}).map(function(c){ return {c:c}; }):[]; }
-  if(ctx==='rec'){ var vis={}, out=[]; filtrarRecompra().forEach(function(x){ if(!vis[x.c.chave]){ vis[x.c.chave]=1; out.push({c:x.c,prod:x.e.chave,modo:'recompra'}); } }); return out; }
+  if(ctx==='rec') return filtrarRecompra().map(function(x){ return {c:x.c,prod:x.e.chave,modo:'recompra'}; });
   if(ctx.indexOf('prod:')===0){ var ch=ctx.slice(5); return clientesDoProduto(ch).map(function(y){ return {c:y.c,prod:ch,modo:'produto'}; }); }
   return []; }
 async function enviarMarcados(ctx){ var s=selCtx(ctx), its=s.itens, m=S.model;
   var lista=Object.keys(its).map(function(k){ return m.clientes[k]; }).filter(Boolean);
   if(!lista.length){ toast('Marque pelo menos um cliente.','erro'); return; }
-  if(ctx.indexOf('kit:')===0){ var kk=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; if(!kk){ toast('Kit não encontrado.','erro'); return; } if(!kitImg(kk.id)){ toast('Esse kit está sem foto.','erro'); return; }
+  if(ctx==='reconq'){ if(!rqCfg().oferta){ toast('Defina a oferta da reconquista e salve a campanha antes de enviar.','erro'); return; } await loteUazapi(lista,sgReconq); }
+  else if(ctx.indexOf('kit:')===0){ var kk=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; if(!kk){ toast('Kit não encontrado.','erro'); return; } if(!kitImg(kk.id)){ toast('Esse kit está sem foto.','erro'); return; }
     if($('#kleg')&&S.kc) S.kc.legendas=$('#kleg').value; await loteUazapi(lista,function(c){ return sgKit(c,kk); }); }
   else await loteUazapi(lista,function(c){ var it=its[c.chave]||{}; return sugFoco(c,it.prod,it.modo); });
   // tira da seleção quem já recebeu; quem passou do limite do lote continua marcado para o próximo envio
@@ -1333,7 +1417,9 @@ var SITUACOES={
   vip:{nome:'VIP',cor:'vip'},
   fimdesemana:{nome:'Churrasco do fim de semana',cor:'freq'},
   padrao:{nome:'Dica da semana',cor:'oca'},
-  kit:{nome:'Campanha de kit',cor:'vip'}
+  kit:{nome:'Campanha de kit',cor:'vip'},
+  reconquista_incentivo:{nome:'Reconquista · incentivo',cor:'risk'},
+  reconquista_feedback:{nome:'Reconquista · feedback',cor:'risk'}
 };
 var BIB_PADRAO={
   primeiro_abertura:['{saudacao}, {nome}! Aqui é {atendente}, do Rei do Gado {loja} 😊','Oi, {nome}! Tudo bem? Aqui é {atendente}, do Rei do Gado {loja}.','{saudacao}, {nome}! Aqui é do Rei do Gado {loja} 😊','Oi, {nome}, tudo bem? Aqui é do Rei do Gado {loja} 🐂'],
@@ -1540,7 +1626,7 @@ function render(){
   var lb=document.getElementById('lojabar'); if(lb){ lb.innerHTML=barraLojas(); lb.style.display=m&&S.aba!=='importacoes'?'':'none'; }
   $('#periodo').textContent=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens (sem funcionários)':'Nenhum relatório importado';
   var y=window.scrollY;
-  $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits}[S.aba]||telaSugestoes)();
+  $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista}[S.aba]||telaSugestoes)();
   window.scrollTo(0,y);
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
@@ -1609,6 +1695,7 @@ function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; 
 
 function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
   return S.model.lista.filter(function(c){
+    if(c.recencia>90) return false; // +90 dias: aba Reconquista
     if(f.sit&&sugestoes(c).situacao!==f.sit) return false;
     if(f.cont==='promo') return soPromo(c); if(f.cont!=='optout'&&(optout(c)||soPromo(c))) return false; if(f.cont==='optout') return optout(c);
     if(f.cont){ var bl=estadoContato(c).bloqueado; if(f.cont==='liberados'&&bl) return false; if(f.cont==='bloqueados'&&!bl) return false; }
@@ -1617,13 +1704,13 @@ function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
     if(f.linha&&c.linhaPrincipal!==f.linha) return false; if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false; if(f.dmin&&c.recencia<+f.dmin) return false; if(f.dmax&&c.recencia>+f.dmax) return false; return true; })
     .sort(function(a,b){ var o=S.sug.ord||''; if(o==='dias_desc') return b.recencia-a.recencia||b.total-a.total; if(o==='dias_asc') return a.recencia-b.recencia||b.total-a.total; if(o==='total') return b.total-a.total; if(o==='ultima_desc') return a.recencia-b.recencia;
       return (estadoContato(a).bloqueado?1:0)-(estadoContato(b).bloqueado?1:0) || (b.atrasado?1:0)-(a.atrasado?1:0) || b.total-a.total; }); }
-function telaSugestoes(){ var f=S.sug,l=filtrarSug();
-  return '<p class="info">Para cada cliente: os produtos que ele já compra (prioridade para o que está na hora de recomprar) + uma novidade da linha que ele mais compra, escolhida por afinidade ("quem compra X também leva Y"). Funcionários e uso interno ficam fora.</p>'+
+ function telaSugestoes(){ var f=S.sug,l=filtrarSug();
+  return painelMeta()+'<p class="info">Para cada cliente: os produtos que ele já compra (prioridade para o que está na hora de recomprar) + uma novidade da linha que ele mais compra, escolhida por afinidade ("quem compra X também leva Y"). Funcionários e uso interno ficam fora.</p>'+
     '<div class="filtros"><input id="sq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'">'+
-    sel('sstatus','Todos os status',[['ativos','Ativos + em risco'],['Ativo','Só ativos'],['Em risco','Só em risco'],['Inativo','Só inativos (reativação)']],f.status)+
+    sel('sstatus','Todos os status',[['ativos','Ativos + em risco'],['Ativo','Só ativos'],['Em risco','Só em risco'],['Inativo','Só inativos de 61 a 90 dias']],f.status)+
     sel('slinha','Todas as linhas',LINHAS,f.linha)+sel('scod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+
     sel('scont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam (bloqueados)'],['optout','Pediram para não receber (SAIR)'],['promo','Só promoções']],f.cont)+
-    sel('ssit','Todas as situações',Object.keys(SITUACOES).filter(function(k){return k!=='kit';}).map(function(k){return [k,SITUACOES[k].nome];}),f.sit)+
+    sel('ssit','Todas as situações',Object.keys(SITUACOES).filter(function(k){return k!=='kit'&&k.indexOf('reconquista')<0&&k!=='reativar_inativo';}).map(function(k){return [k,SITUACOES[k].nome];}),f.sit)+
     '<select id="sord">'+[['','Ordem: prioridade (recompra atrasada, maior gasto)'],['dias_desc','Ordem: mais dias sem comprar'],['dias_asc','Ordem: menos dias sem comprar'],['total','Ordem: maior gasto']].map(function(o){return '<option value="'+o[0]+'"'+((f.ord||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'+
     '<input id="sdmin" type="number" min="0" placeholder="dias sem comprar: de" value="'+esc(f.dmin||'')+'" style="width:150px"><input id="sdmax" type="number" min="0" placeholder="até" value="'+esc(f.dmax||'')+'" style="width:80px">'+'<button class="btn" id="expSug">⬇ CSV para o CRM</button><button class="btn sec" id="editMsg">✎ Mensagens</button><button class="btn sec" id="editRegras">⚙ Regras de envio</button></div>'+barraSel('sug',l.filter(elegivel).length)+
     (function(){ var R=regras(), tot=S.model.lista.filter(function(c){return estadoContato(c).bloqueado;}).length, hj=(S.contatos||[]).filter(function(r){return !r.excluido&&r.dia===hoje();}).length;
@@ -1642,24 +1729,26 @@ function abrirModeloMsg(){
   $('#modal').classList.add('on'); }
 
 function filtrarRecompra(){ var r=S.rec,q=rgNorm(r.q),pq=rgNorm(r.produto), o=r.ord||{campo:'atraso',dir:-1};
-  var l=S.model.recompra.filter(function(x){ if(r.loja&&x.c.loja!==r.loja) return false; if(q&&(x.c.nomeKeysArr.join(' ')+' '+x.c.codigo).indexOf(q)<0) return false; if(pq&&rgNorm(x.e.produto).indexOf(pq)<0) return false;
-    if(r.dmin&&x.e.diasSem<+r.dmin) return false; if(r.dmax&&x.e.diasSem>+r.dmax) return false; if(r.de&&x.e.ultima<r.de) return false; if(r.ate&&x.e.ultima>r.ate) return false;
-    if(r.cont){ var bl=estadoContato(x.c).bloqueado; if(r.cont==='liberados'&&(bl||optout(x.c))) return false; if(r.cont==='bloqueados'&&!bl) return false; if(r.cont==='marcados'&&!(S.sel&&S.sel.ctx==='rec'&&S.sel.itens[x.c.chave])) return false; }
+  var l=gruposRecompra().filter(function(x){ if(r.loja&&x.c.loja!==r.loja) return false; if(q&&(x.c.nomeKeysArr.join(' ')+' '+x.c.codigo).indexOf(q)<0) return false; if(pq&&!x.itens.some(function(i){ return rgNorm(i.e.produto).indexOf(pq)>=0; })) return false;
+    if(optout(x.c)||soPromo(x.c)) return false;
+    if(r.dmin&&x.c.recencia<+r.dmin) return false; if(r.dmax&&x.c.recencia>+r.dmax) return false; if(r.de&&x.c.ultimaCompra<r.de) return false; if(r.ate&&x.c.ultimaCompra>r.ate) return false;
+    if(r.cont){ var bl=estadoContato(x.c).bloqueado; if(r.cont==='liberados'&&bl) return false; if(r.cont==='bloqueados'&&!bl) return false; if(r.cont==='marcados'&&!(S.sel&&S.sel.ctx==='rec'&&S.sel.itens[x.c.chave])) return false; }
     return true; });
-  var val=function(x){ switch(o.campo){ case 'nome':return x.c.nome; case 'produto':return x.e.produto; case 'vezes':return x.e.vezes; case 'ciclo':return x.e.ciclo; case 'ultima':return x.e.ultima; case 'diasSem':return x.e.diasSem; case 'valor':return x.e.valor/x.e.vezes; case 'total':return x.c.total; default:return x.atraso; } };
+  var val=function(x){ switch(o.campo){ case 'nome':return x.c.nome; case 'diasSem':return x.c.recencia; case 'ciclo':return x.e.ciclo; case 'previsto':return x.previsto; case 'valor':return x.e.valor/x.e.vezes; case 'total':return x.c.total; case 'n':return x.itens.length; default:return x.atraso; } };
   return l.sort(function(a,b){ var p=val(a),q2=val(b); return (typeof p==='string'?p.localeCompare(q2):p-q2)*o.dir || b.atraso-a.atraso; }); }
 function telaRecompra(){ var r=S.rec,l=filtrarRecompra(), o=r.ord||{campo:'atraso',dir:-1};
   var thr=function(c,rot,cl){ return '<th class="ord'+(cl?' '+cl:'')+(o.campo===c?' on':'')+'" data-rord="'+c+'" title="Clique para ordenar">'+rot+(o.campo===c?(o.dir<0?' ▼':' ▲'):'')+'</th>'; };
-  var nCli={}; l.forEach(function(x){ if(elegivel(x.c)) nCli[x.c.chave]=1; });
-  return '<p class="info">Clientes que compram um produto com regularidade (pelo menos '+MIN_COMPRAS_CICLO+' vezes) e já passaram '+FATOR_ATRASO.toLocaleString('pt-BR')+'× do ciclo habitual sem comprar — nos últimos '+JANELA_RECOMPRA+' dias. A mensagem já fala do produto atrasado. Clique no título da coluna para ordenar (maior → menor).</p>'+
+  return '<p class="info">Clientes que compram sempre os mesmos produtos e <b>já passaram da hora de repor</b> (passaram '+FATOR_ATRASO.toLocaleString('pt-BR')+'× do intervalo de sempre). Uma linha por cliente, com todos os produtos atrasados; a mensagem fala do mais atrasado. Quem está há mais de 90 dias sem comprar fica na aba <b>Reconquista</b>.</p>'+
     '<div class="filtros"><input id="rq" placeholder="Buscar cliente…" value="'+esc(r.q)+'"><input id="rprod" list="dlprod" placeholder="Produto…" value="'+esc(r.produto)+'">'+dlProdutos()+
-    sel('rcont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam'],['marcados','Só os marcados']],r.cont)+'<button class="btn" id="expRec">⬇ CSV para contato</button></div>'+
-    '<div class="filtros"><span class="nota" style="margin:0">Dias sem comprar o produto:</span><input id="rdmin" type="number" min="0" placeholder="de" value="'+esc(r.dmin)+'" style="width:80px"><input id="rdmax" type="number" min="0" placeholder="até" value="'+esc(r.dmax)+'" style="width:80px">'+
-    '<span class="nota" style="margin:0 0 0 10px">Última compra entre</span><input id="rde" type="date" value="'+esc(r.de)+'"><input id="rate" type="date" value="'+esc(r.ate)+'">'+
-    ((r.dmin||r.dmax||r.de||r.ate)?'<button class="btn sec mini" id="rlimpa">Limpar período</button>':'')+'</div>'+
-    barraSel('rec',Object.keys(nCli).length)+
-    '<div class="info">'+num(l.length)+' oportunidade(s) · '+num(Object.keys(l.reduce(function(a,x){a[x.c.chave]=1;return a;},{})).length)+' cliente(s). Cada cliente recebe 1 mensagem só (do produto marcado).</div><div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cód. CRM</th>'+thr('nome','Cliente')+thr('produto','Produto')+thr('vezes','Vezes','r')+thr('ciclo','Compra a cada','r')+thr('ultima','Última vez')+thr('diasSem','Dias sem comprar','r')+thr('atraso','Atraso','r')+thr('valor','Valor médio','r')+'<th>Mensagem</th><th></th></tr></thead><tbody>'+
-    l.slice(0,S.limite).map(function(x){ var sg=sugFoco(x.c,x.e.chave,'recompra'); return '<tr class="click'+(estadoContato(x.c).bloqueado?' bloq':'')+'" data-cli="'+esc(x.c.chave)+'" data-foco="'+esc(x.e.chave)+'" data-modo="recompra"><td class="ck">'+chkSel('rec',x.c,x.e.chave,'recompra')+'</td><td>'+codInput(x.c)+'</td><td><b>'+esc(x.c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(x.c))+(x.c.celular?'':' · sem celular')+'</small></td><td>'+esc(x.e.produto)+'</td><td class="r">'+x.e.vezes+'</td><td class="r">'+Math.round(x.e.ciclo)+' dias</td><td>'+dBR(x.e.ultima)+'</td><td class="r">'+x.e.diasSem+'</td><td class="r"><span class="pill late">+'+x.atraso+'d</span></td><td class="r">'+brl(x.e.valor/x.e.vezes)+'</td>'+colMsg(x.c,sg)+acoesMsg(x.c,x.e.chave,'recompra')+'</tr>'; }).join('')+'</tbody></table></div>'+
+    sel('rcont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam'],['marcados','Só os marcados']],r.cont)+'<button class="btn" id="expRec">⬇ CSV</button></div>'+
+    '<div class="filtros"><span class="nota" style="margin:0">Dias sem comprar:</span><input id="rdmin" type="number" min="0" placeholder="de" value="'+esc(r.dmin)+'" style="width:80px"><input id="rdmax" type="number" min="0" placeholder="até" value="'+esc(r.dmax)+'" style="width:80px">'+
+    '<span class="nota" style="margin:0 0 0 10px">Última compra entre</span><input id="rde" type="date" value="'+esc(r.de)+'"><input id="rate" type="date" value="'+esc(r.ate)+'">'+((r.dmin||r.dmax||r.de||r.ate)?'<button class="btn sec mini" id="rlimpa">Limpar período</button>':'')+'</div>'+
+    barraSel('rec',l.filter(function(x){return elegivel(x.c);}).length)+
+    '<div class="info">'+num(l.length)+' cliente(s) na hora de repor · '+num(l.reduce(function(a,x){return a+x.itens.length;},0))+' produto(s) atrasado(s).</div><div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cód. CRM</th>'+thr('nome','Cliente')+thr('diasSem','Sem comprar','r')+'<th>Produtos atrasados</th>'+thr('ciclo','Compra a cada','r')+thr('previsto','Deveria ter comprado')+thr('atraso','Atraso','r')+thr('valor','Valor médio','r')+'<th>Mensagem</th><th></th></tr></thead><tbody>'+
+    l.slice(0,S.limite).map(function(x){ var sg=sugFoco(x.c,x.e.chave,'recompra');
+      return '<tr class="click'+(estadoContato(x.c).bloqueado?' bloq':'')+'" data-cli="'+esc(x.c.chave)+'" data-foco="'+esc(x.e.chave)+'" data-modo="recompra"><td class="ck">'+chkSel('rec',x.c,x.e.chave,'recompra')+'</td><td>'+codInput(x.c)+'</td><td><b>'+esc(x.c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(x.c))+' · '+st(x.c.status)+' '+esc(x.c.status)+(x.c.celular?'':' · sem celular')+'</small></td><td class="r">'+seloDias(x.c.recencia)+'</td>'+
+        '<td>'+x.itens.slice(0,4).map(function(i,k){ return '<span class="mchip'+(k===0?' of':'')+'" title="compra a cada '+Math.round(i.e.ciclo)+' dias · última '+dBR(i.e.ultima)+'">'+esc(tituloProd(i.e.produto))+' <b>+'+i.atraso+'d</b></span>'; }).join('')+(x.itens.length>4?'<small> +'+(x.itens.length-4)+'</small>':'')+'</td>'+
+        '<td class="r">'+Math.round(x.e.ciclo)+' dias</td><td>'+dBR(x.previsto)+'</td><td class="r"><span class="pill late">+'+x.atraso+'d</span></td><td class="r">'+brl(x.e.valor/x.e.vezes)+'</td>'+colMsg(x.c,sg)+acoesMsg(x.c,x.e.chave,'recompra')+'</tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
 
 function vistaProd(p){ var L=S.prodLoja; if(!L) return p; var x=p.porLoja[L]; if(!x) return null;
@@ -1835,6 +1924,10 @@ function bind(){
     if((b=t.closest('[data-responder]'))){ var tr=document.getElementById('rt_'+b.dataset.responder); b.disabled=true; await responderConversa(b.dataset.responder,tr?tr.value:''); b.disabled=false; return; }
     if((b=t.closest('[data-campanha]'))){ var kc0=kits().filter(function(x){return x.id===b.dataset.campanha;})[0]; S.kc={kit:b.dataset.campanha,pub:kc0&&kc0.tipo==='dia'?'dia':kc0&&kc0.tipo==='churrasco'?'churrasco':'todos'}; render(); setTimeout(function(){ var e=document.querySelector('h2.secao'); if(e) e.scrollIntoView({behavior:'smooth'}); },50); return; }
     if((b=t.closest('[data-editkit]'))){ abrirKit(b.dataset.editkit); return; }
+    if((b=t.closest('[data-fila]'))){ var lj=b.dataset.fila, falta=Math.max(0,metaDia(lj)-enviadasHoje(lj)), fl=filaDoDia(lj,falta), sx2=selCtx('sug');
+      if(S.aba!=='sugestoes'){ S.aba='sugestoes'; }
+      fl.forEach(function(c){ sx2.itens[c.chave]={prod:'',modo:''}; }); S.sug.cont='liberados'; S.sug.status=''; S.limite=Math.max(S.limite,400); render();
+      toast(fl.length?fl.length+' cliente(s) da '+tituloProd(lj)+' marcados para hoje: recompra atrasada primeiro, depois em risco, ativos e quem está sem mensagem há mais tempo. Confira e clique em Enviar para os marcados.':'Não há mais clientes liberados na '+tituloProd(lj)+' hoje — use Reconquista ou uma campanha de Kits.','ok'); return; }
     if((b=t.closest('[data-selall]'))){ var cx=b.dataset.selall, sx=selCtx(cx), nn=0; itensCtx(cx).forEach(function(it){ if(elegivel(it.c)&&!sx.itens[it.c.chave]){ sx.itens[it.c.chave]={prod:it.prod||'',modo:it.modo||''}; nn++; } }); if(cx.indexOf('prod:')===0) abrirProduto(cx.slice(5)); else render(); toast(nn+' cliente(s) marcado(s).','ok'); return; }
     if((b=t.closest('[data-selnone]'))){ S.sel={ctx:b.dataset.selnone,itens:{}}; if(b.dataset.selnone.indexOf('prod:')===0) abrirProduto(b.dataset.selnone.slice(5)); else render(); return; }
     if((b=t.closest('[data-selenviar]'))){ enviarMarcados(b.dataset.selenviar); return; }
@@ -1858,6 +1951,8 @@ function bind(){
     else if(id==='editRegras') abrirRegras();
     else if(id==='editAtend') abrirAtendentes();
     else if(id==='novoKit') abrirKit('');
+    else if(id==='rqSalvar') await salvarReconq(false);
+    else if(id==='rqPadrao'){ if(confirm('Voltar os textos da reconquista para o padrão?')) await salvarReconq(true); }
     else if(id==='salvarKit'){ t.disabled=true; await salvarKit(t.dataset.kid); t.disabled=false; }
     else if(id==='excluirKit') await excluirKit(t.dataset.kid);
     else if(id==='kSalvarLeg'){ var ks2=kits().slice(), k2=ks2.filter(function(x){return x.id===S.kc.kit;})[0]; if(k2){ k2.legendas=$('#kleg').value.split(/\n\s*---\s*\n/).map(function(x){return x.trim();}).filter(Boolean); S.kc.legendas=null; S.cfg.kits=ks2; await salvarCfg('kits',ks2); toast('Legendas salvas no kit.','ok'); render(); } }
@@ -1869,7 +1964,8 @@ function bind(){
     else if(id==='uzSalvar'){ await salvarTestarUaz(); checarNumeros(); }
     else if(id==='varrer'){ t.disabled=true; t.textContent='Buscando…'; try{ await varrerCelular($('#varrDesde').value||hoje().slice(0,8)+'01'); }finally{ t.disabled=false; t.textContent='🔎 Trazer para a cesta'; } }
     else if(id==='lerResp'){ t.disabled=true; t.textContent='Lendo respostas…'; await verificarRespostas(true); render(); }
-    else if(id==='salvarRegras'){ var nr={diasCliente:Math.max(7,parseInt($('#rgCli').value)||7),diasProduto:Math.max(1,parseInt($('#rgProd').value)||7),ciclo:$('#rgCiclo').checked,cicloMax:Math.max(7,parseInt($('#rgCicloMax').value)||30)}; S.cfg.regrasContato=nr; await salvarCfg('regrasContato',nr); limparSugestoes(); S.crmSujo=true; $('#modal').classList.remove('on'); render(); toast('Regras salvas: 1 mensagem a cada '+nr.diasCliente+' dias; produto não se repete por '+nr.diasProduto+' dias.','ok'); }
+    else if(id==='salvarRegras'){ var md={}; document.querySelectorAll('[data-meta]').forEach(function(x){ md[x.dataset.meta]=Math.max(0,parseInt(x.value)||0); }); S.cfg.metaDiaria=md; await salvarCfg('metaDiaria',md);
+      var nr={diasCliente:Math.max(7,parseInt($('#rgCli').value)||7),diasProduto:Math.max(1,parseInt($('#rgProd').value)||7),ciclo:$('#rgCiclo').checked,cicloMax:Math.max(7,parseInt($('#rgCicloMax').value)||30)}; S.cfg.regrasContato=nr; await salvarCfg('regrasContato',nr); limparSugestoes(); S.crmSujo=true; $('#modal').classList.remove('on'); render(); toast('Regras salvas: 1 mensagem a cada '+nr.diasCliente+' dias; produto não se repete por '+nr.diasProduto+' dias.','ok'); }
     else if(id==='salvarMsg'){ await salvarMsg($('#msgModelo').value); $('#modal').classList.remove('on'); render(); toast('Modelo salvo.','ok'); }
     else if(id==='padraoMsg'){ $('#msgModelo').value=MSG_PADRAO; }
     else if(id==='expJson') exportJSON(); else if(id==='expCli') exportClientes(); else if(id==='expCesta') exportCestas(); else if(id==='expCompras') exportCompras(); else if(id==='expItens') exportItens();
@@ -1900,6 +1996,7 @@ function bind(){
     if(t.id==='kFoto'&&t.files&&t.files[0]){ reduzirImagem(t.files[0]).then(function(d){ S.kitNovaImg=d; $('#kPrev').innerHTML='<img src="'+d+'">'; }).catch(function(e){ toast(e.message,'erro'); }); return; }
     if(t.id==='kpub'||t.id==='kstatus'||t.id==='kdmin'||t.id==='kdmax'){ var kl=$('#kleg'); if(kl) S.kc.legendas=kl.value; S.kc[{kpub:'pub',kstatus:'status',kdmin:'dmin',kdmax:'dmax'}[t.id]]=t.value; render(); return; }
     if(t.id==='kleg'){ S.kc.legendas=t.value; return; }
+    if(t.id==='rqfaixa'||t.id==='rqord'||t.id==='rqmin'||t.id==='rqq'){ S.rq=S.rq||{}; S.rq[{rqfaixa:'faixa',rqord:'ord',rqmin:'min',rqq:'q'}[t.id]]=t.value; S.limite=200; render(); return; }
     if(t.id==='cvq'){ S.cv=S.cv||{}; S.cv.q=t.value; render(); return; }
     if(t.id==='rcont'){ S.rec.cont=t.value; S.limite=200; render(); return; }
     if(t.id==='rdmin'||t.id==='rdmax'||t.id==='rde'||t.id==='rate'){ S.rec[{rdmin:'dmin',rdmax:'dmax',rde:'de',rate:'ate'}[t.id]]=t.value; S.limite=200; render(); return; }
