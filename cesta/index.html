@@ -57,6 +57,7 @@ th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{backgroun
 .numeros{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px}
 .metas{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 10px}.meta{background:#fff;border:1px solid #eadfd3;border-radius:12px;padding:10px 14px;min-width:260px;flex:1}.meta .bar{height:8px;background:#f0e8de;border-radius:6px;margin:6px 0 8px;overflow:hidden}.meta .bar i{display:block;height:100%;background:#1b6b3c}
 .codtag{font:600 12px/1 ui-monospace,Menlo,monospace;background:#eef6ee;color:#1b5e20;border-radius:6px;padding:4px 6px;white-space:nowrap}
+tr.fora td{background:#fff4e5}tr.tot td{border-top:2px solid #eadfd3}
 .bibl{display:block;font-weight:700;font-size:13px;margin:12px 0 4px}.bibl small{display:block;font-weight:400;color:#777;margin:2px 0 4px}.bibta{width:100%;min-height:90px;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle}.dot.ok{background:var(--ok)}.dot.risk{background:var(--risk)}.dot.off{background:var(--off)}
 .pill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}.pill.late{background:#fff1d6;color:#9a5b00}.pill.okp{background:#e3f4ea;color:var(--ok)}
@@ -241,27 +242,31 @@ RgClientes.prototype.page=function(lines){ var R=this.res;
     if(/^Relatório de Produtos Vendidos/.test(j)||/^Página \d+ de/.test(L[L.length-1]||'')&&T[0].x>300) continue;
     var mp=/^Período (inicial|final):\s*(\d\d\/\d\d\/\d{4})/.exec(j); if(mp){ var d=rgDate(mp[2]); if(mp[1]==='inicial'){ if(!R.periodoIni) R.periodoIni=d; } else { if(!R.periodoFim) R.periodoFim=d; } continue; }
     if(L[0]==='Código'&&/Descri/.test(L[1]||'')) continue;
-    if(L[0]==='Total Geral'){ R.totalGeral=rgNum(L[L.length-1]); continue; }
-    // cabeçalho do cliente (repete em cada página)
-    if(T[0].x<33&&/^\d{9}$/.test(L[0])&&L.length>=2){ var cod=L[0], nome=L.slice(1).join(' ').trim(); if(!this.cli||this.cli.cod!==cod){ this.fechaCliente(); this.cli={cod:cod,nome:nome}; this.data=null; R.nClientes++; if(!R.clientes[cod]) R.clientes[cod]={nome:nome,bairro:'',tel:''}; } continue; }
+    if(/^Total Geral/.test(L[0])){ R.totalGeral=rgNum(L[L.length-1]); continue; }
+    if(L.indexOf('Emp.')>=0) R.temEmp=true;
+    // cabeçalho do cliente (repete em cada página): código de 4 a 15 dígitos + nome, sem quantidade/valor à direita
+    var mCab=/^(\d{4,15})(?:\s+(.+))?$/.exec(L[0]), semNums=!T.some(function(t){ return t.x>340; });
+    if(T[0].x<33&&mCab&&semNums&&(L.length>=2||mCab[2])){ var cod=mCab[1], nome=((mCab[2]||'')+' '+L.slice(1).join(' ')).trim(); if(!this.cli||this.cli.cod!==cod){ this.fechaCliente(); this.cli={cod:cod,nome:nome}; this.data=null; R.nClientes++; if(!R.clientes[cod]) R.clientes[cod]={nome:nome,bairro:'',tel:''}; } continue; }
     if(L.length===1&&/^Cliente Indefinido$/i.test(L[0])){ if(!this.cli||this.cli.cod!==''){ this.fechaCliente(); this.cli={cod:'',nome:'CLIENTE INDEFINIDO'}; this.data=null; } continue; }
     if(L[0]==='Bairro:'){ var iT=L.indexOf('Telefone:'), b=(iT>0?L.slice(1,iT):L.slice(1)).join(' ').trim(), tel=iT>=0?L.slice(iT+1).join(' ').trim():''; if(this.cli&&this.cli.cod){ var cc=R.clientes[this.cli.cod]; if(b) cc.bairro=b; if(tel) cc.tel=tel; } continue; }
     if(L[0]==='Data:'&&/^\d\d\/\d\d\/\d{4}$/.test(L[1]||'')){ var nd=rgDate(L[1]); if(nd!==this.data){ this.data=nd; this.somaDia=0; } this.ultTotalDia=false; continue; }
     if(L[0]==='Total'&&T[0].x>250){ var v=rgNum(L[L.length-1]); if(this.ultTotalDia){ /* total do cliente */ if(Math.abs(v-this.somaCli)>0.05) R.avisos.push('Total do cliente '+(this.cli?this.cli.nome:'?')+' não confere: '+v.toFixed(2)+' x '+this.somaCli.toFixed(2)); this.somaCli=0; this.ultTotalDia=false; }
       else { if(Math.abs(v-this.somaDia)>0.05){ R.diasDivergentes++; if(R.avisos.length<30) R.avisos.push('Total do dia '+this.data+' de '+(this.cli?this.cli.nome:'?')+': '+v.toFixed(2)+' x itens '+this.somaDia.toFixed(2)); } this.somaDia=0; this.ultTotalDia=true; } continue; }
     // item: [código] descrição ... qtd (x~390-430) valor (x>480)
-    var nums=T.filter(function(t){ return t.x>370&&/^-?[\d.]*\d(,\d+)?$/.test(t.s); });
+    var tEmp=T.filter(function(t){ return t.x>520&&/^\d{3}$/.test(t.s); })[0], emp=tEmp?tEmp.s:'';
+    var nums=T.filter(function(t){ return t.x>340&&t!==tEmp&&/^-?[\d.]*\d(,\d+)?$/.test(t.s); });
     if(nums.length>=2&&this.data&&this.cli){ var tq=nums[nums.length-2], tv=nums[nums.length-1], resto=T.filter(function(t){ return t.x<370; });
+      resto=T.filter(function(t){ return t.x<340; });
       var pc='', desc; if(resto.length&&resto[0].x<60&&/^[0-9A-Za-z.\-]+$/.test(resto[0].s)&&resto.length>1){ pc=resto[0].s; desc=resto.slice(1).map(function(t){return t.s;}).join(' '); } else desc=resto.map(function(t){return t.s;}).join(' ');
-      var q=rgNum(tq.s), val=rgNum(tv.s), cod=this.cli.cod, pref=cod.slice(0,3), loja=/^(001|002|003|900)$/.test(pref)?pref:(cod?'001':'900');
-      R.linhas.push([this.data,loja,(cod||'IND')+'-'+this.data.replace(/-/g,''),this.cli.nome,pc,desc.trim(),q,q?Math.round(val/q*100)/100:0,val,0,cod]);
+      var q=rgNum(tq.s), val=rgNum(tv.s), cod=this.cli.cod, pref=cod.slice(0,3), loja=emp||(/^(001|002|003|900)$/.test(pref)?pref:(cod?'001':'900'));
+      R.linhas.push([this.data,loja,(cod||'IND')+'-'+this.data.replace(/-/g,'')+'-'+loja,this.cli.nome,pc,desc.trim(),q,q?Math.round(val/q*100)/100:0,val,0,cod]);
       R.somaItens+=val; this.somaDia+=val; this.somaCli+=val; this.ultTotalDia=false;
       if(!R.periodoIni||this.data<R.periodoIni) {} continue; }
   } };
 RgClientes.prototype.fechaCliente=function(){ this.somaCli=0; this.ultTotalDia=false; };
 async function rgExtractClientes(pdfjsLib,data,onProgress){ var doc=await pdfjsLib.getDocument({data:data}).promise, P=new RgClientes();
   for(var n=1;n<=doc.numPages;n++){ var pg=await doc.getPage(n), tc=await pg.getTextContent(); P.page(rgPageToLines(tc.items)); if(pg.cleanup) pg.cleanup(); if(onProgress) onProgress(n,doc.numPages); }
-  var R=P.res; R.somaItens=Math.round(R.somaItens*100)/100; R.lojasFiltro=[]; var ls={}; R.linhas.forEach(function(L){ ls[L[1]]=1; }); R.lojas=Object.keys(ls).sort();
+  var R=P.res; R.versaoLeitor=2; R.somaItens=Math.round(R.somaItens*100)/100; R.lojasFiltro=[]; var ls={}; R.linhas.forEach(function(L){ ls[L[1]]=1; }); R.lojas=Object.keys(ls).sort();
   if(R.totalGeral!=null&&Math.abs(R.totalGeral-R.somaItens)>1) R.avisos.unshift('A soma dos itens ('+R.somaItens.toFixed(2)+') não bate com o Total Geral do relatório ('+R.totalGeral.toFixed(2)+').');
   return R; }
 async function rgDetectarTipo(pdfjsLib,data){ var doc=await pdfjsLib.getDocument({data:data.slice(0)}).promise, pg=await doc.getPage(1), tc=await pg.getTextContent(), txt=tc.items.map(function(i){return i.str;}).join(' ');
@@ -1352,8 +1357,10 @@ function lacunasVendas(diasGeral,diasLoja,ini,fim){ var out=[], fech=diasFechado
   // lacuna de loja que já está dentro de uma lacuna geral não precisa aparecer de novo
   var gerais=out.filter(function(x){return !x.loja;});
   return out.filter(function(x){ return !x.loja||!gerais.some(function(g){ return x.ini>=g.ini&&x.fim<=g.fim; }); }); }
-function avisoLacunas(){ var m=S.model; if(!m||!m.lacunas||!m.lacunas.length) return '';
-  return '<div class="erro lacuna">⚠ <b>Faltam vendas na base</b> — os clientes que compraram nesses dias aparecem com a última compra errada: '+
+function avisoReimportar(){ var v=(S.imports||[]).filter(function(im){ return im.tipo==='clientes'&&!(im.versaoLeitor>=2); });
+  return v.length?'<div class="erro lacuna">⚠ <b>Importe de novo o "Relatório de Produtos Vendidos por Cliente"</b> (aba Importar e configurar). A importação de '+v.map(function(im){ return new Date(im.importadoEm).toLocaleDateString('pt-BR'); }).join(', ')+' foi lida pela versão anterior, que juntava clientes de código curto (6 dígitos) no cliente de cima e não lia a coluna da loja. Ao importar de novo, ela é substituída.</div>':''; }
+function avisoLacunas(){ var r0=avisoReimportar(), m=S.model; if(!m||!m.lacunas||!m.lacunas.length) return r0;
+  return r0+'<div class="erro lacuna">⚠ <b>Faltam vendas na base</b> — os clientes que compraram nesses dias aparecem com a última compra errada: '+
     m.lacunas.slice(0,6).map(function(x){ return '<b>'+dBR(x.ini)+(x.dias>1?' a '+dBR(x.fim):'')+'</b> ('+x.dias+' dias'+(x.loja?', só loja '+esc(tituloProd(LOJAS[x.loja]||x.loja)):', todas as lojas')+')'; }).join(' · ')+
     (m.lacunas.length>6?' e mais '+(m.lacunas.length-6):'')+'. Importe o <b>Extrato de Produtos</b> desse período na aba Importar e configurar (pode ser um PDF só cobrindo esses dias).</div>'; }
 
@@ -1575,7 +1582,7 @@ async function importarUm(f){
     await dbTx('imports',function(st){ var nov={periodoIni:r.periodoIni,periodoFim:r.periodoFim,lojas:lojasC};
       sobC.forEach(function(im){ var cob=im.linhas.filter(function(L){ return cobre(nov,L); }).length; remC+=cob; if(cob&&cob===im.linhas.length){ st.delete(im.id); exclusaoPendente(im.id); } });
       st.put({id:'imp_'+Date.now(),tipo:'clientes',rev:novaRev(),pendente:true,origem:S.sync.computador||'',versao:VERSAO,arquivo:f.name,importadoEm:new Date().toISOString(),periodoIni:r.periodoIni,periodoFim:r.periodoFim,lojas:lojasC,
-        resumo:[{operacao:'Total Geral do relatório',qtd:0,valor:r.totalGeral}],conferencia:[{operacao:'Total Geral do relatório',qtdResumo:0,qtdLida:0,valorResumo:r.totalGeral,valorLido:r.somaItens}],conferido:confC,nLinhas:r.linhas.length,nClientes:Object.keys(r.clientes).length,ops:['VENDA'],linhas:r.linhas,clientes:r.clientes}); });
+        resumo:[{operacao:'Total Geral do relatório',qtd:0,valor:r.totalGeral}],conferencia:[{operacao:'Total Geral do relatório',qtdResumo:0,qtdLida:0,valorResumo:r.totalGeral,valorLido:r.somaItens}],conferido:confC,versaoLeitor:r.versaoLeitor||1,temEmp:!!r.temEmp,nLinhas:r.linhas.length,nClientes:Object.keys(r.clientes).length,ops:['VENDA'],linhas:r.linhas,clientes:r.clientes}); });
     agendarSync(100);
     toast('Importado: '+dBR(r.periodoIni)+' a '+dBR(r.periodoFim)+' — '+num(r.linhas.length)+' itens, '+num(Object.keys(r.clientes).length)+' clientes'+(confC?' ✔ confere com o Total Geral ('+brl(r.totalGeral)+')':' ⚠ não confere com o Total Geral')+(remC?' · substituiu '+num(remC)+' itens de relatórios antigos':''),confC?'ok':'erro');
     return;
@@ -1859,7 +1866,7 @@ function telaQualidade(){ var m=S.model;
     (m.duplicados.length?'<div class="tw"><table class="tbl"><tbody>'+m.duplicados.slice(0,200).map(function(g){ return '<tr>'+g.map(function(c){return '<td class="click" data-cli="'+esc(c.chave)+'"><b>'+esc(c.nome)+'</b><small class="cod">'+c.nCompras+' compras · '+brl(c.total)+(c.codigo?' · CRM '+esc(c.codigo):'')+'</small></td>';}).join('')+'</tr>'; }).join('')+'</tbody></table></div>':'<p class="vazio">Nenhum.</p>');
   h+='<h3>Preços fora do padrão ('+m.anomalias.length+')</h3><p class="nota">Preço unitário abaixo de 30% ou acima de 300% do preço mediano do produto.</p>'+
     (m.anomalias.length?'<div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Cliente</th><th>Produto</th><th class="r">Qtd</th><th class="r">Preço</th><th class="r">Mediano</th><th class="r">Valor</th><th>Doc</th></tr></thead><tbody>'+
-      m.anomalias.slice(0,300).map(function(a){ return '<tr class="click" data-cli="'+esc(a.c.chave)+'"><td>'+dBR(a.d.data)+'</td><td>'+esc(a.c.nome)+'</td><td>'+esc(a.it.produto)+'</td><td class="r">'+num(a.it.qtd,3)+'</td><td class="r warn">'+brl(a.it.preco)+'</td><td class="r">'+brl(a.mediano)+'</td><td class="r">'+brl(a.it.valor)+'</td><td><small>'+esc(a.d.loja)+' '+esc(a.d.documento)+'</small></td></tr>'; }).join('')+'</tbody></table></div>':'<p class="vazio">Nenhum.</p>');
+      m.anomalias.slice(0,300).map(function(a){ return '<tr class="click" data-compra="'+esc(a.c.chave)+'|'+esc(a.d.documento)+'|'+esc(a.d.data)+'" title="Abrir esta compra"><td>'+dBR(a.d.data)+'</td><td>'+esc(a.c.nome)+'</td><td>'+esc(a.it.produto)+'</td><td class="r">'+num(a.it.qtd,3)+'</td><td class="r warn">'+brl(a.it.preco)+'</td><td class="r">'+brl(a.mediano)+'</td><td class="r">'+brl(a.it.valor)+'</td><td><small>'+esc(a.d.loja)+' '+esc(a.d.documento)+'</small></td></tr>'; }).join('')+'</tbody></table></div>':'<p class="vazio">Nenhum.</p>');
   return h; }
 
 function telaExportar(){ var m=S.model;
@@ -1889,6 +1896,26 @@ function telaImportacoes(){
   return h; }
 
 
+function telaCadastroSemAnon(){ var m=S.model, lojas=LOJAS_ENVIO.filter(function(l){ return !S.loja||l===S.loja; }), prim={}, ativos={}, meses={};
+  m.lista.forEach(function(c){ var d=c.compras[c.compras.length-1]; if(d){ var ms=d.data.slice(0,7); meses[ms]=1; prim[ms+'|'+c.loja]=(prim[ms+'|'+c.loja]||0)+1; } if(c.status==='Ativo') ativos[c.loja]=(ativos[c.loja]||0)+1; });
+  var ms=Object.keys(meses).sort().reverse();
+  return '<p class="info">O "Relatório de Produtos Vendidos por Cliente" traz só as vendas <b>com cliente cadastrado</b> (as vendas em "Cliente padrão" não vêm nele). Por isso a meta de % de cupons com nome não pode ser medida por aqui. Abaixo: clientes ativos e clientes novos (primeira compra no ano) por loja.</p>'+
+    '<div class="kpis">'+lojas.map(function(l){ return '<div class="kpi"><span>'+esc(tituloProd(l))+'</span><b>'+num(ativos[l]||0)+'</b><small>clientes ativos (compraram nos últimos 30 dias)</small></div>'; }).join('')+'</div>'+
+    '<h3>Clientes novos por mês (primeira compra)</h3><div class="tw"><table class="tbl"><thead><tr><th>Mês</th>'+lojas.map(function(l){return '<th class="r">'+esc(tituloProd(l))+'</th>';}).join('')+'<th class="r">Total</th></tr></thead><tbody>'+
+    ms.map(function(x){ var t=0; return '<tr><td><b>'+mesBR(x)+'</b></td>'+lojas.map(function(l){ var v=prim[x+'|'+l]||0; t+=v; return '<td class="r">'+num(v)+'</td>'; }).join('')+'<td class="r"><b>'+num(t)+'</b></td></tr>'; }).join('')+'</tbody></table></div>'; }
+
+/* ---------- uma compra (dia + loja) com os preços conferidos contra o mediano ---------- */
+function abrirCompra(chave,doc,data){ var m=S.model, c=m.clientes[chave]; if(!c) return; var d=c.compras.filter(function(x){ return x.documento===doc&&x.data===data; })[0]; if(!d) return;
+  var DS=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  $('#modal .modal-c').innerHTML='<div class="modal-h"><div><h2>Compra de '+esc(c.nome)+'</h2><div class="sub">'+DS[new Date(d.data+'T12:00:00').getDay()]+', '+dBR(d.data)+' · loja <b>'+esc(tituloProd(d.loja))+'</b> · '+d.itens.length+' item(ns) · <b>'+brl(d.valor)+'</b>'+(c.codigo?' · cód. '+esc(c.codigo):'')+'</div></div><button class="x" id="fechar">✕</button></div>'+
+    '<div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th class="r">Qtd</th><th class="r">Preço cobrado</th><th class="r">Preço mediano</th><th class="r">Diferença</th><th class="r">Valor</th></tr></thead><tbody>'+
+    d.itens.map(function(it){ var p=m.produtos[it.cod||rgNorm(it.produto)], med=p?p.precoMediano:0, r=med&&it.preco?it.preco/med:1, fora=med&&it.preco&&(r<0.3||r>3);
+      return '<tr'+(fora?' class="fora"':'')+'><td><small>'+esc(it.cod||'')+'</small></td><td>'+esc(it.produto)+'</td><td class="r">'+num(it.qtd,3)+'</td><td class="r'+(fora?' warn':'')+'"><b>'+brl(it.preco)+'</b></td><td class="r">'+(med?brl(med):'—')+'</td><td class="r'+(fora?' warn':'')+'">'+(med&&it.preco?(r>=1?'+':'')+Math.round((r-1)*100)+'%':'—')+'</td><td class="r">'+brl(it.valor)+'</td></tr>'; }).join('')+
+    '<tr class="tot"><td></td><td><b>Total da compra</b></td><td></td><td></td><td></td><td></td><td class="r"><b>'+brl(d.valor)+'</b></td></tr></tbody></table></div>'+
+    '<p class="nota">Linhas em destaque: preço abaixo de 30% ou acima de 300% do preço mediano do produto (possível erro de lançamento, desconto ou cortesia). Para conferir no Alterdata: cliente '+esc(c.codigo||c.nome)+', dia '+dBR(d.data)+', loja '+esc(tituloProd(d.loja))+'.</p>'+
+    '<div class="filtros"><button class="btn sec" data-cli="'+esc(c.chave)+'">Ver o histórico do cliente</button></div>';
+  $('#modal').classList.add('on'); $('#modal .modal-c').scrollTop=0; }
+
 /* ---------- painel de cadastro (meta de cupons com nome) ---------- */
 function segunda(iso){ var d=new Date(iso+'T12:00:00Z'), w=(d.getUTCDay()+6)%7; return addDias(iso,-w); }
 function periodoCad(){ var m=S.model, ref=m.refData, p=S.cad.periodo;
@@ -1901,7 +1928,8 @@ function agrega(cups){ var o={cupons:0,nome:0,anon:0,valor:0,valorNome:0}; cups.
   return o; }
 function corMeta(p,meta){ return p>=meta?'ok':p>=meta-0.1?'quase':'ruim'; }
 function celPct(o,meta){ if(!o||!o.cupons) return '<td class="r vazio">—</td>'; return '<td class="r hm '+corMeta(o.pct,meta)+'" title="'+o.nome+' com nome de '+o.cupons+' cupons">'+pct0(o.pct)+'</td>'; }
-function telaCadastro(){ var m=S.model, meta=(S.cfg.metaCadastro||80)/100, pr=periodoCad(), porCli=S.imports.some(function(im){return im.tipo==='clientes';}), lojas=porCli?[]:lojasTodas().filter(function(l){ return !S.loja||l===S.loja; });
+function telaCadastro(){ if(S.imports.some(function(im){return im.tipo==='clientes';})&&S.model.anon.itens===0) return telaCadastroSemAnon();
+  var m=S.model, meta=(S.cfg.metaCadastro||80)/100, pr=periodoCad(), porCli=S.imports.some(function(im){return im.tipo==='clientes';}), lojas=porCli?[]:lojasTodas().filter(function(l){ return !S.loja||l===S.loja; });
   var noPer=m.cupons.filter(function(c){return c.data>=pr[0]&&c.data<=pr[1];});
   var cards=lojas.concat(S.loja?[]:['TODAS']).map(function(lj){ var o=agrega(noPer.filter(function(c){return lj==='TODAS'||c.loja===lj;}));
     var falta=Math.max(0,Math.ceil(meta*o.cupons-o.nome)), cor=corMeta(o.pct,meta);
@@ -1994,6 +2022,7 @@ function bind(){
     if((b=t.closest('[data-selall]'))){ var cx=b.dataset.selall, sx=selCtx(cx), nn=0; itensCtx(cx).forEach(function(it){ if(elegivel(it.c)&&!sx.itens[it.c.chave]){ sx.itens[it.c.chave]={prod:it.prod||'',modo:it.modo||''}; nn++; } }); if(cx.indexOf('prod:')===0) abrirProduto(cx.slice(5)); else render(); toast(nn+' cliente(s) marcado(s).','ok'); return; }
     if((b=t.closest('[data-selnone]'))){ S.sel={ctx:b.dataset.selnone,itens:{}}; if(b.dataset.selnone.indexOf('prod:')===0) abrirProduto(b.dataset.selnone.slice(5)); else render(); return; }
     if((b=t.closest('[data-selenviar]'))){ enviarMarcados(b.dataset.selenviar); return; }
+    if((b=t.closest('[data-compra]'))){ var pc3=b.dataset.compra.split('|'); abrirCompra(pc3[0],pc3[1],pc3[2]); return; }
     if((b=t.closest('[data-cli]'))){ S.focoModal=b.dataset.foco?{cli:b.dataset.cli,prod:b.dataset.foco,modo:b.dataset.modo}:null; abrirCliente(b.dataset.cli); return; }
     if((b=t.closest('[data-prod]'))){ abrirProduto(b.dataset.prod); return; }
     if((b=t.closest('th[data-ord]'))){ var cpo=b.dataset.ord; S.ordem=S.ordem.campo===cpo?{campo:cpo,dir:-S.ordem.dir}:{campo:cpo,dir:(cpo==='nome'||cpo==='perfil'||cpo==='recencia'||cpo==='intervaloMedio'||cpo==='codigo')?1:-1}; render(); return; }
