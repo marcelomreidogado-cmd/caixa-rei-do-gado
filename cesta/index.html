@@ -27,7 +27,7 @@ input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-r
 .tag.vip{background:#1c1b1a;color:#f3c969}.tag.freq{background:#fde3e4;color:var(--red2)}.tag.rec{background:#e6f1ea;color:#1b6b3c}.tag.oca{background:#efefef;color:#666}.tag.int{background:#e8eef8;color:#2c4f86}.tag.off{background:#3a3a3a;color:#fff}.tag.risk{background:#fff1d6;color:#9a5b00}
 .bibl textarea{width:100%;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}.bibl input{width:100%;padding:8px;border:1px solid #ddd;border-radius:8px}.ck{width:28px;text-align:center}.ck input{width:17px;height:17px;cursor:pointer}
 .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff8e6;border:1px solid #f1d58a;border-radius:10px;padding:8px 12px;margin:8px 0}
-.msgcol{min-width:220px;max-width:340px}.msgcol .prev{display:block;color:#555;margin-top:3px;line-height:1.3}
+.rgl{padding:1px 7px!important;font-size:12px!important;margin-left:4px;vertical-align:middle}.msgcol{min-width:220px;max-width:340px}.msgcol .prev{display:block;color:#555;margin-top:3px;line-height:1.3}
 th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{background:#f3eee6}th.ord.on{color:var(--red2)}
 .lacuna{margin:0 0 12px;line-height:1.5}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}.kpi{background:#fff;border:1px solid #eadfd3;border-radius:12px;padding:12px 14px}.kpi span{display:block;font-size:12px;color:#777;font-weight:600}.kpi b{display:block;font-size:24px;margin:2px 0}.kpi small{color:#888;font-size:11.5px}.kpi.ok b{color:#1b6b3c}.kpi.risk b{color:#9a5b00}
@@ -1045,12 +1045,35 @@ function painelMeta(){ var lojas=S.loja?[S.loja]:LOJAS_ENVIO.filter(function(l){
 
 /* ---------- RECONQUISTA: clientes há mais de 90 dias sem comprar ---------- */
 var RECONQ_PADRAO={oferta:'',validade:'',abordagem:'auto',
-  incentivo:['{saudacao}, {nome}! {quem} Rei do Gado {loja} 😊 Sentimos sua falta! Pra você voltar, tem uma condição só sua: {oferta}{validade}. Separo {seu_fav}?',
-    'Oi, {nome}! {quem} Rei do Gado {loja}. Faz {tempo} da sua última compra e preparei algo especial pra você: {oferta}{validade}. Posso separar {seu_fav}?',
-    '{saudacao}, {nome}! {quem} Rei do Gado {loja}. {O_fav} que você levava tá te esperando 😄 E pra matar a saudade: {oferta}{validade}. Quer que eu reserve?'],
-  feedback:['{saudacao}, {nome}. {quem} Rei do Gado {loja}. Faz {tempo} que você não compra com a gente e queria te perguntar com sinceridade: aconteceu alguma coisa? E se quiser voltar: {oferta}{validade}.',
-    'Oi, {nome}! {quem} Rei do Gado {loja}. Senti sua falta por aqui. Foi algo no atendimento, no produto ou no preço? Me conta, de verdade. Pra você voltar, separei {oferta}{validade}.',
-    '{nome}, posso te pedir uma coisa? Faz {tempo} que você não aparece no Rei do Gado {loja} e queria entender o motivo pra gente melhorar. Como agradecimento: {oferta}{validade} 🙏']};
+  incentivo:['{saudacao}, {nome}! {quem} Rei do Gado {loja} 😊 {vinculo} Pra te receber de volta, preparei uma condição só sua: {oferta}{validade}.',
+    'Oi, {nome}! {quem} Rei do Gado {loja}. {vinculo} Se quiser voltar, guardei isso pra você: {oferta}{validade}. Vem nos ver? 😊',
+    '{saudacao}, {nome}! {quem} Rei do Gado {loja}. Faz {tempo} que a gente não se vê. {vinculo} Pra matar a saudade: {oferta}{validade}.'],
+  feedback:['{saudacao}, {nome}. {quem} Rei do Gado {loja}. {vinculo} Posso te perguntar com sinceridade: aconteceu alguma coisa? Se quiser voltar, tem {oferta}{validade} te esperando.',
+    'Oi, {nome}! {quem} Rei do Gado {loja}. Faz {tempo} que você não aparece e queria entender: foi algo no atendimento, no produto ou no preço? Me conta, de verdade. Pra você voltar: {oferta}{validade}.',
+    '{saudacao}, {nome}! {quem} Rei do Gado {loja}. {vinculo} Posso te pedir uma coisa? Queria entender o que fez você se afastar, pra gente melhorar. Como agradecimento: {oferta}{validade} 🙏']};
+/* vínculo: uma frase de afinidade conforme o perfil de compra e há quanto tempo o cliente sumiu (sem oferecer produto) */
+var VINCULO={
+  fiel:{p1:['Você é daqueles clientes que a gente conhece pelo nome, e faz falta te ver por aqui.','Sempre foi bom demais te atender, por isso notei sua falta.','Você é de casa aqui, e a gente sentiu sua falta.'],
+    p2:['Você foi cliente de casa por muito tempo, e isso a gente não esquece.','Aqui ainda tem gente que pergunta de você.'],
+    p3:['Mesmo depois de tanto tempo, você continua sendo de casa pra gente.','A gente ainda lembra de você com carinho.']},
+  esporadico:{p1:['Lembrei de você esses dias.','Deu saudade de te atender.'],
+    p2:['Lembrei de você e quis mandar um oi.','As portas continuam abertas pra você, viu?'],
+    p3:['Sei que faz tempo, mas as portas continuam abertas pra você.','Mesmo depois de tanto tempo, quis mandar um oi.']},
+  unica:{p1:['Você comprou com a gente uma vez e eu queria muito saber o que achou.','Fiquei pensando se você gostou da sua compra aqui.'],
+    p2:['Você conheceu a gente faz um tempo e eu queria saber se ficou tudo certo.','Você passou aqui faz um tempo e seria muito bom te ver de novo.'],
+    p3:['Você conheceu a gente faz bastante tempo, e seria muito bom te ver de novo.','Sei que faz tempo que você passou aqui, mas as portas continuam abertas.']}};
+function segVinculo(c){ var g=/VIP|Frequente|Regular/.test(c.perfil||'')?'fiel':(c.perfil==='Compra única'||c.nCompras<=1)?'unica':'esporadico', d=c.recencia||0;
+  return {grupo:g,periodo:d<=180?'p1':d<=365?'p2':'p3'}; }
+function vinculoDe(c,seed){ var s=segVinculo(c), l=VINCULO[s.grupo][s.periodo]; return l[hashN(seed+'|vinc')%l.length]; }
+var SAIR_TXT=['Se preferir não receber mais mensagens, é só responder SAIR.','Se não quiser mais receber, me manda um SAIR que eu entendo 🙂','Não quer mais essas mensagens? É só responder SAIR.','Se preferir que eu não mande mais, responde SAIR, tá?'];
+function linhaSair(seed){ return SAIR_TXT[hashN(String(seed)+'|sair')%SAIR_TXT.length]; }
+/* 🔄 trocar a mensagem: guarda os textos já vistos para a próxima versão ser diferente */
+function regenerar(c){ S.regen=S.regen||{}; S.regenVisto=S.regenVisto||{}; var v=S.regenVisto[c.chave]||(S.regenVisto[c.chave]={});
+  [c._sug].concat(c._sugF?Object.keys(c._sugF).map(function(k){return c._sugF[k];}):[]).forEach(function(x){ if(x&&x.vh) v[x.vh]=1; });
+  if(c.recencia>90){ try{ v[sgReconq(c).vh]=1; }catch(e){} }
+  S.regen[c.chave]=(S.regen[c.chave]||0)+1; delete c._sug; delete c._sugF; }
+function vistoRegen(c){ return (S.regenVisto&&S.regenVisto[c.chave])||{}; }
+function btnRegen(c){ return '<button class="btn sec mini rgl" data-regenl="'+esc(c.chave)+'" title="Não fez sentido? Gera outra mensagem para este cliente">🔄</button>'; }
 var DIAS_REPETE_RECONQ=15;
 function rqCfg(){ var c=S.cfg.reconquista||{}; return {oferta:c.oferta||'',validade:c.validade||'',abordagem:c.abordagem||'auto',
   incentivo:(c.incentivo&&c.incentivo.length?c.incentivo:RECONQ_PADRAO.incentivo),feedback:(c.feedback&&c.feedback.length?c.feedback:RECONQ_PADRAO.feedback)}; }
@@ -1059,14 +1082,14 @@ function abordagemDe(c,cfg){ if(cfg.abordagem==='incentivo'||cfg.abordagem==='fe
   var a=ag('reconquista_incentivo'), b=ag('reconquista_feedback'), u=(hashN(c.chave+'|abord')%1000)/1000;
   if(a.n>=20&&b.n>=20){ var ta=A.taxa(a), tb=A.taxa(b); return u<ta/(ta+tb)?'incentivo':'feedback'; } // aprendeu: usa mais a que traz mais gente de volta
   return u<0.5?'incentivo':'feedback'; } // ainda testando: metade de cada
-function sgReconq(c){ var cfg=rqCfg(), ab=abordagemDe(c,cfg), sit='reconquista_'+ab, ls=cfg[ab], usados={}; contatosDe(c).slice(0,3).forEach(function(r){ if(r.vh) usados[r.vh]=1; });
-  var cands=ls.filter(function(t){ return !usados[sit+'|'+hashN(t)]; }); if(!cands.length) cands=ls;
-  var t=escolherPonderado(cands,function(x){ return pesoTexto(sit,x); },(hashN(c.chave+'|'+hoje()+'|rq')%100000)/100000);
+function sgReconq(c){ var cfg=rqCfg(), ab=abordagemDe(c,cfg), sit='reconquista_'+ab, ls=cfg[ab], usados={}; contatosDe(c).slice(0,3).forEach(function(r){ if(r.vh) usados[r.vh]=1; }); var vis=vistoRegen(c), rg=(S.regen&&S.regen[c.chave])||0, seed=c.chave+'|'+hoje()+'|rq|'+rg;
+  var cands=ls.filter(function(t){ var h=sit+'|'+hashN(t); return !usados[h]&&!vis[h]; }); if(!cands.length) cands=ls.filter(function(t){ return !vis[sit+'|'+hashN(t)]; }); if(!cands.length){ if(S.regenVisto) delete S.regenVisto[c.chave]; cands=ls; }
+  var t=escolherPonderado(cands,function(x){ return pesoTexto(sit,x); },(hashN(seed)%100000)/100000);
   var at=atendenteDe(c.loja), fav=c.cestaArr[0]?tituloProd(c.cestaArr[0].produto):'seu corte preferido', fm=fem(fav);
   var v={saudacao:saudacao(),nome:primeiroNome(c.nome),quem:at?'Aqui é '+at+', do':'Aqui é do',loja:tituloProd(c.loja||''),tempo:tempoHumano(c.recencia),fav:fav,
-    seu_fav:(fm?'sua ':'seu ')+fav,O_fav:(fm?'A ':'O ')+fav,o_fav:(fm?'a ':'o ')+fav,oferta:cfg.oferta||'[defina a oferta]',validade:cfg.validade?' (válido até '+dBR(cfg.validade).slice(0,5)+')':''};
+    seu_fav:(fm?'sua ':'seu ')+fav,O_fav:(fm?'A ':'O ')+fav,o_fav:(fm?'a ':'o ')+fav,vinculo:vinculoDe(c,seed),oferta:cfg.oferta||'[defina a oferta]',validade:cfg.validade?' (válido até '+dBR(cfg.validade).slice(0,5)+')':''};
   var txt=t.replace(/\{(\w+)\}/g,function(a,k){ return v[k]!=null?v[k]:''; }).replace(/\s+([,.!?])/g,'$1').replace(/ {2,}/g,' ').trim();
-  if(bib().sair) txt+='\nPara não receber mais, responda SAIR.';
+  if(bib().sair) txt+='\n'+linhaSair(seed);
   return {mensagem:txt,situacao:sit,variante:sit+':'+ls.indexOf(t),vh:sit+'|'+hashN(t),vtxt:t,ofertas:[],novidades:[],atendente:at,promo:true,semTrava:true,campanha:'reconquista',campanhaDias:DIAS_REPETE_RECONQ,abordagem:ab,produtos:c.cestaArr.slice(0,1).map(function(e){return e.produto;})}; }
 function filtrarReconq(){ var f=S.rq||(S.rq={faixa:'',ord:'total',q:''}), q=rgNorm(f.q||'');
   return S.model.lista.filter(function(c){ if(c.recencia<=90||optout(c)) return false; if(S.loja&&c.loja!==S.loja) return false;
@@ -1078,10 +1101,10 @@ function telaReconquista(){ var f=S.rq||(S.rq={faixa:'',ord:'total',q:''}), cfg=
   var A=aprendizado(), ag=function(sit){ var o={n:0,fech:0,comp:0,uaz:0,resp:0}; Object.keys(A.var).forEach(function(k){ var v=A.var[k]; if(v.sit===sit){ o.n+=v.n; o.fech+=v.fech; o.comp+=v.comp; o.uaz+=v.uaz; o.resp+=v.resp; } }); return o; };
   var ai=ag('reconquista_incentivo'), af=ag('reconquista_feedback'), pct=function(a,b){ return b?Math.round(a/b*100)+'%':'—'; };
   return '<p class="info">Clientes há <b>mais de 90 dias</b> sem comprar. Campanha exclusiva, com uma condição especial para eles voltarem. É promoção: <b>não espera a regra da semana</b>, só respeita quem pediu SAIR e não manda a reconquista de novo para o mesmo cliente em '+DIAS_REPETE_RECONQ+' dias. Esses clientes saem das Sugestões e ficam só aqui.</p>'+
-    '<div class="campanha"><div class="camp-prev">'+(sgx?'<pre>'+esc(sgx.mensagem)+'</pre><small class="nota">Prévia para '+esc(ex.nome)+' · abordagem '+(sgx.abordagem==='incentivo'?'incentivo direto':'feedback sincero')+'</small>':'<div class="vazio">Ninguém nesse filtro.</div>')+'</div>'+
+    '<div class="campanha"><div class="camp-prev">'+(sgx?'<pre>'+esc(sgx.mensagem)+'</pre><small class="nota">'+btnRegen(ex)+' Prévia para '+esc(ex.nome)+' · abordagem '+(sgx.abordagem==='incentivo'?'incentivo direto':'feedback sincero')+'</small>':'<div class="vazio">Ninguém nesse filtro.</div>')+'</div>'+
       '<div class="camp-cfg"><label class="bibl"><b>Oferta para quem voltar</b><small>Seja específico e cumpra o que prometer. Ex.: "10% de desconto em qualquer compra", "picanha a R$ 79,90 o kg", "pão de alho de presente".</small><input id="rqOferta" value="'+esc(cfg.oferta)+'" placeholder="Ex.: 10% de desconto em qualquer compra"></label>'+
         '<div class="sgrid"><label class="bibl"><b>Válido até</b><input type="date" id="rqValidade" value="'+esc(cfg.validade)+'"></label><label class="bibl"><b>Abordagem</b><select id="rqAbord">'+[['auto','Automática (testa as duas e usa mais a que funciona)'],['incentivo','Só incentivo direto'],['feedback','Só feedback sincero + oferta']].map(function(o){ return '<option value="'+o[0]+'"'+(cfg.abordagem===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></label></div>'+
-        '<details><summary>✎ Editar os textos (um por linha)</summary><label class="bibl"><b>Incentivo direto</b><textarea id="rqInc" rows="4">'+esc(cfg.incentivo.join('\n'))+'</textarea></label><label class="bibl"><b>Feedback sincero + oferta</b><textarea id="rqFeed" rows="4">'+esc(cfg.feedback.join('\n'))+'</textarea></label><p class="nota">Campos: {saudacao} {nome} {quem} (Aqui é a Leticia, do) {loja} {tempo} {seu_fav} {O_fav} {o_fav} {oferta} {validade}</p></details>'+
+        '<details><summary>✎ Editar os textos (um por linha)</summary><label class="bibl"><b>Incentivo direto</b><textarea id="rqInc" rows="4">'+esc(cfg.incentivo.join('\n'))+'</textarea></label><label class="bibl"><b>Feedback sincero + oferta</b><textarea id="rqFeed" rows="4">'+esc(cfg.feedback.join('\n'))+'</textarea></label><p class="nota">Campos: {saudacao} {nome} {quem} (Aqui é a Leticia, do) {loja} {tempo} {vinculo} (frase de afinidade pelo perfil de compra e tempo sumido) {oferta} {validade}. Na reconquista não ofereça produto: o foco é o vínculo e a condição especial.</p></details>'+
         '<div class="filtros"><button class="btn" id="rqSalvar">Salvar campanha</button><button class="btn sec mini" id="rqPadrao">Textos padrão</button></div>'+
         '<div class="nota">Resultado até agora — incentivo: '+ai.n+' envios, '+pct(ai.resp,ai.uaz)+' responderam, '+pct(ai.comp,ai.fech)+' voltaram · feedback: '+af.n+' envios, '+pct(af.resp,af.uaz)+' responderam, '+pct(af.comp,af.fech)+' voltaram</div></div></div>'+
     '<div class="filtros"><input id="rqq" placeholder="Buscar cliente…" value="'+esc(f.q||'')+'">'+sel('rqfaixa','Mais de 90 dias (todos)',[['90-180','90 a 180 dias'],['180-365','6 meses a 1 ano'],['365','Mais de 1 ano']],f.faixa)+
@@ -1090,10 +1113,10 @@ function telaReconquista(){ var f=S.rq||(S.rq={faixa:'',ord:'total',q:''}), cfg=
     (cfg.oferta?'':'<div class="erro">Defina a oferta e clique em Salvar campanha antes de enviar.</div>')+
     barraSel(ctx,l.filter(ok).length).replace('Enviar para os marcados (Uazapi)','Enviar a reconquista para os marcados')+
     '<div class="info">'+num(l.length)+' cliente(s) há mais de 90 dias sem comprar'+(S.loja?' na loja '+esc(tituloProd(S.loja)):'')+(l.length>S.limite?' (mostrando '+S.limite+')':'')+'.</div>'+
-    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th class="r">Sem comprar</th><th>Última compra</th><th class="r">Já gastou</th><th class="r">Compras</th><th>O que mais levava</th><th>Reconquista</th><th></th></tr></thead><tbody>'+
+    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th class="r">Sem comprar</th><th>Última compra</th><th class="r">Já gastou</th><th class="r">Compras</th><th>O que mais levava</th><th>Mensagem</th><th>Reconquista</th><th></th></tr></thead><tbody>'+
     l.slice(0,S.limite).map(function(c){ var ult=contatosDe(c).filter(function(r){return r.campanha==='reconquista';})[0];
       return '<tr class="click" data-cli="'+esc(c.chave)+'" data-foco="x" data-modo="reconq"><td class="ck">'+chkSelReconq(ctx,c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+(c.celular?'':' · sem celular')+(soPromo(c)?' · só promoções':'')+'</small></td><td class="r">'+seloDias(c.recencia)+'</td><td>'+dBR(c.ultimaCompra)+'</td><td class="r">'+brl(c.total)+'</td><td class="r">'+c.nCompras+'</td>'+
-        '<td><small>'+esc(c.cestaArr.slice(0,2).map(function(e){return tituloProd(e.produto);}).join(', '))+'</small></td><td>'+(ult?'<span class="pill'+(ult.resp?' okp':'')+'">'+dBR(ult.dia).slice(0,5)+(ult.resp?' · respondeu':'')+'</span>':'<small class="vazio">—</small>')+'</td>'+
+        '<td><small>'+esc(c.cestaArr.slice(0,2).map(function(e){return tituloProd(e.produto);}).join(', '))+'</small></td>'+(function(){ var rq=sgReconq(c), seg=segVinculo(c); return '<td class="msgcol"><span class="pill">'+(rq.abordagem==='incentivo'?'incentivo':'feedback')+' · '+{fiel:'cliente de casa',esporadico:'esporádico',unica:'comprou 1 vez'}[seg.grupo]+'</span> '+btnRegen(c)+'<small class="prev" title="'+esc(rq.mensagem)+'">'+esc(rq.mensagem.split('\n')[0].slice(0,120))+'…</small></td>'; })()+'<td>'+(ult?'<span class="pill'+(ult.resp?' okp':'')+'">'+dBR(ult.dia).slice(0,5)+(ult.resp?' · respondeu':'')+'</span>':'<small class="vazio">—</small>')+'</td>'+
         '<td class="acoes">'+(ok(c)&&uazPara(c)&&cfg.oferta?'<button class="btn wa mini" data-wacli="'+esc(c.chave)+'" data-foco="x" data-modo="reconq">📤 Enviar</button>':(!c.celular?'<span class="pill late">sem celular</span>':!uazPara(c)?'<span class="pill">Nº '+esc(tituloProd(c.loja||''))+'</span>':''))+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
 function chkSelReconq(ctx,c){ var s=selCtx(ctx), ok=elegivel(c,true)&&!jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ), on=ok&&!!s.itens[c.chave]; if(!ok) delete s.itens[c.chave];
@@ -1219,11 +1242,11 @@ function publicoKit(k,f){ var m=S.model;
     .sort(function(a,b){ return b.total-a.total; }); }
 function legendasKit(k){ var t=(S.kc&&S.kc.kit===k.id&&S.kc.legendas)||(k.legendas&&k.legendas.length?k.legendas.join('\n---\n'):KIT_LEGENDAS[k.tipo||'outro'].join('\n---\n')); return t.split(/\n\s*---\s*\n/).map(function(x){return x.trim();}).filter(Boolean); }
 function sgKit(c,k){ var _r=sgKit0(c,k); _r.promo=k.promo!==false; if(_r.promo){ _r.semTrava=true; _r.campanha='kit:'+k.id; _r.campanhaDias=1; } return _r; }
-function sgKit0(c,k){ var ls=legendasKit(k), i=hashN(c.chave+'|'+k.id+'|'+hoje())%ls.length, at=atendenteDe(c.loja), h=new Date().getHours();
+function sgKit0(c,k){ var ls=legendasKit(k), i=(hashN(c.chave+'|'+k.id+'|'+hoje())+((S.regen&&S.regen[c.chave])||0))%ls.length, at=atendenteDe(c.loja), h=new Date().getHours();
   var v={nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),atendente:at||'o pessoal',kit:k.nome,itens:(k.itens||'').trim()||'tudo prontinho pra você',preco:k.preco?' Sai por '+k.preco+'.':'',saudacao:h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'};
   var txt=ls[i].replace(/\{(\w+)\}/g,function(a,x){ return v[x]!=null?v[x]:a; }).replace('Aqui é o pessoal, do','Aqui é o pessoal do');
   txt+='\n'+(at?at+' · ':'')+'Rei do Gado '+v.loja;
-  if(bib().sair) txt+='\n'+'Para não receber mais, responda SAIR.';
+  if(bib().sair) txt+='\n'+linhaSair(c.chave+'|'+k.id+'|'+hoje());
   return {mensagem:txt,situacao:'kit',variante:'kit:'+k.id+':'+i,ofertas:[],novidades:[],atendente:at,kit:k.id,midia:{type:'image',file:kitImg(k.id)},produtos:[k.nome]}; }
 function telaKits(){ var ks=kits(), kc=S.kc||{};
   setTimeout(buscarImagensKits,50);
@@ -1427,7 +1450,7 @@ async function enviarMarcados(ctx){ var s=selCtx(ctx), its=s.itens, m=S.model;
   if(ctx.indexOf('prod:')===0) reabrirModalCtx(ctx); else render(); }
 function reabrirModalCtx(ctx){ if(ctx.indexOf('prod:')===0&&$('#modal').classList.contains('on')) abrirProduto(ctx.slice(5)); }
 function colMsg(c,sg){ var e=estadoContato(c), linha=(sg.mensagem||'').split('\n')[1]||'';
-  return '<td class="msgcol">'+tagSit(sg.situacao)+(e.bloqueado?' <span class="pill late" title="Já recebeu em '+esc(txtUltimo(e))+'">recebeu '+dBR(e.ultimo.dia).slice(0,5)+'</span>':'')+(optout(c)?' <span class="pill late">SAIR</span>':'')+
+  return '<td class="msgcol">'+tagSit(sg.situacao)+' '+btnRegen(c)+(e.bloqueado?' <span class="pill late" title="Já recebeu em '+esc(txtUltimo(e))+'">recebeu '+dBR(e.ultimo.dia).slice(0,5)+'</span>':'')+(optout(c)?' <span class="pill late">SAIR</span>':'')+
     '<small class="prev" title="'+esc(sg.mensagem)+'">'+esc(linha.length>110?linha.slice(0,108)+'…':linha)+'</small></td>'; }
 function acoesMsg(c,prod,modo){ return '<td class="acoes">'+btnEnviar(c,prod,modo)+'</td>'; }
 /* clientes de um produto, com filtros da ficha */
@@ -1465,6 +1488,7 @@ async function salvarAtendentes(){ var lista={}, sel=atendSelLocal();
 /* ---------- MOTOR DE MENSAGENS: situação do cliente + variações + detalhes reais da cesta ---------- */
 var SITUACOES={
   reativar_inativo:{nome:'Reconquistar (sumido +60d)',cor:'off'},
+  reativar_foco:{nome:'Sumido +60d · produto',cor:'off'},
   reativar_risco:{nome:'Sentimos falta (31–60d)',cor:'risk'},
   recompra:{nome:'Hora de repor',cor:'rec'},
   novo:{nome:'Cliente novo',cor:'freq'},
@@ -1479,7 +1503,8 @@ var BIB_PADRAO={
   primeiro_abertura:['{saudacao}, {nome}! Aqui é {atendente}, do Rei do Gado {loja} 😊','Oi, {nome}! Tudo bem? Aqui é {atendente}, do Rei do Gado {loja}.','{saudacao}, {nome}! Aqui é do Rei do Gado {loja} 😊','Oi, {nome}, tudo bem? Aqui é do Rei do Gado {loja} 🐂'],
   salvar_numero:['Salva nosso número pra pedir por aqui quando quiser 📲','Se perdeu nosso contato, salva este número: é por aqui que a gente separa seu pedido.'],
   aberturas:['{saudacao}, {nome}! Tudo bem?','Oi, {nome}! Tudo certo por aí? 😊','{saudacao}, {nome}! Aqui é {atendente}, do Rei do Gado {loja}.','Oi, {nome}! {atendente} aqui, do Rei do Gado {loja} 😊'],
-  reativar_inativo:['Faz {tempo} que você não aparece por aqui. Bateu saudade! Quer que eu separe {seu_fav}?','Chegou {novidade} e lembrei de você. Quer provar?','Faz {tempo} da sua última visita. Tá tudo bem? Se algo não agradou, me conta 🙏','Ainda tem {o_fav} que você gostava. Separo pra você?'],
+  reativar_inativo:['{vinculo} Tá tudo bem por aí?','Faz {tempo} que a gente não se vê. {vinculo}','Faz {tempo} da sua última visita e queria saber: ficou tudo certo da última vez? Se algo não agradou, me conta de verdade 🙏','Passando só pra saber de você. {vinculo}'],
+  reativar_foco:['Faz {tempo} que a gente não se vê, senti sua falta por aqui! Quando bater vontade de {fav}, me chama que eu separo do jeitinho que você gosta 😊','Lembrei de você hoje: {o_fav} que você levava continua caprichad{a_fav} como sempre. Se quiser, é só me chamar.','Tudo bem com você? Faz {tempo} que não aparece. Quando quiser {o_fav} de novo, tô por aqui 😊'],
   reativar_risco:['Faz {tempo} que você não passa aqui. Quer que eu separe {seu_fav}?','Senti sua falta essas semanas! Separo {seu_fav} pra você?','Pra quem gosta de {fav}, {novidade} também é uma delícia. Quer provar?'],
   recompra:['Acho que {seu_fav} já tá acabando, né? Quer que eu separe? 😄','Você costuma levar {fav} a cada {ciclo} dias. Já deixo separado?','Hoje separando {o_fav}, lembrei de você. Quer que eu guarde?'],
   novo:['Obrigado pela confiança! Como ficou {o_fav}? 😊','Que bom ter você com a gente! Na próxima, prova {novidade}. Quer que eu separe?'],
@@ -1503,7 +1528,7 @@ function tempoHumano(d){ if(d==null) return 'um tempo'; if(d<10) return 'poucos 
 function saudacao(){ var h=new Date().getHours(); return h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'; }
 function hashN(t){ var h=2166136261; for(var i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
 function situacao(c,sg){ var d=c.recencia, dow=new Date().getDay();
-  if(d>60) return 'reativar_inativo'; if(d>30) return 'reativar_risco';
+  if(d>60) return sg.foco?'reativar_foco':'reativar_inativo'; if(d>30) return 'reativar_risco';
   if(sg.ofertas.some(function(o){return o.hora;})) return 'recompra';
   if(c.nCompras<=2&&c.primeiraCompra&&dias(c.primeiraCompra,S.model.refData)<=45) return 'novo';
   if(c.perfil==='VIP') return 'vip';
@@ -1516,7 +1541,8 @@ function montarMensagem(c,sg){
   var o0=sg.ofertas[0]||{}, dSem=['domingo','segunda','terça','quarta','Quinta','Sexta','Sábado'][new Date().getDay()];
   // evita repetir o mesmo texto que o cliente recebeu nas últimas 3 mensagens
   var usados={}; contatosDe(c).slice(0,3).forEach(function(r){ if(r.variante) usados[r.variante]=1; if(r.vh) usados['h'+r.vh]=1; });
-  var corpos=(B[sit]||B.padrao).map(function(t,i){return {t:t,i:i};}).filter(function(x){ return (nv||!/\{novidade\}|\{desc_nov\}/.test(x.t)) && !usados[sit+':'+x.i] && !usados['h'+sit+'|'+hashN(x.t)]; });
+  var vis=vistoRegen(c), corpos=(B[sit]||B.padrao).map(function(t,i){return {t:t,i:i};}).filter(function(x){ return (nv||!/\{novidade\}|\{desc_nov\}/.test(x.t)) && !usados[sit+':'+x.i] && !usados['h'+sit+'|'+hashN(x.t)] && !vis[sit+'|'+hashN(x.t)]; });
+  if(!corpos.length) corpos=(B[sit]||B.padrao).map(function(t,i){return {t:t,i:i};}).filter(function(x){ return (nv||!/\{novidade\}|\{desc_nov\}/.test(x.t)) && !vis[sit+'|'+hashN(x.t)]; });
   if(!corpos.length) corpos=(B[sit]||B.padrao).map(function(t,i){return {t:t,i:i};}).filter(function(x){ return nv||!/\{novidade\}/.test(x.t); });
   if(!corpos.length) corpos=[{t:'Passando pra lembrar do seu {fav}, {desc_fav}.',i:99}];
   var h=hashN(seed), pick=function(arr,k){ return arr[(hashN(seed+'|'+k))%arr.length]; };
@@ -1524,7 +1550,7 @@ function montarMensagem(c,sg){
   var at=atendenteDe(c.loja), temAt=function(t){ return /\{atendente\}/.test(t); };
   var v={atendente:at,nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),saudacao:saudacao(),saudacao_min:saudacao().toLowerCase(),fav:fav,desc_fav:descProd(fav),
     desc_fav_cap:(function(t){return t.charAt(0).toUpperCase()+t.slice(1);})(descProd(fav)),novidade:nv?tituloProd(nv.produto):'',desc_nov:nv?descProd(nv.produto):'',base:nv?tituloProd(nv.base):fav,
-    o_fav:(fem(fav)?'a ':'o ')+fav,O_fav:(fem(fav)?'A ':'O ')+fav,do_fav:(fem(fav)?'da ':'do ')+fav,seu_fav:(fem(fav)?'sua ':'seu ')+fav,aquele_fav:(fem(fav)?'aquela ':'aquele ')+fav,a_fav:fem(fav)?'a':'o',desc_curta:descProd(fav).replace(/^(com|pra|do|um|uma|hamb|marmoreio) .*/,'do jeitinho que você gosta'),ofertas:listaPT(of)||fav,ofertas_cap:listaPT(of)||fav,ofertas2:listaPT(of.slice(1))||'o que mais precisar',tempo:tempoHumano(c.recencia),dias:c.recencia,ciclo:o0.ciclo||Math.round(c.intervaloMedio||0)||'',diaSemana:dSem,oferta:B.oferta||''};
+    o_fav:(fem(fav)?'a ':'o ')+fav,O_fav:(fem(fav)?'A ':'O ')+fav,do_fav:(fem(fav)?'da ':'do ')+fav,seu_fav:(fem(fav)?'sua ':'seu ')+fav,aquele_fav:(fem(fav)?'aquela ':'aquele ')+fav,a_fav:fem(fav)?'a':'o',desc_curta:descProd(fav).replace(/^(com|pra|do|um|uma|hamb|marmoreio) .*/,'do jeitinho que você gosta'),ofertas:listaPT(of)||fav,ofertas_cap:listaPT(of)||fav,ofertas2:listaPT(of.slice(1))||'o que mais precisar',tempo:tempoHumano(c.recencia),vinculo:vinculoDe(c,seed),dias:c.recencia,ciclo:o0.ciclo||Math.round(c.intervaloMedio||0)||'',diaSemana:dSem,oferta:B.oferta||''};
   var fill=function(t){ return String(t).replace(/\{(\w+)\}/g,function(m,k){ return v[k]!=null&&v[k]!==''?v[k]:''; }).replace(/\s+([,.!?])/g,'$1').replace(/ {2,}/g,' ').trim(); };
   var primeiro=!contatosDe(c).length; sg.primeiro=primeiro;
   var base0=(primeiro&&B.primeiro_abertura&&B.primeiro_abertura.length?B.primeiro_abertura:B.aberturas), abs=base0.filter(function(t){ return at||!temAt(t); });
@@ -1533,22 +1559,22 @@ function montarMensagem(c,sg){
   var abertura=pick(abs,'a'), partes=[fill(abertura),fill(corpo.t)];
   if(B.oferta) partes.push(fill(pick(['Essa semana tem {oferta} 😉','E essa semana: {oferta}!'],'o')));
   var salvou=c.recencia>90&&B.salvar_numero&&B.salvar_numero.length; if(salvou) partes.push(fill(pick(B.salvar_numero,'f'))); // sumido há +90 dias: pode ter perdido nosso número
-  if(!salvou&&!/\?\s*\S{0,3}$/.test(fill(corpo.t))){ var ct=B.ctas.filter(function(x){ var w=x.split(' ').slice(0,2).join(' '); return corpo.t.indexOf(w)<0; }); partes.push(fill(pick(ct.length?ct:B.ctas,'c'))); }
+  if(!salvou&&!/^reativar_(inativo|foco)$/.test(sit)&&!/\?\s*\S{0,3}$/.test(fill(corpo.t))){ var ct=B.ctas.filter(function(x){ var w=x.split(' ').slice(0,2).join(' '); return corpo.t.indexOf(w)<0; }); partes.push(fill(pick(ct.length?ct:B.ctas,'c'))); }
   var jaDisse=/Rei do Gado/.test(abertura); // a abertura já diz quem fala e a loja: sem assinatura
   if(!jaDisse){ var ass=B.assinaturas.filter(function(t){ return at?true:!temAt(t); }); if(at){ var aa=ass.filter(temAt); if(aa.length) ass=aa; } partes.push(fill(pick(ass.length?ass:['Rei do Gado {loja}'],'s'))); }
-  if(B.sair) partes.push('Para não receber mais, responda SAIR.');
+  if(B.sair) partes.push(linhaSair(seed));
   sg.situacao=sit; sg.variante=sit+':'+corpo.i; sg.atendente=at; sg.vh=sit+'|'+hashN(corpo.t); sg.vtxt=corpo.t;
   return partes.join('\n'); }
 function abrirBiblioteca(){ var B=bib();
   var area=function(k,rot,dica){ return '<label class="bibl"><b>'+rot+'</b><small>'+dica+'</small><textarea data-bib="'+k+'" rows="'+Math.min(8,Math.max(3,B[k].length+1))+'">'+esc(B[k].join('\n'))+'</textarea></label>'; };
   $('#modal .modal-c').innerHTML='<div class="modal-h"><div><h2>Mensagens</h2><div class="sub">Uma variação por linha. A ferramenta escolhe a situação de cada cliente, sorteia uma variação de cada parte e não repete o texto que ele recebeu nas últimas 3 mensagens. Vale para todos os computadores.</div></div><button class="x" id="fechar">✕</button></div>'+
-    '<p class="nota">Campos: {nome} {loja} {saudacao} {fav} (produto que ele mais compra e não recebeu oferta recente) {desc_fav} {o_fav} / {O_fav} / {do_fav} / {seu_fav} (artigo certo: o/a) {novidade} {desc_nov} {base} {ofertas} {ofertas2} {tempo} ("quase dois meses") {ciclo} (dias) {diaSemana} {oferta} {atendente}</p>'+
+    '<p class="nota">Campos: {nome} {loja} {saudacao} {fav} (produto que ele mais compra e não recebeu oferta recente) {desc_fav} {o_fav} / {O_fav} / {do_fav} / {seu_fav} (artigo certo: o/a) {novidade} {desc_nov} {base} {ofertas} {ofertas2} {tempo} ("quase dois meses") {ciclo} (dias) {diaSemana} {oferta} {atendente} {vinculo} (frase de afinidade pelo perfil e tempo sumido)</p>'+
     '<label class="bibl"><b>Oferta / ação da semana (opcional)</b><small>Ex.: "pão de alho de brinde nas compras acima de R$ 150". Vazio = mensagem sem oferta. Só coloque o que a loja vai cumprir.</small><input id="bibOferta" value="'+esc(B.oferta)+'"></label>'+
     area('primeiro_abertura','Primeira mensagem — apresentação','Para quem nunca recebeu mensagem: curta, diz quem fala ({atendente}) e a loja')+area('salvar_numero','Pedir para salvar o número','Só entra para quem está há mais de 90 dias sem comprar (pode ter perdido nosso contato)')+
-    area('aberturas','Aberturas (a partir da 2ª mensagem)','Início da mensagem')+area('reativar_inativo','Reconquistar — sem comprar há mais de 60 dias','Tom de convite e saudade; pode perguntar se algo não agradou')+area('reativar_risco','Sentimos sua falta — 31 a 60 dias','Lembrar do que ele gosta')+
+    area('aberturas','Aberturas (a partir da 2ª mensagem)','Início da mensagem')+area('reativar_inativo','Reconquistar — sem comprar há mais de 60 dias','Afinidade, sem oferecer produto. {vinculo} = frase conforme o perfil (cliente de casa, esporádico, comprou 1 vez) e o tempo sumido')+area('reativar_foco','Sumido +60 dias, mensagem de um produto (Recompra / ficha do produto)','Primeiro o carinho, o produto só como lembrança')+area('reativar_risco','Sentimos sua falta — 31 a 60 dias','Lembrar do que ele gosta')+
     area('recompra','Hora de repor — ciclo do produto vencendo','Use {ciclo} e {fav}')+area('novo','Cliente novo (até 2 compras)','Agradecer e indicar a próxima')+area('vip','VIP (10% que mais gastam)','Exclusividade, primeiro a saber')+
     area('fimdesemana','Churrasco do fim de semana (qui/sex/sáb)','Para quem compra churrasco')+area('padrao','Dica da semana (ativos)','Novidade por afinidade')+area('ctas','Chamadas para ação','Pedir uma resposta concreta')+area('assinaturas','Assinaturas','Fecho com o nome da loja')+
-    '<label class="chk"><input type="checkbox" id="bibSair" '+(B.sair?'checked':'')+'> incluir "responda SAIR para não receber mais" (recomendado)</label>'+
+    '<label class="chk"><input type="checkbox" id="bibSair" '+(B.sair?'checked':'')+'> incluir uma linha gentil de "responda SAIR" no fim (recomendado)</label>'+
     '<div class="filtros" style="margin-top:12px"><button class="btn" id="salvarBib">Salvar mensagens</button><button class="btn sec" id="padraoBib">Voltar ao padrão</button></div>';
   $('#modal').classList.add('on'); }
 async function salvarBiblioteca(padrao){ var b={};
@@ -1783,10 +1809,10 @@ function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
     '<input id="sdmin" type="number" min="0" placeholder="dias sem comprar: de" value="'+esc(f.dmin||'')+'" style="width:150px"><input id="sdmax" type="number" min="0" placeholder="até" value="'+esc(f.dmax||'')+'" style="width:80px">'+'<button class="btn" id="expSug">⬇ CSV para o CRM</button><button class="btn sec" id="editMsg">✎ Mensagens</button><button class="btn sec" id="editRegras">⚙ Regras de envio</button></div>'+barraSel('sug',l.filter(elegivel).length)+
     (function(){ var R=regras(), tot=S.model.lista.filter(function(c){return estadoContato(c).bloqueado;}).length, hj=(S.contatos||[]).filter(function(r){return !r.excluido&&r.dia===hoje();}).length;
       return '<div class="info">'+num(l.length)+' cliente(s) na lista · <b>'+num(hj)+' mensagem(ns) hoje</b> · '+num(tot)+' cliente(s) bloqueado(s) por ter recebido nos últimos '+R.diasCliente+' dias. Clique no cliente para ver a mensagem completa.</div>'; })()+
-    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cód. CRM</th><th>Cliente</th><th class="r">Sem comprar</th><th>Última compra</th><th>Situação</th><th>Última mensagem</th><th>Oferecer (cesta)</th><th>Novidade da linha</th><th></th></tr></thead><tbody>'+
+    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cód. CRM</th><th>Cliente</th><th class="r">Sem comprar</th><th>Última compra</th><th>Mensagem</th><th>Última mensagem</th><th>Oferecer (cesta)</th><th>Novidade da linha</th><th></th></tr></thead><tbody>'+
     l.slice(0,S.limite).map(function(c){ var s=sugestoes(c), e=estadoContato(c); return '<tr class="click'+(e.bloqueado?' bloq':'')+'" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel('sug',c)+'</td><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+' · '+st(c.status)+' '+esc(c.status)+(c.atrasado?' · <span class="warn">recompra atrasada</span>':'')+' · '+esc(c.linhaPrincipal)+'</small></td>'+
       '<td class="r">'+seloDias(c.recencia)+'</td><td class="ultc"><b>'+dBR(c.ultimaCompra)+'</b><small class="cod">'+esc(diaSemanaCurto(c.ultimaCompra))+' · '+c.nCompras+' compra(s)</small></td>'+
-      '<td>'+tagSit(s.situacao)+'</td><td>'+(e.ultimo?'<small>'+esc(txtUltimo(e))+'</small>'+(e.bloqueado?'<br><span class="pill late">liberado em '+dBR(e.liberaEm).slice(0,5)+'</span>':''):'<small class="vazio">nunca</small>')+'</td>'+
+      '<td class="msgcol">'+tagSit(s.situacao)+' '+btnRegen(c)+'<small class="prev" title="'+esc(s.mensagem)+'">'+esc(((s.mensagem||'').split('\n')[1]||'').slice(0,110))+'</small></td><td>'+(e.ultimo?'<small>'+esc(txtUltimo(e))+'</small>'+(e.bloqueado?'<br><span class="pill late">liberado em '+dBR(e.liberaEm).slice(0,5)+'</span>':''):'<small class="vazio">nunca</small>')+'</td>'+
       '<td>'+s.ofertas.map(function(o){return '<span class="mchip of" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td><td>'+s.novidades.map(function(o){return '<span class="mchip nv" title="'+esc(o.motivo)+'">'+esc(tituloProd(o.produto))+'</span>';}).join('')+'</td>'+
       '<td class="acoes">'+btnEnviar(c)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     (l.length>S.limite?'<div class="mais"><button class="btn sec" id="mais">Mostrar mais ('+num(l.length-S.limite)+' restantes)</button></div>':''); }
@@ -1991,7 +2017,8 @@ function bind(){
     if((b=t.closest('[data-movefunc]'))){ var c=S.model.clientes[b.dataset.movefunc]; if(confirm('Mover "'+c.nome+'" para Funcionários? Sai da análise e das sugestões.')) definirTipo(c.nomeKeysArr,'func'); return; }
     if((b=t.closest('[data-ehcliente]'))){ definirTipo([b.dataset.ehcliente],'cliente'); return; }
     if((b=t.closest('[data-expprod]'))){ exportClientesDoProduto(b.dataset.expprod); return; }
-    if((b=t.closest('[data-regen]'))){ var cr=S.model.clientes[b.dataset.regen]; S.regen=S.regen||{}; S.regen[cr.chave]=(S.regen[cr.chave]||0)+1; delete cr._sug; delete cr._sugF; abrirCliente(cr.chave); return; }
+    if((b=t.closest('[data-regen]'))){ var cr=S.model.clientes[b.dataset.regen]; regenerar(cr); abrirCliente(cr.chave); render(); return; }
+    if((b=t.closest('[data-regenl]'))){ e.stopPropagation(); var crl=S.model.clientes[b.dataset.regenl]; regenerar(crl); var noMod=b.closest('#modal'); if(noMod&&S.pm&&S.pm.chave&&S.model.produtos[S.pm.chave]) abrirProduto(S.pm.chave); else render(); toast('Nova versão da mensagem de '+primeiroNome(crl.nome),'ok'); return; }
     if((b=t.closest('[data-regcel]'))){ var cr2=S.model.clientes[b.dataset.regcel], dt=prompt('Em que dia a loja mandou mensagem para '+cr2.nome+' pelo celular? (dd/mm/aaaa)',dBR(hoje())); if(!dt) return;
       var mt=dt.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/); if(!mt){ toast('Data inválida. Use dd/mm/aaaa.','erro'); return; }
       var ano=mt[3]?(mt[3].length===2?'20'+mt[3]:mt[3]):hoje().slice(0,4), dia=ano+'-'+('0'+mt[2]).slice(-2)+'-'+('0'+mt[1]).slice(-2); if(dia>hoje()){ toast('A data não pode ser no futuro.','erro'); return; }
