@@ -910,11 +910,11 @@ async function radarHistorico(lojas,chatsPorLoja){ if(!S.model) return; var porN
       HR.ult[k]=ts; } }
   try{ localStorage.setItem('cesta_histult',JSON.stringify(HR.ult)); }catch(e){} }
 /* nome travado do produto (pelo código) */
-async function travarNomeProduto(chave){ var p=S.model.produtos[chave]; if(!p||!p.cod){ toast('Produto sem código: não dá para travar o nome.','erro'); return; }
+async function travarNomeProduto(chave,daLista){ var p=S.model.produtos[chave]; if(!p||!p.cod){ toast('Produto sem código: não dá para travar o nome.','erro'); return; }
   var NP=Object.assign({},S.cfg.nomesProd||{}), atual=NP[p.cod]||p.produto;
   var v=prompt('Nome que a cesta deve usar para o código '+p.cod+' (vale para todo o histórico, mensagens e relatórios).\nNo relatório ele vem como: '+p.nomeRel+'\n\nDeixe em branco para voltar a usar o nome do relatório.',atual); if(v==null) return;
   v=v.trim().toUpperCase(); if(!v||v===rgNorm(p.nomeRel).toUpperCase()&&v===p.nomeRel) delete NP[p.cod]; else NP[p.cod]=v;
-  S.cfg.nomesProd=NP; await salvarCfg('nomesProd',NP); S.model=construirModelo(S.imports); limparSugestoes(); render(); abrirProduto(chave);
+  S.cfg.nomesProd=NP; await salvarCfg('nomesProd',NP); S.model=construirModelo(S.imports); limparSugestoes(); render(); if(!daLista) abrirProduto(chave);
   toast(NP[p.cod]?'Nome travado: '+tituloProd(v)+' (código '+p.cod+').':'O código '+p.cod+' volta a usar o nome do relatório.','ok'); }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
@@ -1980,7 +1980,7 @@ function telaProdutos(){ var m=S.model,q=rgNorm(S.prodQ),o=S.prodOrdem;
   return '<div class="filtros"><input id="pq" placeholder="Buscar produto, código ou linha…" value="'+esc(S.prodQ)+'">'+'</div>'+
     '<div class="info">'+l.length+' produto(s)'+(S.prodLoja?' vendidos na loja <b>'+esc(tituloProd(S.prodLoja))+'</b>':'')+' · '+brl(tot)+'. A <b>linha</b> define as sugestões — ajuste quando a automática estiver errada (fica salvo). Clique no nome para ver quem compra.</div>'+
     '<div class="tw"><table class="tbl"><thead><tr><th>Cód.</th>'+thp('produto','Produto')+thp('linha','Linha')+thp('qtd','Qtd','r')+thp('valor','Valor','r')+'<th></th>'+thp('precoMediano','Preço mediano','r')+thp('nClientes','Clientes','r')+'<th>Última venda</th></tr></thead><tbody>'+
-    l.map(function(p){ return '<tr><td><small>'+esc(p.cod)+'</small></td><td class="click" data-prod="'+esc(p.chave)+'"><b>'+esc(p.produto)+'</b>'+(p.ativo?'':' <span class="pill late" title="Sem venda há mais de '+DIAS_PRODUTO_ATIVO+' dias'+(S.prodLoja?' nesta loja':'')+'">parado</span>')+'</td>'+
+    l.map(function(p){ return '<tr><td><small>'+esc(p.cod)+'</small></td><td class="click" data-prod="'+esc(p.chave)+'"><b>'+esc(p.produto)+'</b> <button class="btn sec mini rgl" data-nomeprod="'+esc(p.chave)+'" data-lista="1" title="Travar o nome deste produto na cesta, mesmo que o sistema mude o nome">'+((S.cfg.nomesProd||{})[p.cod]?'🔒':'✏')+'</button>'+((S.cfg.nomesProd||{})[p.cod]?'<small class="cod">nome travado · no relatório: '+esc(p.nomeRel)+'</small>':'')+(p.ativo?'':' <span class="pill late" title="Sem venda há mais de '+DIAS_PRODUTO_ATIVO+' dias'+(S.prodLoja?' nesta loja':'')+'">parado</span>')+'</td>'+
       '<td><select class="linsel'+(p.linhaAuto?'':' man')+'" data-linha="'+esc(p.chave)+'">'+LINHAS.map(function(x){return '<option'+(x===p.linha?' selected':'')+'>'+x+'</option>';}).join('')+'</select></td>'+
       '<td class="r">'+fmtQtd(p.qtd,p.unidade)+'</td><td class="r">'+brl(p.valor)+'</td><td style="width:110px"><div class="hbar"><i style="width:'+(p.valor/maxV*100)+'%"></i></div></td><td class="r">'+brl(p.precoMediano)+(p.unidade==='kg'?'/kg':'')+'</td><td class="r">'+num(p.nClientes)+'</td><td>'+dBR(p.ultimaVenda)+'</td></tr>'; }).join('')+'</tbody></table></div>'; }
 function abrirProduto(chave){ var m=S.model,p=m.produtos[chave], L=S.prodLoja, ctx='prod:'+chave, rolagem=$('#modal').classList.contains('on')&&S.pm.chave===chave?$('#modal .modal-c').scrollTop:0;
@@ -2143,7 +2143,7 @@ function bind(){
     if((b=t.closest('[data-movefunc]'))){ var c=S.model.clientes[b.dataset.movefunc]; if(confirm('Mover "'+c.nome+'" para Funcionários? Sai da análise e das sugestões.')) definirTipo(c.nomeKeysArr,'func'); return; }
     if((b=t.closest('[data-ehcliente]'))){ definirTipo([b.dataset.ehcliente],'cliente'); return; }
     if((b=t.closest('[data-expprod]'))){ exportClientesDoProduto(b.dataset.expprod); return; }
-    if((b=t.closest('[data-nomeprod]'))){ await travarNomeProduto(b.dataset.nomeprod); return; }
+    if((b=t.closest('[data-nomeprod]'))){ e.stopPropagation(); await travarNomeProduto(b.dataset.nomeprod,!!b.dataset.lista); return; }
     if((b=t.closest('[data-nota]'))){ var cn=S.model.clientes[b.dataset.nota]; await salvarNota(cn,($('#notaTxt')||{}).value); return; }
     if((b=t.closest('[data-notarap]'))){ var nt=$('#notaTxt'); if(nt){ nt.value=b.dataset.notarap; nt.focus(); } return; }
     if((b=t.closest('[data-histtudo]'))){ S.histTudo=b.dataset.histtudo; pintarHist(S.model.clientes[b.dataset.histtudo]); return; }
