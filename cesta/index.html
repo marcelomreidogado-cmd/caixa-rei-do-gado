@@ -241,7 +241,7 @@ RgClientes.prototype.page=function(lines){ var R=this.res;
   for(var i=0;i<lines.length;i++){ var T=lines[i], L=T.map(function(t){return t.s;}), j=L.join(' ');
     if(/^Relatório de Produtos Vendidos/.test(j)||/^Página \d+ de/.test(L[L.length-1]||'')&&T[0].x>300) continue;
     var mp=/^Período (inicial|final):\s*(\d\d\/\d\d\/\d{4})/.exec(j); if(mp){ var d=rgDate(mp[2]); if(mp[1]==='inicial'){ if(!R.periodoIni) R.periodoIni=d; } else { if(!R.periodoFim) R.periodoFim=d; } continue; }
-    if(L[0]==='Código'&&/Descri/.test(L[1]||'')) continue;
+    if(L[0]==='Código'&&/Descri/.test(L[1]||'')){ if(L.indexOf('Emp.')>=0) R.temEmp=true; continue; }
     if(/^Total Geral/.test(L[0])){ R.totalGeral=rgNum(L[L.length-1]); continue; }
     if(L.indexOf('Emp.')>=0) R.temEmp=true;
     // cabeçalho do cliente (repete em cada página): código de 4 a 15 dígitos + nome, sem quantidade/valor à direita
@@ -1929,15 +1929,17 @@ function agrega(cups){ var o={cupons:0,nome:0,anon:0,valor:0,valorNome:0}; cups.
 function corMeta(p,meta){ return p>=meta?'ok':p>=meta-0.1?'quase':'ruim'; }
 function celPct(o,meta){ if(!o||!o.cupons) return '<td class="r vazio">—</td>'; return '<td class="r hm '+corMeta(o.pct,meta)+'" title="'+o.nome+' com nome de '+o.cupons+' cupons">'+pct0(o.pct)+'</td>'; }
 function telaCadastro(){ if(S.imports.some(function(im){return im.tipo==='clientes';})&&S.model.anon.itens===0) return telaCadastroSemAnon();
-  var m=S.model, meta=(S.cfg.metaCadastro||80)/100, pr=periodoCad(), porCli=S.imports.some(function(im){return im.tipo==='clientes';}), lojas=porCli?[]:lojasTodas().filter(function(l){ return !S.loja||l===S.loja; });
+  var m=S.model, meta=(S.cfg.metaCadastro||80)/100, pr=periodoCad(), porCli=S.imports.some(function(im){return im.tipo==='clientes';}),
+    anonLoja=m.cupons.some(function(c){ return c.anon&&/^(CORONEL|CORREAS|BINGEN)$/.test(c.loja); }),
+    lojas=(porCli&&!anonLoja)?[]:LOJAS_ENVIO.filter(function(l){ return !S.loja||l===S.loja; });
   var noPer=m.cupons.filter(function(c){return c.data>=pr[0]&&c.data<=pr[1];});
   var cards=lojas.concat(S.loja?[]:['TODAS']).map(function(lj){ var o=agrega(noPer.filter(function(c){return lj==='TODAS'||c.loja===lj;}));
-    var falta=Math.max(0,Math.ceil(meta*o.cupons-o.nome)), cor=corMeta(o.pct,meta);
+    var falta=porCli?Math.max(0,meta*o.valor-o.valorNome):Math.max(0,Math.ceil(meta*o.cupons-o.nome)), cor=corMeta(o.pct,meta);
     return '<div class="kpi cad '+(lj==='TODAS'?'tot':'')+'"><span>'+(lj==='TODAS'?'Todas as lojas':esc(tituloProd(lj)))+'</span><b class="'+cor+'">'+pct(o.pct)+'</b><small>'+(porCli?'do faturamento com cliente identificado':'cupons com nome do cliente')+'</small>'+
       '<div class="metabar"><i class="'+cor+'" style="width:'+Math.min(100,o.pct*100)+'%"></i><em style="left:'+(meta*100)+'%" title="Meta '+pct0(meta)+'"></em></div>'+
-      '<small>'+num(o.nome)+' com nome · <strong>'+num(o.anon)+' cliente padrão</strong> · '+num(o.cupons)+' cupons</small>'+
-      '<small>'+pct0(o.pctValor)+' do faturamento identificado</small>'+
-      '<small class="'+cor+'">'+(o.cupons?(o.pct>=meta?'✔ meta atingida':'Faltam '+num(falta)+' cupons com nome para bater a meta'):'Sem vendas no período')+'</small></div>'; }).join('');
+      (porCli?'<small>'+brl(o.valorNome)+' com cliente cadastrado · <strong>'+brl(o.valor-o.valorNome)+' sem cadastro</strong></small>':'<small>'+num(o.nome)+' com nome · <strong>'+num(o.anon)+' cliente padrão</strong> · '+num(o.cupons)+' cupons</small>'+
+      '<small>'+pct0(o.pctValor)+' do faturamento identificado</small>')+
+      '<small class="'+cor+'">'+(o.cupons?(o.pct>=meta?'✔ meta atingida':(porCli?'Faltam '+brl(falta)+' em vendas com cliente cadastrado para bater a meta':'Faltam '+num(falta)+' cupons com nome para bater a meta')):'Sem vendas no período')+'</small></div>'; }).join('');
   // mensal
   var meses={}; m.cupons.forEach(function(c){ meses[c.data.slice(0,7)]=1; }); meses=Object.keys(meses).sort().reverse();
   var tabMes='<div class="tw"><table class="tbl"><thead><tr><th>Mês</th>'+lojas.map(function(l){return '<th class="r">'+esc(tituloProd(l))+'</th>';}).join('')+'<th class="r">Todas</th><th class="r">Cupons sem nome</th><th class="r">Faturamento sem nome</th></tr></thead><tbody>'+
@@ -1957,11 +1959,11 @@ function telaCadastro(){ if(S.imports.some(function(im){return im.tipo==='client
   var prim={}; m.lista.forEach(function(c){ var d=c.compras[c.compras.length-1]; if(!d) return; var k=d.data.slice(0,7)+'|'+d.loja; prim[k]=(prim[k]||0)+1; });
   var tabNovos='<div class="tw"><table class="tbl"><thead><tr><th>Mês</th>'+lojas.map(function(l){return '<th class="r">'+esc(tituloProd(l))+'</th>';}).join('')+'<th class="r">Total</th></tr></thead><tbody>'+
     meses.map(function(ms){ var t=0; return '<tr><td><b>'+mesBR(ms)+'</b></td>'+lojas.map(function(l){ var v=prim[ms+'|'+l]||0; t+=v; return '<td class="r">'+num(v)+'</td>'; }).join('')+'<td class="r"><b>'+num(t)+'</b></td></tr>'; }).join('')+'</tbody></table></div>';
-  return '<div class="filtros"><b>Meta de cupons com nome:</b><input id="metaCad" type="number" min="0" max="100" step="1" value="'+Math.round(meta*100)+'" style="width:80px"> %'+
+  return '<div class="filtros"><b>'+(porCli?'Meta de vendas com cliente cadastrado (% do faturamento):':'Meta de cupons com nome:')+'</b><input id="metaCad" type="number" min="0" max="100" step="1" value="'+Math.round(meta*100)+'" style="width:80px"> %'+
     sel('perCad','',[['mes','Este mês'],['mesant','Mês anterior'],['7','Últimos 7 dias'],['30','Últimos 30 dias'],['90','Últimos 90 dias'],['tudo','Todo o período']],S.cad.periodo).replace('<option value="">','<option value="" disabled>')+
     '<span class="nota" style="margin:0">'+dBR(pr[0])+' a '+dBR(pr[1])+' · funcionários fora da conta</span><button class="btn sec" id="expCad" style="margin-left:auto">⬇ CSV mensal</button></div>'+
     '<div class="kpis cads">'+cards+'</div>'+
-    '<p class="nota">Cupom com nome = venda lançada no nome do cliente. "Cliente padrão" = venda sem identificação, que não entra na cesta nem no CRM. Cores: <span class="hm ok">na meta</span> <span class="hm quase">até 10 pontos abaixo</span> <span class="hm ruim">mais de 10 pontos abaixo</span>.</p>'+
+    (porCli?'<p class="nota">Pelo relatório por cliente, a meta é medida em <b>valor</b>: quanto do faturamento de cada loja foi lançado no nome de um cliente cadastrado. "Cliente padrão" e "Cliente indefinido" contam como sem cadastro.</p>':'')+'<p class="nota">Cupom com nome = venda lançada no nome do cliente. "Cliente padrão" = venda sem identificação, que não entra na cesta nem no CRM. Cores: <span class="hm ok">na meta</span> <span class="hm quase">até 10 pontos abaixo</span> <span class="hm ruim">mais de 10 pontos abaixo</span>.</p>'+
     '<h3>Últimos 14 dias — para cobrar a equipe no dia seguinte</h3>'+tabDia+
     '<h3>Por semana</h3>'+tabSem+'<h3>Por mês</h3>'+tabMes+
     '<h3>Clientes novos por mês (primeira compra registrada)</h3><p class="nota">Quantos nomes novos cada loja trouxe para a base. O 1º mês da base conta todo mundo como novo.</p>'+tabNovos; }
