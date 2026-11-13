@@ -358,15 +358,16 @@ function construirModelo(imports){
   function interno(nk){ var v=V[nk]; if(v&&v.tipo==='func') return true; if(v&&v.tipo==='cliente') return false; return !!(nomesFunc[nk]||RE_INTERNO.test(nk)); }
 
   var cupons={}, clientes={}, produtos={}, funcs={}, anon={valor:0,itens:0,docs:{}}, somaValor=0, nLinhas=0, somaInterno=0;
+  var NP=S.cfg.nomesProd||{}; // nomes travados pelo código: o ERP renomeia e o relatório traz o nome novo em todo o histórico
   [{linhas:EF}].forEach(function(im){ im.linhas.forEach(function(L){
-    var data=L[0], loja=L[1], doc=L[2], nome=L[3], pc=L[4], pn=L[5], qtd=L[6], preco=L[7], valor=L[8];
+    var data=L[0], loja=L[1], doc=L[2], nome=L[3], pc=L[4], pn=(pc&&NP[pc])||L[5], qtd=L[6], preco=L[7], valor=L[8];
     var nk=rgNorm(nome), lojaN=LOJAS[loja]||loja, pk=pc||rgNorm(pn), ym=data.slice(0,7);
     if(!ehAnonimo(nk) && interno(nk)){ somaInterno+=valor;
       var f=funcs[nk]||(funcs[nk]={chave:nk,nome:nome,total:0,itens:0,docs:{},lojas:{},prod:{},ultima:null,auto:!(V[nk]&&V[nk].tipo==='func')});
       f.total+=valor; f.itens++; f.docs[loja+'|'+doc+'|'+data]=1; f.lojas[lojaN]=1; f.prod[pn]=(f.prod[pn]||0)+valor; if(!f.ultima||data>f.ultima) f.ultima=data; return; }
     somaValor+=valor; nLinhas++; if(!dataMin||data<dataMin) dataMin=data;
     var cpk=loja+'|'+doc+'|'+data, cp=cupons[cpk]; if(!cp) cp=cupons[cpk]={loja:lojaN,data:data,anon:ehAnonimo(nk),valor:0,nk:nk}; cp.valor+=valor;
-    var p=produtos[pk]; if(!p) p=produtos[pk]={chave:pk,cod:pc,produto:pn,qtd:0,valor:0,linhas:0,inteiro:true,precos:[],clientes:{},porLoja:{},meses:{},ultimaVenda:data};
+    var p=produtos[pk]; if(!p) p=produtos[pk]={chave:pk,cod:pc,produto:pn,nomeRel:L[5],qtd:0,valor:0,linhas:0,inteiro:true,precos:[],clientes:{},porLoja:{},meses:{},ultimaVenda:data};
     var pl=p.porLoja[lojaN]||(p.porLoja[lojaN]={qtd:0,valor:0,linhas:0,precos:[],ultimaVenda:data,clientes:{},meses:{}}); pl.meses[ym]=(pl.meses[ym]||0)+valor; pl.qtd+=qtd; pl.valor+=valor; pl.linhas++; if(preco>0) pl.precos.push(preco); if(data>pl.ultimaVenda) pl.ultimaVenda=data;
     p.qtd+=qtd; p.valor+=valor; p.linhas++; if(Math.abs(qtd-Math.round(qtd))>1e-9) p.inteiro=false; if(preco>0) p.precos.push(preco); p.meses[ym]=(p.meses[ym]||0)+valor; if(data>p.ultimaVenda) p.ultimaVenda=data;
     if(ehAnonimo(nk)){ anon.valor+=valor; anon.itens++; anon.docs[loja+'|'+doc]=1; return; }
@@ -514,7 +515,7 @@ async function salvarMsg(t){ S.cfg.msg=t||MSG_PADRAO; await salvarCfg('msg',S.cf
 
 /* ---------- SINCRONIZAÇÃO NA NUVEM (Firebase Realtime Database via REST — sem SDK, funciona em file://) ---------- */
 var SYNC_PADRAO={url:'https://motoboy-ddefa-default-rtdb.firebaseio.com',raiz:'cesta_rei_do_gado',token:'',computador:'',ativo:true};
-var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,atendentes:1,kits:1,reconquista:1,metaDiaria:1}, CHUNK=8000, POLL_MS=30000;
+var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,nomesProd:1,atendentes:1,kits:1,reconquista:1,metaDiaria:1}, CHUNK=8000, POLL_MS=30000;
 var SY={estado:'off',msg:'',ultima:null,ocupado:false,timer:null,revNuvem:null,renderPendente:false};
 function lerSync(){ try{ S.sync=Object.assign({},SYNC_PADRAO,JSON.parse(localStorage.getItem('cesta_sync')||'{}')); }catch(e){ S.sync=Object.assign({},SYNC_PADRAO); } }
 function gravarSync(){ try{ localStorage.setItem('cesta_sync',JSON.stringify(S.sync)); }catch(e){} }
@@ -908,6 +909,13 @@ async function radarHistorico(lojas,chatsPorLoja){ if(!S.model) return; var porN
       if(histAdd(c,ms.map(function(x){ return histDeUaz(x,loja); }))) pintarHist(c);
       HR.ult[k]=ts; } }
   try{ localStorage.setItem('cesta_histult',JSON.stringify(HR.ult)); }catch(e){} }
+/* nome travado do produto (pelo código) */
+async function travarNomeProduto(chave){ var p=S.model.produtos[chave]; if(!p||!p.cod){ toast('Produto sem código: não dá para travar o nome.','erro'); return; }
+  var NP=Object.assign({},S.cfg.nomesProd||{}), atual=NP[p.cod]||p.produto;
+  var v=prompt('Nome que a cesta deve usar para o código '+p.cod+' (vale para todo o histórico, mensagens e relatórios).\nNo relatório ele vem como: '+p.nomeRel+'\n\nDeixe em branco para voltar a usar o nome do relatório.',atual); if(v==null) return;
+  v=v.trim().toUpperCase(); if(!v||v===rgNorm(p.nomeRel).toUpperCase()&&v===p.nomeRel) delete NP[p.cod]; else NP[p.cod]=v;
+  S.cfg.nomesProd=NP; await salvarCfg('nomesProd',NP); S.model=construirModelo(S.imports); limparSugestoes(); render(); abrirProduto(chave);
+  toast(NP[p.cod]?'Nome travado: '+tituloProd(v)+' (código '+p.cod+').':'O código '+p.cod+' volta a usar o nome do relatório.','ok'); }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
 async function enviarContato(c,msg,sg){ /* desativado: todo envio é pela Uazapi */ toast('O envio é só pela Uazapi.','erro'); return false; if(!(await podeEnviar(c))) return false; await registrarContato(c,'whatsapp',msg,null,sg); return true; }
@@ -1979,7 +1987,7 @@ function abrirProduto(chave){ var m=S.model,p=m.produtos[chave], L=S.prodLoja, c
   if(S.pm.chave!==chave) S.pm={chave:chave,dmin:'',dmax:'',ord:'valor',status:''}; selCtx(ctx); S.focoModal=null;
   var l=clientesDoProduto(chave), f=S.pm, total=Object.keys(L&&p.porLoja[L]?p.porLoja[L].clientes:p.clientes).length;
   var afins=Object.keys(m.co[chave]||{}).map(function(q){ return {p:m.produtos[q],pr:m.co[chave][q]/(m.n[chave]||1)}; }).sort(function(a,b){return b.pr-a.pr;}).slice(0,8);
-  var h='<div class="modal-h"><div><h2>'+esc(p.produto)+'</h2><div class="sub">Cód. '+esc(p.cod)+' · '+esc(p.linha)+' · '+(L&&p.porLoja[L]?'<b>Loja '+esc(tituloProd(L))+'</b>: '+fmtQtd(p.porLoja[L].qtd,p.unidade)+' · '+brl(p.porLoja[L].valor):fmtQtd(p.qtd,p.unidade)+' · '+brl(p.valor))+' · '+num(total)+' cliente(s)</div>'+
+  var h='<div class="modal-h"><div><h2>'+esc(p.produto)+' <button class="btn sec mini" data-nomeprod="'+esc(chave)+'" title="Trava o nome deste produto na cesta (mensagens, histórico, relatórios), mesmo que o sistema mude o nome">✏ '+((S.cfg.nomesProd||{})[p.cod]?'Nome travado':'Travar nome')+'</button></h2><div class="sub">'+((S.cfg.nomesProd||{})[p.cod]?'<b>🔒 nome travado</b> (no relatório vem como "'+esc(p.nomeRel)+'") · ':'')+'Cód. '+esc(p.cod)+' · '+esc(p.linha)+' · '+(L&&p.porLoja[L]?'<b>Loja '+esc(tituloProd(L))+'</b>: '+fmtQtd(p.porLoja[L].qtd,p.unidade)+' · '+brl(p.porLoja[L].valor):fmtQtd(p.qtd,p.unidade)+' · '+brl(p.valor))+' · '+num(total)+' cliente(s)</div>'+
     '<div class="linhasbar" style="margin-top:8px">'+Object.keys(p.porLoja).sort(function(a,b){return p.porLoja[b].valor-p.porLoja[a].valor;}).map(function(x){return '<span style="flex:'+Math.max(p.porLoja[x].valor/p.valor,0.06)+'" title="'+brl(p.porLoja[x].valor)+'"><b>'+esc(tituloProd(x))+'</b> '+pct0(p.porLoja[x].valor/p.valor)+'</span>';}).join('')+'</div></div><button class="x" id="fechar">✕</button></div>'+
     '<h3>Vendas por mês'+(L&&p.porLoja[L]?' — '+esc(tituloProd(L)):'')+'</h3>'+barrasMensais(Object.keys(p.meses).sort(),L&&p.porLoja[L]?p.porLoja[L].meses:p.meses)+
     '<h3>Quem compra este produto também leva</h3><div class="afins">'+afins.map(function(a){return '<span class="mchip nv">'+esc(tituloProd(a.p.produto))+' <b>'+pct0(a.pr)+'</b></span>';}).join('')+'</div>'+
@@ -2135,6 +2143,7 @@ function bind(){
     if((b=t.closest('[data-movefunc]'))){ var c=S.model.clientes[b.dataset.movefunc]; if(confirm('Mover "'+c.nome+'" para Funcionários? Sai da análise e das sugestões.')) definirTipo(c.nomeKeysArr,'func'); return; }
     if((b=t.closest('[data-ehcliente]'))){ definirTipo([b.dataset.ehcliente],'cliente'); return; }
     if((b=t.closest('[data-expprod]'))){ exportClientesDoProduto(b.dataset.expprod); return; }
+    if((b=t.closest('[data-nomeprod]'))){ await travarNomeProduto(b.dataset.nomeprod); return; }
     if((b=t.closest('[data-nota]'))){ var cn=S.model.clientes[b.dataset.nota]; await salvarNota(cn,($('#notaTxt')||{}).value); return; }
     if((b=t.closest('[data-notarap]'))){ var nt=$('#notaTxt'); if(nt){ nt.value=b.dataset.notarap; nt.focus(); } return; }
     if((b=t.closest('[data-histtudo]'))){ S.histTudo=b.dataset.histtudo; pintarHist(S.model.clientes[b.dataset.histtudo]); return; }
