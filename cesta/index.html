@@ -27,6 +27,8 @@ input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-r
 .tag.vip{background:#1c1b1a;color:#f3c969}.tag.freq{background:#fde3e4;color:var(--red2)}.tag.rec{background:#e6f1ea;color:#1b6b3c}.tag.oca{background:#efefef;color:#666}.tag.int{background:#e8eef8;color:#2c4f86}.tag.off{background:#3a3a3a;color:#fff}.tag.risk{background:#fff1d6;color:#9a5b00}
 .bibl textarea{width:100%;font:13px/1.4 inherit;padding:8px;border:1px solid #ddd;border-radius:8px}.bibl input{width:100%;padding:8px;border:1px solid #ddd;border-radius:8px}.ck{width:28px;text-align:center}.ck input{width:17px;height:17px;cursor:pointer}
 .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff8e6;border:1px solid #f1d58a;border-radius:10px;padding:8px 12px;margin:8px 0}
+.hperfil{background:#f6f8f4;border:1px solid #dfe6d8;border-radius:10px;padding:10px 12px;margin:6px 0 10px}.hperfil ul{margin:6px 0 4px 18px;padding:0}.hperfil li{margin:3px 0}.hnums{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.hnums span{background:#fff;border:1px solid #e3e3e3;border-radius:12px;padding:2px 9px;font-size:12px}.hnotas div{background:#fff8d6;border-radius:6px;padding:4px 8px;margin:3px 0;font-size:13px}.hnotas small{color:#777}.hnova{display:flex;gap:6px;margin-top:8px}.hnova input{flex:1}.hchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.htl{max-height:440px;overflow:auto;background:#ece5dd;border-radius:10px;padding:8px 10px;margin-bottom:6px}.hb{width:fit-content;max-width:78%;padding:6px 9px;border-radius:9px;margin:4px 0;font-size:13.5px;line-height:1.35;white-space:normal;word-wrap:break-word}.hb small{display:block;color:#888;font-size:11px;margin-top:2px}.hb.cli{background:#fff;margin-right:auto}.hb.loja{background:#dcf8c6;margin-left:auto}.hb.nota{background:#fff3b0;margin:6px auto;max-width:90%}.hdia{text-align:center;font-size:11px;color:#666;margin:10px 0 4px}.hcomp{width:fit-content;text-align:center;font-size:12px;background:#fff;border:1px dashed #b9c9a8;border-radius:8px;padding:3px 8px;margin:6px auto;max-width:85%}
 .rgl{padding:1px 7px!important;font-size:12px!important;margin-left:4px;vertical-align:middle}.msgcol{min-width:220px;max-width:340px}.msgcol .prev{display:block;color:#555;margin-top:3px;line-height:1.3}
 th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{background:#f3eee6}th.ord.on{color:var(--red2)}
 .lacuna{margin:0 0 12px;line-height:1.5}
@@ -791,11 +793,121 @@ async function registrarContato(c,tipo,msg,canal,sgx,extra){ var s=sgx||sugestoe
   var r={id:'m'+agora.getTime().toString(36)+Math.random().toString(36).slice(2,6),em:agora.toISOString(),dia:hoje(),canal:canal||'cesta',tipo:tipo,por:(S.sync&&S.sync.computador)||'',
     cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(msg||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',atendente:s.atendente||'',vh:s.vh||'',vtxt:String(s.vtxt||'').slice(0,200),atu:agora.toISOString(),pendente:true};
   if(extra) Object.keys(extra).forEach(function(k){ if(extra[k]) r[k]=extra[k]; });
-  await dbTx('contatos',function(st){ st.put(r); }); S.contatos.push(r); indexarContatos(); delete c._sug; delete c._sugF; S.crmSujo=true; agendarSync(300); return r; }
+  await dbTx('contatos',function(st){ st.put(r); }); S.contatos.push(r); indexarContatos(); delete c._sug; delete c._sugF; S.crmSujo=true; agendarSync(300);
+  histAdd(c,[{id:r.msgid||r.id,em:r.em,de:'l',txt:r.msg,loja:r.envioLoja||c.loja||'',por:r.atendente||r.por||'',tags:SITUACOES[r.situacao]?SITUACOES[r.situacao].nome:(r.campanha||'')}]); return r; }
 async function registrarVarios(lista,canal){ var recs=[], agora=new Date(), d=hoje(), por=(S.sync&&S.sync.computador)||'';
   lista.forEach(function(c,i){ var s=sugestoes(c); recs.push({id:'m'+(agora.getTime()+i).toString(36)+Math.random().toString(36).slice(2,6),em:agora.toISOString(),dia:d,canal:canal,tipo:'lote',por:por,cod:c.codigo||'',nome:c.nome,chaves:chavesContato(c),
     produtos:s.ofertas.map(function(o){return o.produto;}).concat(s.novidades.slice(0,1).map(function(o){return o.produto;})),msg:String(s.mensagem||'').slice(0,600),situacao:s.situacao||'',variante:s.variante||'',lojaCli:c.loja||'',atendente:s.atendente||'',pendente:true}); });
-  await dbTx('contatos',function(st){ recs.forEach(function(r){ st.put(r); }); }); S.contatos=S.contatos.concat(recs); indexarContatos(); lista.forEach(function(c){ delete c._sug; delete c._sugF; }); S.crmSujo=true; agendarSync(300); return recs.length; }
+  await dbTx('contatos',function(st){ recs.forEach(function(r){ st.put(r); }); }); S.contatos=S.contatos.concat(recs); indexarContatos(); lista.forEach(function(c,i){ delete c._sug; delete c._sugF; histAdd(c,[{id:recs[i].id,em:recs[i].em,de:'l',txt:recs[i].msg,loja:c.loja||'',por:recs[i].atendente||por,tags:'registro manual'}]); }); S.crmSujo=true; agendarSync(300); return recs.length; }
+/* ---------- HISTÓRICO COMPLETO DO CLIENTE: todas as mensagens (nossas e dele), anotações e compras ----------
+   nuvem: hist/C_{código}/{idMensagem} = {em, de:'l'(loja)|'c'(cliente)|'n'(anotação), txt, loja, por, mt(mídia), tags}
+   cada cliente é lido só quando a ficha abre; o que é capturado vai numa fila guardada no navegador até subir */
+var HI={cache:{},ok:{},fila:{},timer:null};
+try{ HI.fila=JSON.parse(localStorage.getItem('cesta_histfila')||'{}')||{}; }catch(e){ HI.fila={}; }
+function histK(c){ return 'C_'+String(c.codigo||hashN(c.chave)).replace(/[.#$\[\]\/\s]/g,'_'); }
+function histId(id){ return String(id||'').replace(/[.#$\[\]\/]/g,'_').slice(0,120)||('x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)); }
+function mtUaz(m){ var t=String(m.messageType||'').replace(/Message$/,'').toLowerCase(); return /audio|ptt/.test(t)?'audio':/image|sticker/.test(t)?'imagem':/video/.test(t)?'video':/document/.test(t)?'documento':/location/.test(t)?'localização':/contact/.test(t)?'contato':''; }
+function histDeUaz(x,loja){ var t=tsMs(x.messageTimestamp); return {id:x.id||x.messageid||String(x.messageTimestamp),em:new Date(t).toISOString(),de:x.fromMe?'l':'c',txt:txtMsgUaz(x),loja:loja||'',mt:mtUaz(x)}; }
+function salvarFilaHist(){ try{ localStorage.setItem('cesta_histfila',JSON.stringify(HI.fila)); }catch(e){} }
+function histAdd(c,msgs){ if(!c||!msgs||!msgs.length) return 0; var K=histK(c), cache=HI.cache[K]=HI.cache[K]||{}, f=HI.fila[K]=HI.fila[K]||{}, n=0;
+  msgs.forEach(function(m){ if(!m||!(m.txt||m.mt)) return; var id=histId(m.id); if(cache[id]&&!m.forcar) return;
+    var o={em:m.em||new Date().toISOString(),de:m.de||'c',txt:String(m.txt||'').slice(0,1000)}; ['loja','por','mt','tags'].forEach(function(k){ if(m[k]) o[k]=String(m[k]).slice(0,80); });
+    cache[id]=o; f[id]=o; n++; });
+  if(!Object.keys(f).length) delete HI.fila[K];
+  if(n){ salvarFilaHist(); clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,1500); } return n; }
+async function enviarHist(){ if(!syncAtivo()||HI.enviando) return; HI.enviando=true;
+  try{ var ks=Object.keys(HI.fila); for(var i=0;i<ks.length;i++){ var K=ks[i], f=HI.fila[K]; if(f&&Object.keys(f).length) await fb('PATCH','hist/'+K,f); delete HI.fila[K]; salvarFilaHist(); } }
+  catch(e){ clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,60000); } finally{ HI.enviando=false; } }
+async function carregarHist(c,forcar){ var K=histK(c); if(HI.ok[K]&&!forcar) return HI.cache[K]||{};
+  if(syncAtivo()){ try{ var d=await fb('GET','hist/'+K)||{}; HI.cache[K]=Object.assign({},d,HI.cache[K]||{}); HI.ok[K]=1; }catch(e){} } return HI.cache[K]||{}; }
+/* junta o histórico da nuvem com o que já estava nos registros de mensagem (msg enviada, respostas) e as compras */
+function linhaTempo(c){ var K=histK(c), out=[], vistos={}, sig={};
+  var add=function(id,o){ id=histId(id); if(vistos[id]) return; var s=o.de+'|'+String(o.em).slice(0,16)+'|'+rgNorm(String(o.txt||'')).slice(0,30); if(o.de!=='n'&&sig[s]) return; vistos[id]=1; sig[s]=1; out.push(Object.assign({id:id},o)); };
+  var H=HI.cache[K]||{}; Object.keys(H).forEach(function(id){ add(id,H[id]); });
+  contatosDe(c).forEach(function(r){ if(r.msg) add(r.msgid||r.id,{em:r.em,de:'l',txt:r.msg,loja:r.envioLoja||r.lojaCli||'',por:r.atendente||r.por||'',tags:SITUACOES[r.situacao]?SITUACOES[r.situacao].nome:(r.campanha||r.situacao||'')});
+    var cv=(r.conversa&&r.conversa.length)?r.conversa:(r.resp?[{id:r.id+'_r',em:r.resp.em,txt:r.resp.txt,de:'c'}]:[]);
+    cv.forEach(function(x){ add(x.id||(r.id+x.em),{em:x.em,de:x.de||'c',txt:x.txt,loja:r.envioLoja||'',por:x.por||''}); }); });
+  out.sort(function(a,b){ return a.em<b.em?-1:a.em>b.em?1:0; }); return out; }
+var HORAS=[[5,12,'de manhã'],[12,18,'à tarde'],[18,24,'à noite'],[0,5,'de madrugada']], DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+function horaSP(iso){ var d=new Date(Date.parse(iso)-3*3600e3); return {h:d.getUTCHours(),dw:d.getUTCDay(),dia:d.toISOString().slice(0,10)}; }
+/* lê o histórico e resume o jeito de conversar com o cliente */
+function perfilComunicacao(c,itens){ var cl=itens.filter(function(x){return x.de==='c';}), nos=itens.filter(function(x){return x.de==='l';}), notas=itens.filter(function(x){return x.de==='n';});
+  var P={nCli:cl.length,nNos:nos.length,notas:notas,dicas:[],fatos:[]};
+  var env=contatosDe(c).filter(function(r){ return /uazapi/.test(r.tipo||'')&&r.tipo!=='uazapi-celular'; }), resp=env.filter(function(r){return !!r.resp;});
+  P.envios=env.length; P.respondeu=resp.length;
+  // quem puxa conversa: dias em que a primeira mensagem do dia foi do cliente
+  var porDia={}; itens.forEach(function(x){ if(x.de==='n') return; var d=horaSP(x.em).dia; if(!porDia[d]) porDia[d]=x.de; }); P.iniciou=Object.keys(porDia).filter(function(d){return porDia[d]==='c';}).length;
+  // tempo de resposta: nossa mensagem → próxima dele em até 48 h
+  var tr=[]; for(var i=0;i<itens.length;i++){ if(itens[i].de!=='l') continue; for(var j=i+1;j<itens.length;j++){ if(itens[j].de==='l') break; if(itens[j].de==='c'){ var dt=(Date.parse(itens[j].em)-Date.parse(itens[i].em))/60000; if(dt>=0&&dt<2880) tr.push(dt); break; } } }
+  tr.sort(function(a,b){return a-b;}); P.tResp=tr.length?tr[Math.floor(tr.length/2)]:null;
+  var fx={}, dw={}; cl.forEach(function(x){ var t=horaSP(x.em); HORAS.forEach(function(H){ if(t.h>=H[0]&&t.h<H[1]) fx[H[2]]=(fx[H[2]]||0)+1; }); dw[t.dw]=(dw[t.dw]||0)+1; });
+  var topF=Object.keys(fx).sort(function(a,b){return fx[b]-fx[a];})[0], topD=Object.keys(dw).sort(function(a,b){return dw[b]-dw[a];})[0];
+  P.periodo=cl.length>=3&&topF&&fx[topF]/cl.length>=0.5?topF:''; P.diaSem=cl.length>=4&&topD!=null&&dw[topD]/cl.length>0.5?DSEM[topD]:'';
+  var aud=cl.filter(function(x){return x.mt==='audio'||/^\[(audio|ptt)\]$/i.test(x.txt);}).length, txts=cl.filter(function(x){return !x.mt&&x.txt&&!/^\[/.test(x.txt);});
+  var med=txts.length?txts.reduce(function(a,x){return a+x.txt.length;},0)/txts.length:0, emo=txts.filter(function(x){ return /[☀-➿]|[\uD83C-\uDBFF][\uDC00-\uDFFF]/.test(x.txt); }).length;
+  // o que funcionou: por tipo de mensagem, quem respondeu e quem comprou em até 7 dias
+  var datas=c.compras.map(function(d){return d.data;}), comprou=function(r){ return datas.some(function(d){ return d>=r.dia&&dias(r.dia,d)<=7; }); };
+  var tipos={}; contatosDe(c).forEach(function(r){ var nm=r.kit?'kit com foto':r.campanha==='reconquista'?'reconquista ('+(r.abordagem||'')+')':SITUACOES[r.situacao]?SITUACOES[r.situacao].nome:(r.tipo==='uazapi-celular'?'conversa pelo celular':'mensagem'); var o=tipos[nm]=tipos[nm]||{n:0,resp:0,comp:0}; o.n++; if(r.resp) o.resp++; if(comprou(r)) o.comp++; });
+  P.tipos=tipos;
+  var at={}; nos.forEach(function(x){ if(x.por&&!/celular|PC|computador/i.test(x.por)) at[x.por]=(at[x.por]||0)+1; }); P.atendentes=Object.keys(at).sort(function(a,b){return at[b]-at[a];});
+  // dicas práticas
+  if(optout(c)) P.dicas.push('🚫 Pediu SAIR: não mandar mensagem. Só responder se ele escrever.');
+  else if(soPromo(c)) P.dicas.push('🏷 Só quer promoções: falar com ele apenas em campanha de oferta.');
+  if(P.tResp!=null) P.dicas.push(P.tResp<=30?'⚡ Responde rápido (em uns '+Math.max(1,Math.round(P.tResp))+' min): vale conversar na hora e fechar o pedido ali.':P.tResp<=240?'⏱ Costuma responder em umas '+Math.round(P.tResp/60*10)/10+' h.':'🐢 Demora para responder (mais de 4 h): mande cedo e sem pressa.');
+  if(P.periodo) P.dicas.push('🕐 Escreve mais '+P.periodo+(P.diaSem?', principalmente '+(/sábado|domingo/.test(P.diaSem)?'no ':'na ')+P.diaSem:'')+': prefira mandar nesse horário.');
+  else if(P.diaSem) P.dicas.push('📅 Escreve mais '+(/sábado|domingo/.test(P.diaSem)?'no ':'na ')+P.diaSem+'.');
+  if(aud>=2&&aud/cl.length>=0.3) P.dicas.push('🎤 Manda muito áudio: dá pra responder em áudio também, fica mais próximo.');
+  if(txts.length>=3) P.dicas.push(med<25?'✂ Responde curto: mensagens diretas, uma pergunta só.':med>90?'💬 Gosta de conversar: vale uma mensagem mais pessoal.':'');
+  if(txts.length>=3&&emo/txts.length>=0.4) P.dicas.push('😊 Usa bastante emoji: pode usar também.');
+  if(P.iniciou>=2) P.dicas.push('🙋 Costuma chamar a loja sozinho ('+P.iniciou+' vezes): responder rápido é o mais importante.');
+  if(P.envios>=3&&!P.respondeu) P.dicas.push('🔁 Não respondeu nenhuma das '+P.envios+' mensagens: tente outro jeito (kit com foto, uma pergunta pessoal ou uma ligação).');
+  var bons=Object.keys(tipos).filter(function(k){return tipos[k].comp;}), resps=Object.keys(tipos).filter(function(k){return tipos[k].resp&&!tipos[k].comp;});
+  if(bons.length) P.dicas.push('🛒 Comprou depois de: '+bons.join(', ')+'. Repita esse tipo de mensagem.');
+  if(resps.length) P.dicas.push('💬 Respondeu a: '+resps.join(', ')+'.');
+  var tent=Object.keys(tipos).filter(function(k){ return tipos[k].n>=2&&!tipos[k].resp&&!tipos[k].comp; }); if(tent.length) P.dicas.push('➖ Não funcionou até agora: '+tent.join(', ')+'.');
+  if(P.atendentes.length) P.dicas.push('👤 Quem mais conversou com ele: '+P.atendentes.slice(0,2).join(' e ')+'.');
+  P.dicas=P.dicas.filter(Boolean); return P; }
+var NOTAS_RAPIDAS=['Prefere áudio','Prefere ligação','Prefere mensagem curta','Gosta de novidades','Atento a preço','Pede pra entregar','Só compra no fim de semana','Chamar pelo apelido: '];
+function blocoHistCompleto(c){ var itens=linhaTempo(c), P=perfilComunicacao(c,itens), K=histK(c), todos=S.histTudo===c.chave;
+  var comp=c.compras.slice(0,todos?400:40).map(function(d){ return {em:d.data+'T15:00:00.000Z',de:'$',txt:'🛒 Comprou '+brl(d.valor)+' na '+tituloProd(d.loja)+' — '+d.itens.slice(0,3).map(function(x){return tituloProd(x.produto);}).join(', ')+(d.itens.length>3?'…':'')}; });
+  var tl=itens.concat(comp).sort(function(a,b){ return a.em<b.em?-1:a.em>b.em?1:0; }), ini=itens.length?itens[0].em:null; if(ini&&!todos) tl=tl.filter(function(x){ return x.de!=='$'||x.em>=ini.slice(0,10); });
+  var mostrar=todos?tl:tl.slice(-80), ultDia='';
+  var bolhas=mostrar.map(function(x){ var t=horaSP(x.em), dh=t.dia!==ultDia?'<div class="hdia">'+dBR(t.dia)+' · '+DSEM[t.dw]+'</div>':''; ultDia=t.dia;
+    if(x.de==='$') return dh+'<div class="hcomp">'+esc(x.txt)+'</div>';
+    var hora=x.de==='$'?'':new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return dh+'<div class="hb '+(x.de==='c'?'cli':x.de==='n'?'nota':'loja')+'">'+(x.de==='n'?'📝 ':'')+(x.mt?'<i>['+esc(x.mt)+']</i> ':'')+esc(x.txt||'').replace(/\n/g,'<br>')+'<small>'+(x.de==='c'?esc(primeiroNome(c.nome)):esc(x.por||(x.de==='n'?'anotação':'loja')))+(x.loja?' · '+esc(tituloProd(x.loja)):'')+(x.tags?' · '+esc(x.tags):'')+' · '+hora+'</small></div>'; }).join('');
+  return '<div class="hperfil"><b>Como falar com '+esc(primeiroNome(c.nome))+'</b>'+
+      '<div class="hnums"><span>'+P.nNos+' mensagens da loja</span><span>'+P.nCli+' do cliente</span><span>'+(P.envios?Math.round(P.respondeu/P.envios*100)+'% das mensagens respondidas ('+P.respondeu+'/'+P.envios+')':'ainda sem envios pela Uazapi')+'</span>'+(P.notas.length?'<span>'+P.notas.length+' anotação(ões)</span>':'')+'</div>'+
+      (P.notas.length?'<div class="hnotas">'+P.notas.slice(-5).reverse().map(function(n){ return '<div>📝 '+esc(n.txt)+' <small>'+esc(n.por||'')+' · '+dBR(horaSP(n.em).dia)+'</small></div>'; }).join('')+'</div>':'')+
+      (P.dicas.length?'<ul>'+P.dicas.map(function(d){return '<li>'+esc(d)+'</li>';}).join('')+'</ul>':'<p class="nota">Ainda tem pouca conversa para entender o jeito dele. Cada mensagem e resposta fica guardada aqui e as dicas aparecem sozinhas.</p>')+
+      '<div class="hnova"><input id="notaTxt" placeholder="Anotar algo sobre como falar com ele (ex.: prefere áudio, chama de Dona Maria, compra pra família)…"><button class="btn mini" data-nota="'+esc(c.chave)+'">Salvar anotação</button></div>'+
+      '<div class="hchips">'+NOTAS_RAPIDAS.map(function(t){ return '<button class="btn sec mini" data-notarap="'+esc(t)+'">'+esc(t)+'</button>'; }).join('')+'</div></div>'+
+    '<div class="htl" id="htl">'+(bolhas||'<div class="vazio">Nenhuma conversa guardada ainda.</div>')+'</div>'+
+    '<div class="filtros">'+(tl.length>mostrar.length?'<button class="btn sec mini" data-histtudo="'+esc(c.chave)+'">Ver tudo ('+tl.length+')</button>':'')+'<button class="btn sec mini" data-histatu="'+esc(c.chave)+'" title="Lê de novo a nuvem e a conversa no WhatsApp da loja">🔄 Atualizar conversa</button><small class="nota">'+(HI.ok[K]?'☁ histórico completo carregado':'carregando da nuvem…')+'</small></div>'; }
+function pintarHist(c){ var b=document.getElementById('histBox'); if(!b||b.dataset.cli!==c.chave) return; b.innerHTML=blocoHistCompleto(c); var t=document.getElementById('htl'); if(t) t.scrollTop=t.scrollHeight; }
+/* traz do WhatsApp da loja tudo o que tem com este cliente (até 1.000 mensagens por número) */
+async function puxarConversaCliente(c){ var lojas=uazLojasLeitura(), w=foneWa(c.celular), n=0; if(!w||!lojas.length) return 0;
+  var jids=digitosVariantes(w).map(function(x){return x+'@s.whatsapp.net';});
+  for(var i=0;i<lojas.length;i++){ var inst=uazLeitura(lojas[i]);
+    for(var k=0;k<jids.length;k++){ var off=0, pg;
+      do{ try{ pg=await uazReq(inst,'POST','/message/find',{chatid:jids[k],limit:200,offset:off,sort:'-messageTimestamp'}); }catch(e){ pg=null; break; }
+        var ms=(pg.messages||pg.data||[]); n+=histAdd(c,ms.map(function(x){ return histDeUaz(x,lojas[i]); })); off+=200; }while(pg&&(pg.messages||pg.data||[]).length===200&&off<1000); } }
+  return n; }
+async function salvarNota(c,txt){ txt=String(txt||'').trim(); if(!txt){ toast('Escreva a anotação.','erro'); return; }
+  histAdd(c,[{id:'N'+Date.now().toString(36),em:new Date().toISOString(),de:'n',txt:txt,por:atendenteDe(c.loja)||(S.sync&&S.sync.computador)||'',loja:c.loja||''}]); await enviarHist(); pintarHist(c); toast('Anotação guardada no histórico de '+primeiroNome(c.nome)+'.','ok'); }
+/* RADAR do histórico: conversas novas no WhatsApp da loja (inclusive quando é o cliente que chama primeiro) */
+var HR={ult:{}}; try{ HR.ult=JSON.parse(localStorage.getItem('cesta_histult')||'{}')||{}; }catch(e){}
+async function radarHistorico(lojas,chatsPorLoja){ if(!S.model) return; var porNum=S._porNum; if(!porNum||S._porNumM!==S.model){ porNum={}; S.model.lista.forEach(function(c){ digitosVariantes(foneWa(c.celular)||'').forEach(function(x){ if(x) porNum[x]=c; }); }); S._porNum=porNum; S._porNumM=S.model; }
+  var feitos=0;
+  for(var i=0;i<lojas.length;i++){ var loja=lojas[i], inst=uazLeitura(loja);
+    for(var j=0;j<(chatsPorLoja[loja]||[]).length&&feitos<15;j++){ var ch=chatsPorLoja[loja][j], jid=ch.wa_chatid||'', ts=tsMs(ch.wa_lastMsgTimestamp), k=loja+'|'+jid, c=null;
+      if(!jid||/@g\.us$/.test(jid)||!ts||(HR.ult[k]&&HR.ult[k]>=ts)) continue;
+      digitosVariantes(jid.split('@')[0]).some(function(x){ c=porNum[x]; return !!c; }); if(!c){ HR.ult[k]=ts; continue; }
+      var d; try{ d=await uazReq(inst,'POST','/message/find',{chatid:jid,limit:HR.ult[k]?50:200,offset:0,sort:'-messageTimestamp'}); }catch(e){ continue; } feitos++;
+      var desde=HR.ult[k]||0, ms=(d.messages||d.data||[]).filter(function(x){ return tsMs(x.messageTimestamp)>desde-60000; });
+      if(histAdd(c,ms.map(function(x){ return histDeUaz(x,loja); }))) pintarHist(c);
+      HR.ult[k]=ts; } }
+  try{ localStorage.setItem('cesta_histult',JSON.stringify(HR.ult)); }catch(e){} }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
 async function enviarContato(c,msg,sg){ /* desativado: todo envio é pela Uazapi */ toast('O envio é só pela Uazapi.','erro'); return false; if(!(await podeEnviar(c))) return false; await registrarContato(c,'whatsapp',msg,null,sg); return true; }
@@ -929,8 +1041,9 @@ async function verificarRespostas(manual,forcar){ if(RESP.rodando||!S.model) ret
         if(ms.length&&!r.chatid) r.chatid=js[k]; }
       r.respChk=new Date().toISOString(); var mudou=false;
       if(ms.length){ r.conversa=r.conversa||[]; var ids={}; r.conversa.forEach(function(x){ if(x.id) ids[x.id]=1; });
+        if(c) histAdd(c,ms.map(function(m){ return histDeUaz(m,r.envioLoja||'CORONEL'); }));
         ms.forEach(function(m){ var id=m.id||m.messageid||String(m.messageTimestamp); if(ids[id]) return; r.conversa.push({id:id,em:new Date(tsMs(m.messageTimestamp)).toISOString(),txt:txtMsgUaz(m).slice(0,500),de:'c'}); mudou=true; });
-        r.conversa.sort(function(a,b){ return a.em<b.em?-1:1; }); if(r.conversa.length>40) r.conversa=r.conversa.slice(-40);
+        r.conversa.sort(function(a,b){ return a.em<b.em?-1:1; }); if(r.conversa.length>200) r.conversa=r.conversa.slice(-200);
         if(!r.resp){ r.resp={em:new Date(tsMs(ms[0].messageTimestamp)).toISOString(),txt:ms.map(txtMsgUaz).filter(Boolean).join(' | ').slice(0,300),n:ms.length}; }
         else r.resp.n=r.conversa.filter(function(x){return x.de==='c';}).length;
         if(mudou){ achou++; novasNomes.push(r.nome); }
@@ -1004,6 +1117,8 @@ async function varrerCelular(desde){ if(!uazLojasLeitura().length){ toast('Confi
         digitosVariantes(num).some(function(x){ c=porNum[x]; return !!c; }); chats++;
         if(!c){ fora++; continue; }
         var mm; try{ mm=await uazReq(inst,'POST','/message/find',{chatid:jid,limit:200,offset:0,sort:'-messageTimestamp'}); }catch(e){ continue; }
+        histAdd(c,(mm.messages||mm.data||[]).map(function(x){ return histDeUaz(x,loja); })); // guarda TODA a conversa no histórico do cliente
+        for(var pgo=200;(mm.messages||mm.data||[]).length>=pgo&&pgo<1000;pgo+=200){ var mx; try{ mx=await uazReq(inst,'POST','/message/find',{chatid:jid,limit:200,offset:pgo,sort:'-messageTimestamp'}); }catch(e){ break; } var lx=mx.messages||mx.data||[]; if(!lx.length) break; histAdd(c,lx.map(function(x){ return histDeUaz(x,loja); })); (mm.messages||mm.data).push.apply(mm.messages||mm.data,lx); }
         (mm.messages||mm.data||[]).forEach(function(x){ var t=tsMs(x.messageTimestamp); if(t&&t<maisAntiga) maisAntiga=t; });
         var msgs=(mm.messages||mm.data||[]).filter(function(x){ return tsMs(x.messageTimestamp)>=desdeMs; }).sort(function(a,b){ return tsMs(a.messageTimestamp)-tsMs(b.messageTimestamp); });
         // cada dia em que a loja escreveu para o cliente vira um contato (se a cesta ainda não registrou nada nesse dia)
@@ -1136,14 +1251,15 @@ async function radarRespostas(){ if(RESP.rodando||RESP.radar||!S.model||!uazLoja
     (S.contatos||[]).forEach(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')||agora-Date.parse(r.em)>10*864e5) return; idx=idx||indiceClientesContato(); var c=clienteDoContato(r,idx), lj=r.envioLoja||'CORONEL';
       var nums=[].concat(digitosVariantes((r.chatid||'').split('@')[0]),digitosVariantes(c&&foneWa(c.celular)||'')).filter(Boolean);
       nums.forEach(function(x){ var k=lj+'|'+x; if(!porNum[k]||porNum[k].em<r.em) porNum[k]=r; }); });
-    var lojas=uazLojasLeitura();
+    var lojas=uazLojasLeitura(), cpl={};
     for(var i=0;i<lojas.length;i++){ var inst=uazLeitura(lojas[i]), d;
-      try{ d=await uazReq(inst,'POST','/chat/find',{limit:60,offset:0,sort:'-wa_lastMsgTimestamp',wa_isGroup:false}); }catch(e){ continue; }
+      try{ d=await uazReq(inst,'POST','/chat/find',{limit:60,offset:0,sort:'-wa_lastMsgTimestamp',wa_isGroup:false}); }catch(e){ continue; } cpl[lojas[i]]=d.chats||d.data||[];
       (d.chats||d.data||[]).forEach(function(ch){ var ts=tsMs(ch.wa_lastMsgTimestamp), num=String(ch.wa_chatid||'').split('@')[0], r=null;
         digitosVariantes(num).some(function(x){ r=porNum[lojas[i]+'|'+x]; return !!r; });
         if(r&&ts>Date.parse(r.em)&&ts>Date.parse(r.respChk||r.em)+1000){ ids[r.id]=1; n++; } }); }
     RESP.radarEm=new Date();
     if(n) await verificarRespostas(false,ids);
+    try{ await radarHistorico(lojas,cpl); }catch(e){}
   }catch(e){} finally{ RESP.radar=false; } }
 
 /* ---------- DIAGNÓSTICO: o que cada computador está lendo/enviando (vai para a nuvem, sem token) ---------- */
@@ -1200,6 +1316,7 @@ async function responderConversa(id,texto){ var r=(S.contatos||[]).filter(functi
   var inst=uazInst(r.envioLoja||'CORONEL'); if(!inst){ toast('O número da loja '+tituloProd(r.envioLoja||'')+' não está configurado neste computador.','erro'); return; }
   var c=clienteDoContato(r,indiceClientesContato()), num=(r.chatid||'').replace(/@.*/,'')||foneWa(c&&c.celular||''); if(!num){ toast('Sem número para responder.','erro'); return; }
   try{ await uazEnviar(inst,num,texto); }catch(e){ toast('Não enviou: '+e.message,'erro'); return; }
+  if(c) histAdd(c,[{id:'L'+Date.now(),em:new Date().toISOString(),de:'l',txt:texto,loja:r.envioLoja||c.loja||'',por:atendenteDe(r.envioLoja||c.loja)||S.sync.computador||'loja'}]);
   r.conversa=r.conversa||[]; r.conversa.push({id:'L'+Date.now(),em:new Date().toISOString(),txt:texto.slice(0,500),de:'l',por:atendenteDe(r.envioLoja||(c&&c.loja))||S.sync.computador||'loja'});
   r.visto=new Date().toISOString(); r.atu=r.visto; r.pendente=true; await dbTx('contatos',function(st){ st.put(r); }); agendarSync(500); toast('Resposta enviada para '+r.nome+'.','ok'); render(); }
 async function marcarVisto(id){ var r=(S.contatos||[]).filter(function(x){return x.id===id;})[0]; if(!r) return; r.visto=new Date().toISOString(); r.atu=r.visto; r.pendente=true; await dbTx('contatos',function(st){ st.put(r); }); agendarSync(500); render(); }
@@ -1775,7 +1892,7 @@ function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; 
     '<div class="vinc"><label>Código do cliente no CRM</label>'+codInput(c)+'<button class="btn sec mini" data-salvarcod="'+esc(c.chave)+'">Salvar código</button>'+'<span class="nota">'+(function(){ var v=S.vinc[c.nomeKeysArr[0]]; return v&&v.codigo?'Salvo'+(v.por?' por <b>'+esc(v.por)+'</b>':'')+(v.atualizadoEm?' em '+new Date(v.atualizadoEm).toLocaleString('pt-BR'):'')+(v.pendente?' · <span class="warn">aguardando envio à nuvem</span>':' · ☁ na nuvem')+'. ':''; })()+'Usar o mesmo código em dois nomes junta os dois.</span>'+
     '<button class="btn sec mini perigo" data-movefunc="'+esc(c.chave)+'" style="margin-left:auto">É funcionário / uso interno</button></div>'+
     (c.abc?'<p class="nota">Cadastro Alterdata: <b>'+esc(c.abc.nome)+'</b>'+(c.bairro?' · '+esc(c.bairro):'')+(c.celular?' · 📱 '+esc(foneFmt(c.celular)):'')+' · última compra no Alterdata '+dBR(c.abc.ult)+'</p>':'')+
-    '<h3>Sugestão para enviar</h3>'+avisoContato(c)+blocoSugestao(c)+blocoHistorico(c)+
+    '<h3>Sugestão para enviar</h3>'+avisoContato(c)+blocoSugestao(c)+'<h3>💬 Conversas e jeito de falar com '+esc(primeiroNome(c.nome))+'</h3><div id="histBox" data-cli="'+esc(c.chave)+'">'+blocoHistCompleto(c)+'</div>'+blocoHistorico(c)+
     '<div class="kpis sm">'+k('Total gasto',brl(c.total))+k('Compras',c.nCompras)+k('Ticket médio',brl(c.ticketMedio))+k('Primeira / última',dBR(c.primeiraCompra)+'<br>'+dBR(c.ultimaCompra))+k('Compra a cada',c.intervaloMedio==null?'—':Math.round(c.intervaloMedio)+' dias')+k('Próxima prevista',c.proximaPrevista?dBR(c.proximaPrevista):'—')+'</div>'+
     '<h3>Linhas que mais compra</h3><div class="linhasbar">'+c.linhas.map(function(x){return '<span style="flex:'+Math.max(x.pct,0.04)+'" title="'+esc(x.linha)+': '+brl(x.valor)+'"><b>'+esc(x.linha)+'</b> '+pct0(x.pct)+'</span>';}).join('')+'</div>'+
     '<h3>Gasto por mês</h3>'+barrasMensais(m.meses,c.meses)+
@@ -1785,7 +1902,8 @@ function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; 
     '<h3>Compras ('+c.compras.length+')</h3><div class="compras">'+c.compras.slice(0,120).map(function(d){ return '<details><summary><b>'+dBR(d.data)+'</b><span>'+esc(d.loja)+'</span><span class="doc">doc '+esc(d.documento)+'</span><span>'+d.itens.length+' item(ns)</span><b class="r">'+brl(d.valor)+'</b></summary><table class="tbl mini">'+
       d.itens.map(function(i){ return '<tr><td>'+esc(i.produto)+'</td><td class="r">'+num(i.qtd,i.qtd%1?3:0)+'</td><td class="r">'+brl(i.preco)+'</td><td class="r">'+brl(i.valor)+'</td></tr>'; }).join('')+'</table></details>'; }).join('')+
     (c.compras.length>120?'<p class="nota">Mostrando as 120 compras mais recentes. O CSV/JSON traz todas.</p>':'')+'</div>';
-  $('#modal .modal-c').innerHTML=h; $('#modal').classList.add('on'); $('#modal .modal-c').scrollTop=0; }
+  $('#modal .modal-c').innerHTML=h; $('#modal').classList.add('on'); $('#modal .modal-c').scrollTop=0; var tl0=document.getElementById('htl'); if(tl0) tl0.scrollTop=tl0.scrollHeight;
+  carregarHist(c).then(function(){ pintarHist(c); }); }
 
 function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
   return S.model.lista.filter(function(c){
@@ -2017,6 +2135,10 @@ function bind(){
     if((b=t.closest('[data-movefunc]'))){ var c=S.model.clientes[b.dataset.movefunc]; if(confirm('Mover "'+c.nome+'" para Funcionários? Sai da análise e das sugestões.')) definirTipo(c.nomeKeysArr,'func'); return; }
     if((b=t.closest('[data-ehcliente]'))){ definirTipo([b.dataset.ehcliente],'cliente'); return; }
     if((b=t.closest('[data-expprod]'))){ exportClientesDoProduto(b.dataset.expprod); return; }
+    if((b=t.closest('[data-nota]'))){ var cn=S.model.clientes[b.dataset.nota]; await salvarNota(cn,($('#notaTxt')||{}).value); return; }
+    if((b=t.closest('[data-notarap]'))){ var nt=$('#notaTxt'); if(nt){ nt.value=b.dataset.notarap; nt.focus(); } return; }
+    if((b=t.closest('[data-histtudo]'))){ S.histTudo=b.dataset.histtudo; pintarHist(S.model.clientes[b.dataset.histtudo]); return; }
+    if((b=t.closest('[data-histatu]'))){ var ch2=S.model.clientes[b.dataset.histatu]; b.disabled=true; b.textContent='⏳ lendo…'; var nn2=await puxarConversaCliente(ch2); await carregarHist(ch2,true); await enviarHist(); pintarHist(ch2); toast(nn2?nn2+' mensagem(ns) nova(s) no histórico de '+primeiroNome(ch2.nome)+'.':'Histórico de '+primeiroNome(ch2.nome)+' em dia.','ok'); return; }
     if((b=t.closest('[data-regen]'))){ var cr=S.model.clientes[b.dataset.regen]; regenerar(cr); abrirCliente(cr.chave); render(); return; }
     if((b=t.closest('[data-regenl]'))){ e.stopPropagation(); var crl=S.model.clientes[b.dataset.regenl]; regenerar(crl); var noMod=b.closest('#modal'); if(noMod&&S.pm&&S.pm.chave&&S.model.produtos[S.pm.chave]) abrirProduto(S.pm.chave); else render(); toast('Nova versão da mensagem de '+primeiroNome(crl.nome),'ok'); return; }
     if((b=t.closest('[data-regcel]'))){ var cr2=S.model.clientes[b.dataset.regcel], dt=prompt('Em que dia a loja mandou mensagem para '+cr2.nome+' pelo celular? (dd/mm/aaaa)',dBR(hoje())); if(!dt) return;
@@ -2101,6 +2223,7 @@ function bind(){
     else if(id==='limpar'){ if(confirm('Apagar os relatórios importados? (os códigos CRM e as linhas ficam guardados)')){ S.imports.forEach(function(im){ exclusaoPendente(im.id); }); await dbTx('imports',function(s){s.clear();}); agendarSync(); await recarregar(); render(); toast('Relatórios apagados.','ok'); } }
   });
   document.addEventListener('keydown',function(e){ var t=e.target;
+    if(e.key==='Enter'&&t.id==='notaTxt'){ e.preventDefault(); var bn=document.querySelector('[data-nota]'); if(bn) bn.click(); return; }
     if(e.key==='Enter'&&t.matches&&t.matches('input[data-codcli]')){ e.preventDefault(); salvarCodigo(t.dataset.codcli,t.value); return; }
     if(e.key==='Escape') $('#modal').classList.remove('on'); });
   document.addEventListener('change',function(e){ var t=e.target;
@@ -2143,7 +2266,7 @@ async function init(){
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'sugestoes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
-    setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__sugFoco=sugFoco;
+    setTimeout(enviarHist,5000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
