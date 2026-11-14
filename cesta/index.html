@@ -29,6 +29,9 @@ input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-r
 .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff8e6;border:1px solid #f1d58a;border-radius:10px;padding:8px 12px;margin:8px 0}
 .hperfil{background:#f6f8f4;border:1px solid #dfe6d8;border-radius:10px;padding:10px 12px;margin:6px 0 10px}.hperfil ul{margin:6px 0 4px 18px;padding:0}.hperfil li{margin:3px 0}.hnums{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.hnums span{background:#fff;border:1px solid #e3e3e3;border-radius:12px;padding:2px 9px;font-size:12px}.hnotas div{background:#fff8d6;border-radius:6px;padding:4px 8px;margin:3px 0;font-size:13px}.hnotas small{color:#777}.hnova{display:flex;gap:6px;margin-top:8px}.hnova input{flex:1}.hchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .htl{max-height:440px;overflow:auto;background:#ece5dd;border-radius:10px;padding:8px 10px;margin-bottom:6px}.hb{width:fit-content;max-width:78%;padding:6px 9px;border-radius:9px;margin:4px 0;font-size:13.5px;line-height:1.35;white-space:normal;word-wrap:break-word}.hb small{display:block;color:#888;font-size:11px;margin-top:2px}.hb.cli{background:#fff;margin-right:auto}.hb.loja{background:#dcf8c6;margin-left:auto}.hb.nota{background:#fff3b0;margin:6px auto;max-width:90%}.hdia{text-align:center;font-size:11px;color:#666;margin:10px 0 4px}.hcomp{width:fit-content;text-align:center;font-size:12px;background:#fff;border:1px dashed #b9c9a8;border-radius:8px;padding:3px 8px;margin:6px auto;max-width:85%}
+.hojegrid{display:grid;grid-template-columns:1.1fr 1fr;gap:18px}@media(max-width:1000px){.hojegrid{grid-template-columns:1fr}}.alerta{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-radius:10px;padding:10px 12px;margin:8px 0;border:1px solid #e3e3e3;background:#fff}.alerta.erro{background:#fdeceb;border-color:#f3b8b3}.alerta.aviso{background:#fff7e3;border-color:#f0d58c}.alerta.dica{background:#eef7ea;border-color:#c5e2b8}.alerta.info{background:#f2f4f7}
+.aviso{background:#fff7e3;border:1px solid #f0d58c;border-radius:8px;padding:8px 12px}.lembnovo{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.lembnovo input[type=text],.lembnovo input:not([type]){flex:1;min-width:220px}.lemb{background:#fff;border:1px solid #e6e6e6;border-radius:8px;padding:6px 8px;margin:5px 0;font-size:13.5px}.lemb.atras{border-color:#f3b8b3;background:#fdf3f2}.lemb.feito{color:#777;text-decoration:line-through;background:#f6f6f6}.lk{text-decoration:underline;cursor:pointer}
+.listasgrid{display:grid;grid-template-columns:280px 1fr;gap:18px}@media(max-width:1000px){.listasgrid{grid-template-columns:1fr}}.lista-it{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;cursor:pointer;border:1px solid transparent}.lista-it:hover{background:#f3f1ee}.lista-it.on{background:#fff;border-color:#ddd}.lista-it small{margin-left:auto;color:#777}.bol{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px}.campbox{background:#fff;border:1px solid #e3e3e3;border-radius:10px;padding:10px 12px;margin:10px 0}.campbox textarea{width:100%;box-sizing:border-box}.campbox pre{white-space:pre-wrap;background:#f6f8f4;padding:8px;border-radius:8px;font-family:inherit}.crmficha{background:#f7f5f2;border-radius:10px;padding:8px 10px;margin:8px 0}
 .rgl{padding:1px 7px!important;font-size:12px!important;margin-left:4px;vertical-align:middle}.msgcol{min-width:220px;max-width:340px}.msgcol .prev{display:block;color:#555;margin-top:3px;line-height:1.3}
 th.ord{cursor:pointer;user-select:none;white-space:nowrap}th.ord:hover{background:#f3eee6}th.ord.on{color:var(--red2)}
 .lacuna{margin:0 0 12px;line-height:1.5}
@@ -101,7 +104,7 @@ textarea.msg{width:100%;font:inherit;padding:10px;border:1px solid var(--line);b
 @media print{header,.filtros,.mais{display:none}}
 </style></head><body>
 <header><div class="logo">RG</div><div><h1>Cesta de Produtos por Cliente</h1><div class="per" id="periodo"></div></div><button id="syncst" class="syncst off">○ Nuvem</button>
-<nav class="tabs"><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="reconquista">Reconquista</button><button data-aba="clientes">Clientes</button><button data-aba="produtos">Produtos</button><button data-aba="kits">Kits</button><button data-aba="conversas">Conversas</button><button data-aba="painel">Painel</button><button data-aba="cadastro">Cadastro</button><button data-aba="conferencia">Conferência</button><button data-aba="importacoes">Importar e configurar</button></nav><div id="lojabar" class="lojabar"></div></header>
+<nav class="tabs"><button data-aba="hoje">Hoje</button><button data-aba="sugestoes">Sugestões</button><button data-aba="recompra">Recompra</button><button data-aba="reconquista">Reconquista</button><button data-aba="clientes">Clientes</button><button data-aba="listas">Listas</button><button data-aba="produtos">Produtos</button><button data-aba="kits">Kits</button><button data-aba="conversas">Conversas</button><button data-aba="painel">Painel</button><button data-aba="cadastro">Cadastro</button><button data-aba="conferencia">Conferência</button><button data-aba="importacoes">Importar e configurar</button></nav><div id="lojabar" class="lojabar"></div></header>
 <main id="main">Carregando…</main>
 <div id="modal"><div class="modal-c"></div></div><div id="toast" class="toast"></div>
 <script>/**
@@ -627,7 +630,7 @@ async function sincronizar(forcar){
     SY.ultima=new Date(); setSync('ok','Última sincronização: '+SY.ultima.toLocaleString('pt-BR'));
   }catch(e){ console.warn(e); setSync(e.offline?'offline':'erro',e.message); }
   finally{ SY.ocupado=false; }
-  if(mudou){ var vazio=!S.model; await recarregar(); if(vazio&&S.model&&S.aba==='importacoes') S.aba='sugestoes'; atualizarTela(); }
+  if(mudou){ var vazio=!S.model; await recarregar(); if(vazio&&S.model&&S.aba==='importacoes') S.aba='hoje'; atualizarTela(); }
   if(SY.estado==='ok'&&S.model&&S.crmSujo) await publicarCRM();
   abrirDeepLink();
   return mudou; }
@@ -760,8 +763,8 @@ function telaVinculos(){ var m=S.model, info=S.cfg.abcInfo, temAbc=!!(m.abcPorCo
   return h; }
 
 /* ---------- HISTÓRICO DE MENSAGENS (anti-duplicidade) ---------- */
-var REGRAS_PADRAO={diasCliente:7,diasProduto:7,ciclo:false,cicloMax:30};
-function regras(){ var r=S.cfg.regrasContato||{}; return {diasCliente:Math.max(7,+r.diasCliente>0?+r.diasCliente:REGRAS_PADRAO.diasCliente),diasProduto:+r.diasProduto>0?+r.diasProduto:REGRAS_PADRAO.diasProduto,ciclo:r.ciclo===true,cicloMax:+r.cicloMax>0?+r.cicloMax:REGRAS_PADRAO.cicloMax}; }
+var REGRAS_PADRAO={diasCliente:7,diasProduto:7,ciclo:false,cicloMax:30,diasPosCompra:3};
+function regras(){ var r=S.cfg.regrasContato||{}; return {diasCliente:Math.max(7,+r.diasCliente>0?+r.diasCliente:REGRAS_PADRAO.diasCliente),diasProduto:+r.diasProduto>0?+r.diasProduto:REGRAS_PADRAO.diasProduto,ciclo:r.ciclo===true,cicloMax:+r.cicloMax>0?+r.cicloMax:REGRAS_PADRAO.cicloMax,diasPosCompra:r.diasPosCompra!=null&&r.diasPosCompra!==''?Math.max(0,+r.diasPosCompra||0):REGRAS_PADRAO.diasPosCompra}; }
 /* quantos dias esperar depois de uma mensagem: nunca menos de 7 (a semana); se o cliente tem ciclo de compra maior, espera o ciclo (até o limite) */
 function esperaCliente(c,R){ R=R||regras(); var d=R.diasCliente, mot='mínimo de '+R.diasCliente+' dias';
   if(R.ciclo&&c&&c.intervaloMedio&&c.diasCompra&&c.diasCompra.length>=2){ var cc=Math.min(Math.round(c.intervaloMedio),R.cicloMax); if(cc>d){ d=cc; mot='ciclo de compra dele: a cada '+Math.round(c.intervaloMedio)+' dias'+(Math.round(c.intervaloMedio)>R.cicloMax?' (limitado a '+R.cicloMax+')':''); } }
@@ -776,8 +779,10 @@ function indexarContatos(){ var idx={}; (S.contatos||[]).forEach(function(r){ if
 function contatosDe(c){ var vis={}, out=[]; chavesContato(c).forEach(function(k){ (S.contatosIdx&&S.contatosIdx[k]||[]).forEach(function(r){ if(!vis[r.id]){ vis[r.id]=1; out.push(r); } }); }); return out.sort(function(a,b){return a.em<b.em?1:-1;}); }
 function estadoContato(c){ var R=regras(), hs=contatosDe(c), ult=hs.filter(function(r){ return !r.semTrava; })[0]||null, h=hoje(), recentes={};
   hs.forEach(function(r){ if(!r.semTrava&&dias(r.dia,h)<R.diasProduto) (r.produtos||[]).forEach(function(p){ recentes[corte(p)]=r.dia; }); });
-  var esp=esperaCliente(c,R), liberaEm=ult?addDias(ult.dia,esp.dias):null;
-  return {historico:hs,ultimo:ult,diasDesde:ult?dias(ult.dia,h):null,bloqueado:!!(ult&&liberaEm>h),liberaEm:liberaEm,espera:esp,produtosRecentes:recentes}; }
+  var esp=esperaCliente(c,R), liberaEm=ult?addDias(ult.dia,esp.dias):null, bloq=!!(ult&&liberaEm>h), comprou=null;
+  /* acabou de comprar: não manda mensagem normal nos dias seguintes à compra */
+  if(R.diasPosCompra&&c.ultimaCompra){ var lc=addDias(c.ultimaCompra,R.diasPosCompra); if(lc>h){ comprou=c.ultimaCompra; if(!bloq||lc>liberaEm){ liberaEm=lc; esp={dias:R.diasPosCompra,motivo:'comprou em '+dBR(c.ultimaCompra)+' — espera '+R.diasPosCompra+' dia(s) depois da compra'}; } bloq=true; } }
+  return {historico:hs,ultimo:ult,diasDesde:ult?dias(ult.dia,h):null,bloqueado:bloq,liberaEm:liberaEm,espera:esp,produtosRecentes:recentes,comprouRecente:comprou}; }
 function txtUltimo(e){ if(!e.ultimo) return ''; var u=e.ultimo; return dBR(u.dia)+' ('+(e.diasDesde===0?'hoje':e.diasDesde===1?'ontem':'há '+e.diasDesde+'d')+')'+(u.por?' · '+u.por:'')+(u.canal&&u.canal!=='cesta'?' · '+u.canal.toUpperCase():''); }
 async function checarRemoto(c){ if(!syncAtivo()) return null; try{ var ks=chavesContato(c), best=null;
     for(var i=0;i<ks.length;i++){ var r=await fb('GET','contatos_ult/'+ks[i]); if(r&&r.em&&(!best||r.em>best.em)) best=r; } return best; }catch(e){ return null; } }
@@ -786,6 +791,7 @@ async function podeEnviar(c,promo){ var R=regras(), e=estadoContato(c);
   if(atendPendente(c.loja)){ abrirAtendentes('Escolha quem está enviando pela loja '+tituloProd(c.loja)+' neste computador — o nome vai na mensagem.'); return false; }
   if(optout(c)){ alert(c.nome+' pediu para não receber mensagens (SAIR). Para voltar a enviar, desmarque na ficha do cliente.'); return false; }
   if(soPromo(c)&&!promo){ alert(c.nome+' pediu para receber SÓ PROMOÇÕES. Ele só entra em campanhas de promoção (aba Kits).'); return false; }
+  if(e.bloqueado&&e.comprouRecente&&!promo&&!(e.ultimo&&addDias(e.ultimo.dia,esperaCliente(c,R).dias)>hoje())){ alert(c.nome+' comprou em '+dBR(e.comprouRecente)+'. Mensagem normal só a partir de '+dBR(e.liberaEm)+' ('+R.diasPosCompra+' dia(s) depois da compra).'); return false; }
   if(e.bloqueado){ alert(c.nome+' já recebeu mensagem em '+txtUltimo(e)+'.\nNão repetimos mensagem para o mesmo cliente: a próxima fica liberada em '+dBR(e.liberaEm)+' ('+e.espera.motivo+').'); return false; }
   var rm=await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<R.diasCliente&&!(e.ultimo&&e.ultimo.em>=rm.em))
     { alert(c.nome+' recebeu mensagem agora há pouco por outro computador ('+(rm.por||'?')+', '+new Date(rm.em).toLocaleString('pt-BR')+'). Não vamos repetir.'); return false; }
@@ -916,6 +922,98 @@ async function travarNomeProduto(chave,daLista){ var p=S.model.produtos[chave]; 
   v=v.trim().toUpperCase(); if(!v||v===rgNorm(p.nomeRel).toUpperCase()&&v===p.nomeRel) delete NP[p.cod]; else NP[p.cod]=v;
   S.cfg.nomesProd=NP; await salvarCfg('nomesProd',NP); S.model=construirModelo(S.imports); limparSugestoes(); render(); if(!daLista) abrirProduto(chave);
   toast(NP[p.cod]?'Nome travado: '+tituloProd(v)+' (código '+p.cod+').':'O código '+p.cod+' volta a usar o nome do relatório.','ok'); }
+/* =================== CRM: listas (segmentos manuais), lembretes e alertas ===================
+   nuvem: seg/{id} = {nome,cor,desc,criadoEm,por, c:{C_código:{n:nome,em,por}}}
+          lemb/{id} = {data,hora,txt,K,nome,loja,por,criadoEm,feito,feitoEm,feitoPor}
+   cópia local em localStorage para abrir sem internet */
+var CRM={seg:{},lemb:{},lido:false};
+try{ CRM.seg=JSON.parse(localStorage.getItem('cesta_seg')||'{}')||{}; CRM.lemb=JSON.parse(localStorage.getItem('cesta_lemb')||'{}')||{}; }catch(e){}
+var CORES_SEG=['#8e1b1b','#1f6f43','#1d4f91','#a0522d','#6b3fa0','#b8860b','#2f6f73','#555'];
+function crmGuardar(){ try{ localStorage.setItem('cesta_seg',JSON.stringify(CRM.seg)); localStorage.setItem('cesta_lemb',JSON.stringify(CRM.lemb)); }catch(e){} }
+async function crmLer(){ if(!syncAtivo()) return; try{ var s=await fb('GET','seg')||{}, l=await fb('GET','lemb')||{};
+    var mud=JSON.stringify(s)!==JSON.stringify(CRM.seg)||JSON.stringify(l)!==JSON.stringify(CRM.lemb); CRM.seg=s; CRM.lemb=l; CRM.lido=true; crmGuardar();
+    if(mud&&/hoje|listas|clientes/.test(S.aba)&&!document.querySelector('#modal.on')) render(); atualizarAbasCRM(); }catch(e){} }
+async function crmGravar(no,id,val){ crmGuardar(); if(!syncAtivo()) return; try{ if(val===null) await fb('DELETE',no+'/'+id); else await fb('PATCH',no+'/'+id,val); }catch(e){ toast('Sem conexão: ficou guardado aqui e sobe quando a internet voltar.','erro'); CRM.pend=true; } }
+function quemSou(loja){ return atendenteDe(loja||S.loja||'CORONEL')||(S.sync&&S.sync.computador)||''; }
+function clientePorK(K){ var m=S.model; if(!m) return null; if(!S._porK||S._porKM!==m){ S._porK={}; m.lista.forEach(function(c){ S._porK[histK(c)]=c; }); S._porKM=m; } return S._porK[K]||null; }
+function listasDe(c){ var K=histK(c); return Object.keys(CRM.seg).filter(function(id){ var s=CRM.seg[id]; return s&&s.c&&s.c[K]; }); }
+function membros(id){ var s=CRM.seg[id]; if(!s||!s.c) return []; return Object.keys(s.c).map(clientePorK).filter(Boolean); }
+async function novaLista(nome,desc){ nome=String(nome||'').trim(); if(!nome) return null; var id='S'+Date.now().toString(36);
+  CRM.seg[id]={nome:nome,desc:desc||'',cor:CORES_SEG[Object.keys(CRM.seg).length%CORES_SEG.length],criadoEm:new Date().toISOString(),por:quemSou()}; await crmGravar('seg',id,CRM.seg[id]); return id; }
+async function porNaLista(id,clientes){ var s=CRM.seg[id]; if(!s) return 0; s.c=s.c||{}; var add={}, n=0, por=quemSou();
+  clientes.forEach(function(c){ var K=histK(c); if(s.c[K]) return; add[K]={n:c.nome,em:new Date().toISOString(),por:por}; s.c[K]=add[K]; n++; });
+  crmGuardar(); if(n&&syncAtivo()){ try{ await fb('PATCH','seg/'+id+'/c',add); }catch(e){ CRM.pend=true; } } return n; }
+async function tirarDaLista(id,c){ var s=CRM.seg[id]; if(!s||!s.c) return; var K=histK(c); delete s.c[K]; crmGuardar(); if(syncAtivo()){ try{ await fb('DELETE','seg/'+id+'/c/'+K); }catch(e){} } }
+async function novoLembrete(o){ var id='L'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
+  CRM.lemb[id]=Object.assign({criadoEm:new Date().toISOString(),por:quemSou(o.loja),feito:false},o); await crmGravar('lemb',id,CRM.lemb[id]); atualizarAbasCRM(); return id; }
+function lembretesAbertos(){ var l=S.loja; return Object.keys(CRM.lemb).map(function(id){ return Object.assign({id:id},CRM.lemb[id]); }).filter(function(x){ return x&&!x.feito&&(!l||!x.loja||x.loja===l); }).sort(function(a,b){ return (a.data+(a.hora||''))<(b.data+(b.hora||''))?-1:1; }); }
+function nLembretesHoje(){ var h=hoje(); return lembretesAbertos().filter(function(x){ return x.data<=h; }).length; }
+function atualizarAbasCRM(){ var b=document.querySelector('.tabs button[data-aba=hoje]'); if(!b||!S.model) return; var n=nLembretesHoje()+alertas().filter(function(a){return a.nivel==='alto';}).length; b.innerHTML='Hoje'+(n?' <span class="badge">'+n+'</span>':''); }
+/* ---------- ALERTAS automáticos ---------- */
+function ultimaImportacao(){ var u=null; (S.imports||[]).forEach(function(i){ if(!u||i.importadoEm>u.importadoEm) u=i; }); return u; }
+function alertas(){ var m=S.model, out=[], h=hoje(), L=S.loja, ag=new Date(), hr=ag.getHours(); if(!m) return out;
+  var noL=function(c){ return !L||c.loja===L; };
+  var ui=ultimaImportacao(), diaImp=ui?new Date(ui.importadoEm).toLocaleDateString('sv-SE'):'';
+  if(!ui||diaImp<h) out.push({nivel:'alto',ic:'📥',tit:'Vendas de hoje ainda não importadas',txt:'Última importação: '+(ui?new Date(ui.importadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' (vendas até '+dBR(ui.periodoFim)+')':'nenhuma')+'. Sem isso, quem comprou depois ainda aparece para receber mensagem.',acao:'<button class="btn mini" data-ir="importacoes">Importar relatório</button>'});
+  else if(hr>=15&&ui&&new Date(ui.importadoEm).getHours()<12) out.push({nivel:'medio',ic:'📥',tit:'Atualize o relatório da tarde',txt:'A base é da manhã ('+new Date(ui.importadoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'). Antes de enviar à tarde, importe de novo para não mandar mensagem a quem comprou hoje.',acao:'<button class="btn sec mini" data-ir="importacoes">Importar</button>'});
+  var nn=nConversasNovas(); if(nn) out.push({nivel:'alto',ic:'💬',tit:nn+' cliente(s) responderam e ninguém viu',txt:'Responder rápido é o que mais vira venda.',acao:'<button class="btn mini" data-ir="conversas">Abrir conversas</button>'});
+  var lh=lembretesAbertos().filter(function(x){ return x.data<h; }); if(lh.length) out.push({nivel:'alto',ic:'⏰',tit:lh.length+' lembrete(s) atrasado(s)',txt:lh.slice(0,3).map(function(x){ return (x.nome?x.nome+': ':'')+x.txt; }).join(' · '),acao:''});
+  var lista=function(arr){ return arr.slice(0,8).map(function(c){ return '<span class="mchip click" data-cli="'+esc(c.chave)+'">'+esc(c.nome)+' · '+c.recencia+'d</span>'; }).join(''); };
+  var vip=m.lista.filter(function(c){ return noL(c)&&/VIP|Frequente/.test(c.perfil)&&c.intervaloMedio&&c.recencia>Math.max(14,c.intervaloMedio*1.6)&&c.recencia<=120&&!optout(c)&&!estadoContato(c).bloqueado; }).sort(function(a,b){ return b.total-a.total; });
+  if(vip.length) out.push({nivel:'medio',ic:'⭐',tit:vip.length+' cliente(s) VIP/frequentes passando do tempo de compra',txt:'Compravam com frequência e já passaram bem do ritmo deles. Vale uma mensagem pessoal ou ligação.',lista:lista(vip),acao:'<button class="btn sec mini" data-alertalista="vip">🏷 Pôr numa lista</button>',grupo:vip});
+  var novos=m.lista.filter(function(c){ return noL(c)&&c.nCompras===1&&dias(c.primeiraCompra,h)<=5&&foneWa(c.celular)&&!contatosDe(c).length&&!optout(c); });
+  if(novos.length) out.push({nivel:'medio',ic:'🆕',tit:novos.length+' cliente(s) novo(s) sem boas-vindas',txt:'Compraram pela primeira vez nos últimos 5 dias. Uma mensagem de boas-vindas faz voltar.',lista:lista(novos),acao:'<button class="btn sec mini" data-alertalista="novos">🏷 Pôr numa lista</button>',grupo:novos});
+  if(hr>=14) LOJAS_ENVIO.forEach(function(l){ if(L&&l!==L) return; var e=enviadasHoje(l), mt=metaDia(l); if(mt&&e<mt*0.5) out.push({nivel:'medio',ic:'📉',tit:tituloProd(l)+': '+e+' de '+mt+' mensagens hoje',txt:'A meta do dia está abaixo da metade.',acao:'<button class="btn sec mini" data-ir="sugestoes">Ver sugestões</button>'}); });
+  // conversões: responderam ou compraram até 7 dias depois da mensagem (bom sinal)
+  var conv=(S.contatos||[]).filter(function(r){ return !r.excluido&&r.dia>=addDias(h,-7)&&/uazapi/.test(r.tipo||'')&&r.tipo!=='uazapi-celular'; }), idx=null, comp=0;
+  conv.forEach(function(r){ idx=idx||indiceClientesContato(); var c=clienteDoContato(r,idx); if(c&&noL(c)&&c.ultimaCompra>=r.dia) comp++; });
+  if(comp) out.push({nivel:'bom',ic:'🛒',tit:comp+' cliente(s) compraram depois da mensagem (7 dias)',txt:'Veja quais mensagens funcionaram no Painel.',acao:'<button class="btn sec mini" data-ir="painel">Painel</button>'});
+  var sair=(S.contatos||[]).filter(function(r){ return !r.excluido&&r.sair&&String(r.sair.em||r.atu||'').slice(0,10)===h; }).length; if(sair) out.push({nivel:'info',ic:'🚫',tit:sair+' pediram SAIR hoje',txt:'Já saíram das listas de envio automaticamente.',acao:''});
+  return out; }
+/* ---------- tela HOJE ---------- */
+function telaHoje(){ var h=hoje(), A=alertas(), Ls=lembretesAbertos(), atras=Ls.filter(function(x){return x.data<h;}), hj=Ls.filter(function(x){return x.data===h;}), prox=Ls.filter(function(x){return x.data>h;}).slice(0,15);
+  var feitos=Object.keys(CRM.lemb).map(function(id){ return Object.assign({id:id},CRM.lemb[id]); }).filter(function(x){ return x.feito&&String(x.feitoEm||'').slice(0,10)===h&&(!S.loja||!x.loja||x.loja===S.loja); });
+  var cor={alto:'erro',medio:'aviso',bom:'dica',info:'info'};
+  var lin=function(x){ var c=x.K?clientePorK(x.K):null; return '<div class="lemb'+(x.data<h?' atras':'')+'"><button class="btn sec mini" data-lembok="'+x.id+'" title="Marcar como feito">✔</button> <b>'+(x.data===h?(x.hora||'hoje'):dBR(x.data)+(x.hora?' '+x.hora:''))+'</b> · '+esc(x.txt)+(c?' · <span class="click lk" data-cli="'+esc(c.chave)+'">'+esc(c.nome)+'</span>'+(c.celular?' <small>📱 '+esc(foneFmt(c.celular))+'</small>':''):x.nome?' · '+esc(x.nome):'')+' <small class="nota">'+esc(x.loja?tituloProd(x.loja):'todas')+(x.por?' · '+esc(x.por):'')+'</small> <button class="btn sec mini" data-lembadiar="'+x.id+'" title="Passar para amanhã">+1 dia</button> <button class="btn sec mini" data-lembdel="'+x.id+'" title="Apagar">✕</button></div>'; };
+  return '<div class="hojegrid"><div><h3>🔔 Alertas</h3>'+(A.length?A.map(function(a){ return '<div class="alerta '+(cor[a.nivel]||'info')+'"><div><b>'+a.ic+' '+esc(a.tit)+'</b><br><small>'+esc(a.txt)+'</small>'+(a.lista?'<div class="afins" style="margin-top:6px">'+a.lista+'</div>':'')+'</div><div>'+(a.acao||'')+'</div></div>'; }).join(''):'<div class="dica">Tudo em dia por aqui. ✔</div>')+'</div>'+
+    '<div><h3>⏰ Lembretes</h3><div class="lembnovo"><input id="lbTxt" placeholder="Lembrete (ex.: ligar para fornecedor, montar kit de Natal, conferir encomenda)…"><input id="lbData" type="date" value="'+h+'"><input id="lbHora" type="time"><select id="lbLoja"><option value="">Todas as lojas</option>'+LOJAS_ENVIO.map(function(l){ return '<option value="'+l+'"'+(S.loja===l?' selected':'')+'>'+esc(tituloProd(l))+'</option>'; }).join('')+'</select><button class="btn" id="lbSalvar">Adicionar</button></div>'+
+      '<p class="nota">Lembrete de cliente: abra a ficha dele e use "⏰ Lembrete". Tudo fica salvo na nuvem para as três lojas.</p>'+
+      (atras.length?'<h4>Atrasados</h4>'+atras.map(lin).join(''):'')+'<h4>Hoje</h4>'+(hj.length?hj.map(lin).join(''):'<div class="vazio">Nada para hoje.</div>')+(prox.length?'<h4>Próximos</h4>'+prox.map(lin).join(''):'')+
+      (feitos.length?'<h4>Feitos hoje</h4>'+feitos.map(function(x){ return '<div class="lemb feito">✔ '+esc(x.txt)+(x.nome?' · '+esc(x.nome):'')+' <small class="nota">'+esc(x.feitoPor||'')+'</small></div>'; }).join(''):'')+'</div></div>'; }
+/* ---------- tela LISTAS (segmentos manuais) + campanha de texto ---------- */
+var CAMP_PADRAO='{saudacao}, {nome}! {quem} Rei do Gado {loja} 😊 ';
+function sgLista(c,id,cfg){ var at=atendenteDe(c.loja), h=new Date().getHours(), s=CRM.seg[id]||{};
+  var v={nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),atendente:at||'o pessoal',quem:at?'Aqui é '+at+', do':'Aqui é o pessoal do',saudacao:h<12?'Bom dia':h<18?'Boa tarde':'Boa noite',fav:tituloProd((c.cestaArr[0]||{}).produto||'')};
+  var ts=String(cfg.texto||'').split(/\n\s*---\s*\n/).map(function(x){return x.trim();}).filter(Boolean); if(!ts.length) ts=['[escreva a mensagem]'];
+  var i=(hashN(c.chave+'|'+id+'|'+hoje())+((S.regen&&S.regen[c.chave])||0))%ts.length, txt=ts[i].replace(/\{(\w+)\}/g,function(a,x){ return v[x]!=null?v[x]:a; });
+  if(bib().sair) txt+='\n'+linhaSair(c.chave+'|'+id);
+  var r={mensagem:txt,situacao:'lista',variante:'lista:'+id+':'+i,vh:'lista|'+hashN(ts[i]),ofertas:[],novidades:[],atendente:at,produtos:[s.nome||'lista'],campanha:'lista:'+id};
+  if(cfg.promo){ r.promo=true; r.semTrava=true; r.campanhaDias=1; }
+  if(cfg.img&&kitImg(cfg.img)) r.midia={type:'image',file:kitImg(cfg.img)};
+  return r; }
+function telaListas(){ var ids=Object.keys(CRM.seg).filter(function(id){return CRM.seg[id];}).sort(function(a,b){ return (CRM.seg[a].nome||'').localeCompare(CRM.seg[b].nome||''); }), at=S.listaAt&&CRM.seg[S.listaAt]?S.listaAt:ids[0];
+  var esq='<div class="listas"><h3>🏷 Listas</h3>'+ids.map(function(id){ var s=CRM.seg[id], n=Object.keys(s.c||{}).length; return '<div class="lista-it'+(id===at?' on':'')+'" data-lista="'+id+'"><span class="bol" style="background:'+esc(s.cor||'#888')+'"></span><b>'+esc(s.nome)+'</b><small>'+n+'</small></div>'; }).join('')+
+    '<div class="lembnovo" style="margin-top:10px"><input id="lsNome" placeholder="Nova lista (ex.: Churrasqueiros de sábado, Clientes do condomínio, Aniversário em dezembro)"><button class="btn mini" id="lsCriar">Criar</button></div>'+
+    '<p class="nota">Monte listas do seu jeito: pela ficha do cliente (🏷), pela aba Clientes ("Pôr os filtrados numa lista") ou buscando aqui. Depois mande uma campanha só para ela.</p></div>';
+  if(!at) return '<div class="listasgrid">'+esq+'<div><div class="vazio">Crie a primeira lista ao lado.</div></div></div>';
+  S.listaAt=at; var s=CRM.seg[at], ms=membros(at).filter(function(c){ return !S.loja||c.loja===S.loja; }).sort(function(a,b){ return a.nome.localeCompare(b.nome); }), cf=(S.campLista&&S.campLista[at])||{texto:CAMP_PADRAO,promo:false,img:''};
+  var ctx='lista:'+at, ex=ms.filter(function(c){ return foneWa(c.celular); })[0], fn=function(c){ return sgLista(c,at,cf); };
+  var dir='<div><div class="lista-h"><h2><span class="bol" style="background:'+esc(s.cor)+'"></span>'+esc(s.nome)+'</h2><small class="nota">'+ms.length+' cliente(s)'+(S.loja?' da loja '+esc(tituloProd(S.loja)):'')+' · criada por '+esc(s.por||'?')+' em '+dBR(String(s.criadoEm||'').slice(0,10))+'</small> <button class="btn sec mini" data-lsrenom="'+at+'">Renomear</button> <button class="btn sec mini" data-lsdel="'+at+'">Apagar lista</button></div>'+
+    '<div class="lembnovo"><input id="lsBusca" list="dlcli" placeholder="Adicionar cliente: nome, código ou celular…"><datalist id="dlcli">'+(S.model.lista.length<6000?S.model.lista.filter(function(c){return !S.loja||c.loja===S.loja;}).slice(0,4000).map(function(c){ return '<option value="'+esc(c.nome+' · '+(c.codigo||''))+'">'; }).join(''):'')+'</datalist><button class="btn mini" id="lsAdd">Adicionar</button></div>'+
+    '<div class="campbox"><h3>📣 Campanha para esta lista</h3><textarea id="lsTexto" rows="4">'+esc(cf.texto)+'</textarea>'+
+    '<small class="nota">Campos: {saudacao} {nome} {quem} {loja} {atendente} {fav} (produto que ele mais leva). Para variar o texto entre os clientes, separe versões com uma linha só com ---. A linha do SAIR entra sozinha.</small>'+
+    '<div class="filtros"><label class="chk"><input type="checkbox" id="lsPromo"'+(cf.promo?' checked':'')+'> é promoção (vai também para quem recebeu mensagem esta semana)</label>'+(kits().length?'<select id="lsImg"><option value="">Sem foto</option>'+kits().filter(function(k){return kitImg(k.id);}).map(function(k){ return '<option value="'+k.id+'"'+(cf.img===k.id?' selected':'')+'>📷 foto do kit '+esc(k.nome)+'</option>'; }).join('')+'</select>':'')+'<button class="btn sec mini" id="lsPrev">Atualizar prévia</button></div>'+
+    (ex?'<div class="prev"><small class="nota">Prévia para '+esc(ex.nome)+':</small><pre>'+esc(fn(ex).mensagem)+'</pre></div>':'')+'</div>'+
+    barraSel(ctx,ms.filter(function(c){ return elegivel(c,!!cf.promo); }).length)+
+    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th>Loja</th><th>Perfil</th><th class="r">Dias s/ comprar</th><th>Última mensagem</th><th>Outras listas</th><th></th></tr></thead><tbody>'+
+    ms.map(function(c){ var e=estadoContato(c), outras=listasDe(c).filter(function(x){return x!==at;}); return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.celular?'<small class="cod">📱 '+esc(foneFmt(c.celular))+'</small>':'<small class="cod warn">sem celular</small>')+'</td><td>'+esc(tituloProd(c.loja))+'</td><td>'+tag(c.perfil)+'</td><td class="r">'+c.recencia+'</td><td>'+(e.ultimo?esc(txtUltimo(e)):'—')+(optout(c)?' <span class="pill late">SAIR</span>':'')+'</td><td>'+outras.map(function(x){ return '<span class="pill" style="border-color:'+esc(CRM.seg[x].cor)+'">'+esc(CRM.seg[x].nome)+'</span>'; }).join(' ')+'</td><td><button class="btn sec mini" data-lstirar="'+esc(c.chave)+'" title="Tirar da lista">✕</button></td></tr>'; }).join('')+'</tbody></table></div></div>';
+  return '<div class="listasgrid">'+esq+dir+'</div>'; }
+/* ficha do cliente: listas e lembretes */
+function blocoCRMFicha(c){ var ids=Object.keys(CRM.seg).filter(function(id){return CRM.seg[id];}), K=histK(c), noC=listasDe(c);
+  var lb=Object.keys(CRM.lemb).map(function(id){ return Object.assign({id:id},CRM.lemb[id]); }).filter(function(x){ return x.K===K&&!x.feito; });
+  return '<div class="crmficha"><div><b>🏷 Listas:</b> '+ids.map(function(id){ var s=CRM.seg[id], on=noC.indexOf(id)>=0; return '<button class="btn mini '+(on?'':'sec')+'" data-lstog="'+id+'" data-c="'+esc(c.chave)+'" style="'+(on?'background:'+esc(s.cor)+';border-color:'+esc(s.cor):'')+'">'+(on?'✔ ':'+ ')+esc(s.nome)+'</button>'; }).join(' ')+' <button class="btn sec mini" data-lsnova="'+esc(c.chave)+'">+ nova lista</button></div>'+
+    '<div style="margin-top:8px"><b>⏰ Lembretes:</b> '+lb.map(function(x){ return '<span class="pill">'+dBR(x.data)+(x.hora?' '+x.hora:'')+' · '+esc(x.txt)+' <a href="#" data-lembok="'+x.id+'">✔</a></span>'; }).join(' ')+
+    '<div class="lembnovo"><input id="lbcTxt" placeholder="Ex.: ligar para oferecer costela para o aniversário dele"><input id="lbcData" type="date" value="'+addDias(hoje(),1)+'"><input id="lbcHora" type="time"><button class="btn mini" data-lembcli="'+esc(c.chave)+'">Agendar</button></div></div></div>'; }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
 async function enviarContato(c,msg,sg){ /* desativado: todo envio é pela Uazapi */ toast('O envio é só pela Uazapi.','erro'); return false; if(!(await podeEnviar(c))) return false; await registrarContato(c,'whatsapp',msg,null,sg); return true; }
@@ -924,7 +1022,7 @@ function blocoHistorico(c){ var e=estadoContato(c), R=regras();
   return '<h3>Mensagens enviadas ('+e.historico.length+')</h3>'+(e.historico.length?'<div class="tw"><table class="tbl mini"><thead><tr><th>Quando</th><th>Por</th><th>Canal</th><th>Produtos oferecidos</th><th>Resposta do cliente</th><th></th></tr></thead><tbody>'+
     e.historico.map(function(r){ return '<tr><td>'+new Date(r.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td><td>'+esc(r.por||'—')+'</td><td>'+esc(canalDe(r))+(r.envioLoja?'<br><small>nº '+esc(tituloProd(r.envioLoja))+'</small>':'')+'</td><td><small>'+esc((r.produtos||[]).map(tituloProd).join(', '))+'</small><details class="vermsg"><summary>ver mensagem</summary><pre>'+esc(r.msg||'')+'</pre></details></td><td>'+(r.resp?'<small'+(r.sair?' class="warn"':'')+'>💬 '+esc(r.resp.txt||'(mídia)')+' <span class="cod">'+new Date(r.resp.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span></small>':(/uazapi/.test(r.tipo||'')?'<small class="vazio">'+(r.respChk?'sem resposta':'aguardando leitura')+'</small>':'<small class="vazio">—</small>'))+'</td><td><button class="btn sec mini perigo" data-exccont="'+esc(r.id)+'" title="Registro errado? Excluir">✕</button></td></tr>'; }).join('')+'</tbody></table></div>':'<p class="vazio">Nenhuma mensagem registrada.</p>')+
     '<p class="nota">Regras: no máximo 1 mensagem a cada '+R.diasCliente+' dias por cliente; um corte oferecido (ex.: patinho, em qualquer versão) não volta a ser oferecido por '+R.diasProduto+' dias.</p>'; }
-function avisoContato(c){ var e=estadoContato(c); if(!e.ultimo) return '';
+function avisoContato(c){ var e=estadoContato(c); if(e.comprouRecente) return '<div class="erro" style="margin:0 0 10px">🛒 <b>Comprou em '+dBR(e.comprouRecente)+'.</b> Mensagem normal liberada em <b>'+dBR(e.liberaEm)+'</b> (regra: esperar '+regras().diasPosCompra+' dia(s) depois da compra). Promoções e conversas continuam livres.'+(e.ultimo?' Última mensagem: '+esc(txtUltimo(e))+'.':'')+'</div>'; if(!e.ultimo) return '';
   return '<div class="'+(e.bloqueado?'erro':'dica')+'" style="margin:0 0 10px">'+(e.bloqueado?'⛔ <b>Já recebeu mensagem</b> em '+esc(txtUltimo(e))+'. Próxima mensagem liberada em <b>'+dBR(e.liberaEm)+'</b>.':'✔ Última mensagem em '+esc(txtUltimo(e))+'. Liberado para nova mensagem.')+
     (Object.keys(e.produtosRecentes).length?' Os cortes já oferecidos nessa janela ('+Object.keys(e.produtosRecentes).map(tituloProd).join(', ')+') ficam fora da sugestão.':'')+'</div>'; }
 function abrirRegras(){ var R=regras();
@@ -932,7 +1030,8 @@ function abrirRegras(){ var R=regras();
     '<div class="sgrid"><label>Intervalo mínimo entre mensagens para o mesmo cliente (dias — nunca menos de 7)<input id="rgCli" type="number" min="7" max="90" value="'+R.diasCliente+'"></label>'+
     '<label>Não repetir o mesmo produto para o mesmo cliente por (dias)<input id="rgProd" type="number" min="1" max="90" value="'+R.diasProduto+'"></label></div>'+
     '<label class="chk" style="margin-top:10px"><input type="checkbox" id="rgCiclo" '+(R.ciclo?'checked':'')+'> respeitar o ciclo de compra do cliente: se ele compra a cada 20 dias, a próxima mensagem só sai 20 dias depois da última</label>'+
-    '<div class="sgrid"><label>Limite de espera pelo ciclo (dias)<input id="rgCicloMax" type="number" min="7" max="90" value="'+R.cicloMax+'"></label></div>'+
+    '<div class="sgrid"><label>Limite de espera pelo ciclo (dias)<input id="rgCicloMax" type="number" min="7" max="90" value="'+R.cicloMax+'"></label>'+
+    '<label>Depois que o cliente COMPRA, esperar (dias) antes de mandar mensagem normal<input id="rgPos" type="number" min="0" max="30" value="'+R.diasPosCompra+'"></label></div>'+
     '<p class="nota">Promoções (kits marcados como promoção) e Reconquista não esperam a regra: vão também para quem recebeu mensagem na semana. Só não vão para quem pediu SAIR.</p>'+
     '<h4>Meta de mensagens por dia</h4><div class="sgrid">'+LOJAS_ENVIO.map(function(l){ return '<label>'+esc(tituloProd(l))+'<input type="number" min="0" max="500" data-meta="'+l+'" value="'+metaDia(l)+'"></label>'; }).join('')+'</div>'+
     '<div class="filtros"><button class="btn" id="salvarRegras">Salvar regras</button></div>';
@@ -1541,8 +1640,8 @@ function sgDoModal(c){ var f=S.focoModal; if(!f&&c.recencia>90) return sgReconq(
 /* ---------- SELEÇÃO DE CLIENTES PARA ENVIO ---------- */
 function selCtx(ctx){ if(!S.sel||S.sel.ctx!==ctx) S.sel={ctx:ctx,itens:{}}; return S.sel; }
 function selN(){ return S.sel?Object.keys(S.sel.itens).length:0; }
-function ctxPromo(ctx){ if(ctx==='reconq') return true; if(!ctx||ctx.indexOf('kit:')!==0) return false; var k=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return !!(k&&k.promo!==false); }
-function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(it&&(it.prod||'')===(prod||'')), e=estadoContato(c), pr=ctxPromo(ctx), ok=elegivel(c,pr)&&!(ctx.indexOf('kit:')===0&&jaRecebeuCampanha(c,ctx,1));
+function ctxPromo(ctx){ if(ctx==='reconq') return true; if(ctx&&ctx.indexOf('lista:')===0) return !!(((S.campLista||{})[ctx.slice(6)]||{}).promo); if(!ctx||ctx.indexOf('kit:')!==0) return false; var k=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return !!(k&&k.promo!==false); }
+function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(it&&(it.prod||'')===(prod||'')), e=estadoContato(c), pr=ctxPromo(ctx), ok=elegivel(c,pr)&&!((ctx.indexOf('kit:')===0||(pr&&ctx.indexOf('lista:')===0))&&jaRecebeuCampanha(c,ctx,1));
   if(!ok&&on) delete s.itens[c.chave], on=false;
   return '<input type="checkbox" class="selcli" data-sel="'+esc(c.chave)+'" data-ctx="'+esc(ctx)+'"'+(prod?' data-selprod="'+esc(prod)+'" data-selmodo="'+esc(modo)+'"':'')+(on?' checked':'')+(ok?'':' disabled')+
     ' title="'+(ok?'Marcar para enviar':optout(c)?'Pediu SAIR — não recebe mensagens':(soPromo(c)&&!pr)?'Só promoções — entra apenas em campanha de promoção':!foneWa(c.celular)?'Sem celular':'Já recebeu mensagem — liberado em '+dBR(e.liberaEm)+' ('+e.espera.motivo+')')+'">'; }
@@ -1559,6 +1658,7 @@ function itensCtx(ctx){
   if(ctx==='cli') return filtrarClientes().map(function(c){ return {c:c}; });
   if(ctx==='reconq') return filtrarReconq().filter(function(c){ return !jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ); }).map(function(c){ return {c:c,prod:'x',modo:'reconq'}; });
   if(ctx.indexOf('kit:')===0){ var kx=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return kx?publicoKit(kx,S.kc||{}).map(function(c){ return {c:c}; }):[]; }
+  if(ctx.indexOf('lista:')===0) return membros(ctx.slice(6)).filter(function(c){ return !S.loja||c.loja===S.loja; }).map(function(c){ return {c:c}; });
   if(ctx==='rec') return filtrarRecompra().map(function(x){ return {c:x.c,prod:x.e.chave,modo:'recompra'}; });
   if(ctx.indexOf('prod:')===0){ var ch=ctx.slice(5); return clientesDoProduto(ch).map(function(y){ return {c:y.c,prod:ch,modo:'produto'}; }); }
   return []; }
@@ -1568,6 +1668,7 @@ async function enviarMarcados(ctx){ var s=selCtx(ctx), its=s.itens, m=S.model;
   if(ctx==='reconq'){ if(!rqCfg().oferta){ toast('Defina a oferta da reconquista e salve a campanha antes de enviar.','erro'); return; } await loteUazapi(lista,sgReconq); }
   else if(ctx.indexOf('kit:')===0){ var kk=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; if(!kk){ toast('Kit não encontrado.','erro'); return; } if(!kitImg(kk.id)){ toast('Esse kit está sem foto.','erro'); return; }
     if($('#kleg')&&S.kc) S.kc.legendas=$('#kleg').value; await loteUazapi(lista,function(c){ return sgKit(c,kk); }); }
+  else if(ctx.indexOf('lista:')===0){ var lid=ctx.slice(6), cfE=(S.campLista=S.campLista||{})[lid]||(S.campLista[lid]={texto:CAMP_PADRAO}); if($('#lsTexto')) cfE.texto=$('#lsTexto').value; if(!cfE.texto.trim()||cfE.texto.trim()===CAMP_PADRAO.trim()){ toast('Escreva a mensagem da campanha antes de enviar.','erro'); return; } await loteUazapi(lista,function(c){ return sgLista(c,lid,cfE); }); }
   else await loteUazapi(lista,function(c){ var it=its[c.chave]||{}; return sugFoco(c,it.prod,it.modo); });
   // tira da seleção quem já recebeu; quem passou do limite do lote continua marcado para o próximo envio
   Object.keys(its).forEach(function(k){ var c=m.clientes[k]; if(!c||estadoContato(c).bloqueado||!elegivel(c)) delete its[k]; });
@@ -1841,11 +1942,12 @@ function barraLojas(){ var m=S.model; if(!m) return '';
 function render(){
   var m=S.model; if(!m&&S.aba!=='importacoes') S.aba='importacoes';
   document.querySelectorAll('.tabs button').forEach(function(b){ b.classList.toggle('on',b.dataset.aba===S.aba); b.disabled=!m&&b.dataset.aba!=='importacoes'; });
-  var bc=document.querySelector('.tabs button[data-aba=conversas]'); if(bc&&m){ var nn=nConversasNovas(); bc.innerHTML='Conversas'+(nn?' <span class="badge">'+nn+'</span>':''); }
+  atualizarAbasCRM(); var bc=document.querySelector('.tabs button[data-aba=conversas]'); if(bc&&m){ var nn=nConversasNovas(); bc.innerHTML='Conversas'+(nn?' <span class="badge">'+nn+'</span>':''); }
   var lb=document.getElementById('lojabar'); if(lb){ lb.innerHTML=barraLojas(); lb.style.display=m&&S.aba!=='importacoes'?'':'none'; }
   $('#periodo').textContent=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens (sem funcionários)':'Nenhum relatório importado';
   var y=window.scrollY;
-  $('#main').innerHTML=(m?avisoLacunas():'')+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista}[S.aba]||telaSugestoes)();
+  var avB=''; if(m&&/sugestoes|recompra|reconquista|kits|listas|produtos/.test(S.aba)){ var a0=alertas()[0]; if(a0&&a0.ic==='📥') avB='<div class="'+(a0.nivel==='alto'?'erro':'aviso')+'" style="margin-bottom:10px">'+a0.ic+' <b>'+esc(a0.tit)+'.</b> '+esc(a0.txt)+' '+a0.acao+'</div>'; }
+  $('#main').innerHTML=(m?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas}[S.aba]||telaSugestoes)();
   window.scrollTo(0,y);
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
@@ -1867,7 +1969,7 @@ function kpis(){ var m=S.model,l=m.lista; var tot=l.reduce(function(a,c){return 
 function filtrarClientes(){ var m=S.model,f=S.filtro,q=rgNorm(f.q),pq=rgNorm(f.produto);
   var l=m.lista.filter(function(c){
     if(f.loja&&c.loja!==f.loja) return false; if(f.status&&c.status!==f.status) return false;
-    if(f.cod==='com'&&!c.codigo) return false; if(f.cod==='sem'&&c.codigo) return false;
+    if(f.cod==='com'&&!c.codigo) return false; if(f.cod==='sem'&&c.codigo) return false; if(f.lista&&!(CRM.seg[f.lista]&&CRM.seg[f.lista].c&&CRM.seg[f.lista].c[histK(c)])) return false;
     if(f.perfil==='Recompra atrasada'){ if(!c.atrasado) return false; } else if(f.perfil&&c.perfil!==f.perfil) return false;
     if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false;
     if(pq&&!c.cestaArr.some(function(e){return rgNorm(e.produto).indexOf(pq)>=0;})) return false; return true; });
@@ -1877,7 +1979,7 @@ function th(c,r,cl,ord){ ord=ord||S.ordem; var on=ord.campo===c; return '<th cla
 function telaClientes(){ var f=S.filtro,l=filtrarClientes();
   return kpis()+'<div class="filtros"><input id="fq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'"><input id="fprod" list="dlprod" placeholder="Que compram o produto…" value="'+esc(f.produto)+'">'+dlProdutos()+
     sel('fstatus','Todos os status',['Ativo','Em risco','Inativo'],f.status)+sel('fperfil','Todos os perfis',['VIP','Frequente','Regular','Esporádico','Compra única','Recompra atrasada'],f.perfil)+
-    sel('fcod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+'<button class="btn sec" id="expFiltro">⬇ CSV desta lista</button></div>'+barraSel('cli',l.filter(elegivel).length)+
+    sel('fcod','Código CRM: todos',[['com','Com código CRM'],['sem','Sem código CRM']],f.cod)+sel('flista','Todas as listas',Object.keys(CRM.seg).filter(function(id){return CRM.seg[id];}).map(function(id){ return [id,'🏷 '+CRM.seg[id].nome]; }),f.lista||'')+'<button class="btn sec" id="expFiltro">⬇ CSV desta lista</button><button class="btn sec" id="filtroParaLista" title="Coloca todos os clientes filtrados numa lista">🏷 Pôr os '+num(l.length)+' filtrados numa lista</button></div>'+barraSel('cli',l.filter(elegivel).length)+
     '<div class="info">'+num(l.length)+' cliente(s) · '+brl(l.reduce(function(a,c){return a+c.total;},0))+' · digite o código do CRM e tecle Enter para vincular</div>'+
     '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th>'+th('codigo','Cód. CRM')+th('nome','Cliente')+'<th>Loja</th>'+th('perfil','Perfil')+th('total','Total','r')+th('nCompras','Compras','r')+th('ticketMedio','Ticket','r')+th('ultimaCompra','Última compra')+th('recencia','Dias s/ comprar','r')+th('intervaloMedio','Compra a cada','r')+'<th>Principais produtos</th></tr></thead><tbody>'+
     l.slice(0,S.limite).map(function(c){ return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel('cli',c)+'</td><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.celular?'<small class="cod">📱 '+esc(foneFmt(c.celular))+(c.bairro?' · '+esc(c.bairro):'')+'</small>':'')+(c.nomesAlt.length?'<small class="cod warn" title="'+esc(c.nomesAlt.join(', '))+'">+'+c.nomesAlt.length+' grafia(s)</small>':'')+'</td><td>'+lojaTxt(c)+'</td><td>'+tag(c.perfil)+'</td>'+
@@ -1900,7 +2002,7 @@ function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; 
     '<div class="vinc"><label>Código do cliente no CRM</label>'+codInput(c)+'<button class="btn sec mini" data-salvarcod="'+esc(c.chave)+'">Salvar código</button>'+'<span class="nota">'+(function(){ var v=S.vinc[c.nomeKeysArr[0]]; return v&&v.codigo?'Salvo'+(v.por?' por <b>'+esc(v.por)+'</b>':'')+(v.atualizadoEm?' em '+new Date(v.atualizadoEm).toLocaleString('pt-BR'):'')+(v.pendente?' · <span class="warn">aguardando envio à nuvem</span>':' · ☁ na nuvem')+'. ':''; })()+'Usar o mesmo código em dois nomes junta os dois.</span>'+
     '<button class="btn sec mini perigo" data-movefunc="'+esc(c.chave)+'" style="margin-left:auto">É funcionário / uso interno</button></div>'+
     (c.abc?'<p class="nota">Cadastro Alterdata: <b>'+esc(c.abc.nome)+'</b>'+(c.bairro?' · '+esc(c.bairro):'')+(c.celular?' · 📱 '+esc(foneFmt(c.celular)):'')+' · última compra no Alterdata '+dBR(c.abc.ult)+'</p>':'')+
-    '<h3>Sugestão para enviar</h3>'+avisoContato(c)+blocoSugestao(c)+'<h3>💬 Conversas e jeito de falar com '+esc(primeiroNome(c.nome))+'</h3><div id="histBox" data-cli="'+esc(c.chave)+'">'+blocoHistCompleto(c)+'</div>'+blocoHistorico(c)+
+    blocoCRMFicha(c)+'<h3>Sugestão para enviar</h3>'+avisoContato(c)+blocoSugestao(c)+'<h3>💬 Conversas e jeito de falar com '+esc(primeiroNome(c.nome))+'</h3><div id="histBox" data-cli="'+esc(c.chave)+'">'+blocoHistCompleto(c)+'</div>'+blocoHistorico(c)+
     '<div class="kpis sm">'+k('Total gasto',brl(c.total))+k('Compras',c.nCompras)+k('Ticket médio',brl(c.ticketMedio))+k('Primeira / última',dBR(c.primeiraCompra)+'<br>'+dBR(c.ultimaCompra))+k('Compra a cada',c.intervaloMedio==null?'—':Math.round(c.intervaloMedio)+' dias')+k('Próxima prevista',c.proximaPrevista?dBR(c.proximaPrevista):'—')+'</div>'+
     '<h3>Linhas que mais compra</h3><div class="linhasbar">'+c.linhas.map(function(x){return '<span style="flex:'+Math.max(x.pct,0.04)+'" title="'+esc(x.linha)+': '+brl(x.valor)+'"><b>'+esc(x.linha)+'</b> '+pct0(x.pct)+'</span>';}).join('')+'</div>'+
     '<h3>Gasto por mês</h3>'+barrasMensais(m.meses,c.meses)+
@@ -2143,6 +2245,29 @@ function bind(){
     if((b=t.closest('[data-movefunc]'))){ var c=S.model.clientes[b.dataset.movefunc]; if(confirm('Mover "'+c.nome+'" para Funcionários? Sai da análise e das sugestões.')) definirTipo(c.nomeKeysArr,'func'); return; }
     if((b=t.closest('[data-ehcliente]'))){ definirTipo([b.dataset.ehcliente],'cliente'); return; }
     if((b=t.closest('[data-expprod]'))){ exportClientesDoProduto(b.dataset.expprod); return; }
+    if((b=t.closest('[data-ir]'))){ S.aba=b.dataset.ir; render(); return; }
+    if((b=t.closest('[data-alertalista]'))){ var ga=(alertas().filter(function(a){ return a.grupo&&(b.dataset.alertalista==='vip'?a.ic==='⭐':a.ic==='🆕'); })[0]||{}).grupo||[]; var nmA=prompt('Nome da lista para estes '+ga.length+' clientes (se já existir, eles entram nela):',b.dataset.alertalista==='vip'?'VIPs sumindo '+dBR(hoje()):'Boas-vindas '+dBR(hoje())); if(!nmA) return;
+      var idA=Object.keys(CRM.seg).filter(function(x){ return CRM.seg[x]&&rgNorm(CRM.seg[x].nome)===rgNorm(nmA); })[0]||await novaLista(nmA); var na=await porNaLista(idA,ga); S.listaAt=idA; S.aba='listas'; render(); toast(na+' cliente(s) na lista '+nmA+'.','ok'); return; }
+    if(t.id==='lbSalvar'){ var tx=$('#lbTxt').value.trim(); if(!tx){ toast('Escreva o lembrete.','erro'); return; } await novoLembrete({txt:tx,data:$('#lbData').value||hoje(),hora:$('#lbHora').value||'',loja:$('#lbLoja').value||''}); render(); toast('Lembrete salvo.','ok'); return; }
+    if((b=t.closest('[data-lembcli]'))){ e.preventDefault(); var cL=S.model.clientes[b.dataset.lembcli], txL=$('#lbcTxt').value.trim(); if(!txL){ toast('Escreva o lembrete.','erro'); return; } await novoLembrete({txt:txL,data:$('#lbcData').value||hoje(),hora:$('#lbcHora').value||'',K:histK(cL),nome:cL.nome,loja:cL.loja||''}); histAdd(cL,[{id:'N'+Date.now().toString(36),de:'n',txt:'⏰ Lembrete para '+dBR($('#lbcData').value||hoje())+': '+txL,por:quemSou(cL.loja),loja:cL.loja}]); abrirCliente(cL.chave); toast('Lembrete agendado para '+dBR($('#lbcData').value||hoje())+'.','ok'); return; }
+    if((b=t.closest('[data-lembok]'))){ e.preventDefault(); e.stopPropagation(); var lk=CRM.lemb[b.dataset.lembok]; if(lk){ lk.feito=true; lk.feitoEm=new Date().toISOString(); lk.feitoPor=quemSou(lk.loja); await crmGravar('lemb',b.dataset.lembok,{feito:true,feitoEm:lk.feitoEm,feitoPor:lk.feitoPor}); var cK=lk.K&&clientePorK(lk.K); if(cK) histAdd(cK,[{id:'N'+Date.now().toString(36),de:'n',txt:'✔ Feito: '+lk.txt,por:lk.feitoPor,loja:lk.loja}]); }
+      if($('#modal').classList.contains('on')&&b.closest('#modal')){ var cm=S.sel&&S.model.clientes[(S.sel.ctx||'').replace('cli:','')]; } render(); atualizarAbasCRM(); toast('Lembrete feito ✔','ok'); return; }
+    if((b=t.closest('[data-lembadiar]'))){ var la=CRM.lemb[b.dataset.lembadiar]; if(la){ la.data=addDias(la.data<hoje()?hoje():la.data,1); await crmGravar('lemb',b.dataset.lembadiar,{data:la.data}); } render(); return; }
+    if((b=t.closest('[data-lembdel]'))){ if(!confirm('Apagar este lembrete?')) return; delete CRM.lemb[b.dataset.lembdel]; await crmGravar('lemb',b.dataset.lembdel,null); render(); return; }
+    if((b=t.closest('[data-lista]'))&&b.classList.contains('lista-it')){ S.listaAt=b.dataset.lista; render(); return; }
+    if(t.id==='lsCriar'){ var nl=await novaLista($('#lsNome').value); if(!nl){ toast('Dê um nome para a lista.','erro'); return; } S.listaAt=nl; render(); toast('Lista criada. Agora adicione clientes.','ok'); return; }
+    if((b=t.closest('[data-lsrenom]'))){ var sr=CRM.seg[b.dataset.lsrenom], nn3=prompt('Novo nome da lista:',sr.nome); if(!nn3) return; sr.nome=nn3.trim(); await crmGravar('seg',b.dataset.lsrenom,{nome:sr.nome}); render(); return; }
+    if((b=t.closest('[data-lsdel]'))){ var sd=CRM.seg[b.dataset.lsdel]; if(!confirm('Apagar a lista "'+sd.nome+'"? Os clientes não são apagados, só a lista.')) return; delete CRM.seg[b.dataset.lsdel]; await crmGravar('seg',b.dataset.lsdel,null); S.listaAt=null; render(); return; }
+    if(t.id==='lsAdd'){ var qv=rgNorm($('#lsBusca').value), dq=qv.replace(/\D/g,''); var cA=S.model.lista.filter(function(c){ var cod=String(c.codigo||''); return (cod&&qv.indexOf(rgNorm(cod))>=0&&qv.indexOf(rgNorm(c.nome))===0)||rgNorm(c.nome)===qv||(dq.length>=8&&(String(c.celular||'').replace(/\D/g,'').indexOf(dq)>=0))||(cod&&cod===dq); });
+      if(!cA.length) cA=S.model.lista.filter(function(c){ return qv&&rgNorm(c.nome).indexOf(qv)>=0; }); if(!cA.length){ toast('Cliente não encontrado.','erro'); return; } if(cA.length>1&&!confirm(cA.length+' clientes com esse nome: '+cA.slice(0,6).map(function(c){return c.nome+' ('+(c.codigo||'')+')';}).join(', ')+'.\nAdicionar todos?')) return;
+      var na2=await porNaLista(S.listaAt,cA); render(); toast(na2+' adicionado(s).','ok'); return; }
+    if(t.id==='lsPrev'){ var cfp=(S.campLista=S.campLista||{})[S.listaAt]||(S.campLista[S.listaAt]={}); cfp.texto=$('#lsTexto').value; cfp.promo=$('#lsPromo').checked; cfp.img=($('#lsImg')||{}).value||''; render(); return; }
+    if((b=t.closest('[data-lstirar]'))){ e.stopPropagation(); await tirarDaLista(S.listaAt,S.model.clientes[b.dataset.lstirar]); render(); return; }
+    if((b=t.closest('[data-lstog]'))){ var cg=S.model.clientes[b.dataset.c], idg=b.dataset.lstog; if(listasDe(cg).indexOf(idg)>=0) await tirarDaLista(idg,cg); else await porNaLista(idg,[cg]); abrirCliente(cg.chave); return; }
+    if((b=t.closest('[data-lsnova]'))){ var cnl=S.model.clientes[b.dataset.lsnova], nm4=prompt('Nome da nova lista:'); if(!nm4) return; var id4=await novaLista(nm4); await porNaLista(id4,[cnl]); abrirCliente(cnl.chave); toast(cnl.nome+' na lista '+nm4+'.','ok'); return; }
+    if(t.id==='filtroParaLista'){ var lf=filtrarClientes(); if(!lf.length){ toast('Nenhum cliente filtrado.','erro'); return; } var ids5=Object.keys(CRM.seg).filter(function(x){return CRM.seg[x];});
+      var nm5=prompt('Colocar os '+lf.length+' clientes filtrados em qual lista?\nDigite o nome de uma lista existente ou um nome novo.'+(ids5.length?'\n\nListas: '+ids5.map(function(x){return CRM.seg[x].nome;}).join(', '):'')); if(!nm5) return;
+      var id5=ids5.filter(function(x){ return rgNorm(CRM.seg[x].nome)===rgNorm(nm5); })[0]||await novaLista(nm5); var n5=await porNaLista(id5,lf); toast(n5+' cliente(s) adicionados à lista '+nm5+'.','ok'); render(); return; }
     if((b=t.closest('[data-nomeprod]'))){ e.stopPropagation(); await travarNomeProduto(b.dataset.nomeprod,!!b.dataset.lista); return; }
     if((b=t.closest('[data-nota]'))){ var cn=S.model.clientes[b.dataset.nota]; await salvarNota(cn,($('#notaTxt')||{}).value); return; }
     if((b=t.closest('[data-notarap]'))){ var nt=$('#notaTxt'); if(nt){ nt.value=b.dataset.notarap; nt.focus(); } return; }
@@ -2179,7 +2304,7 @@ function bind(){
       if(S.aba!=='sugestoes'){ S.aba='sugestoes'; }
       fl.forEach(function(c){ sx2.itens[c.chave]={prod:'',modo:''}; }); S.sug.cont='liberados'; S.sug.status=''; S.limite=Math.max(S.limite,400); render();
       toast(fl.length?fl.length+' cliente(s) da '+tituloProd(lj)+' marcados para hoje: recompra atrasada primeiro, depois em risco, ativos e quem está sem mensagem há mais tempo. Confira e clique em Enviar para os marcados.':'Não há mais clientes liberados na '+tituloProd(lj)+' hoje — use Reconquista ou uma campanha de Kits.','ok'); return; }
-    if((b=t.closest('[data-selall]'))){ var cx=b.dataset.selall, sx=selCtx(cx), nn=0; itensCtx(cx).forEach(function(it){ if(elegivel(it.c)&&!sx.itens[it.c.chave]){ sx.itens[it.c.chave]={prod:it.prod||'',modo:it.modo||''}; nn++; } }); if(cx.indexOf('prod:')===0) abrirProduto(cx.slice(5)); else render(); toast(nn+' cliente(s) marcado(s).','ok'); return; }
+    if((b=t.closest('[data-selall]'))){ var cx=b.dataset.selall, sx=selCtx(cx), nn=0; itensCtx(cx).forEach(function(it){ if(elegivel(it.c,ctxPromo(cx))&&!((cx.indexOf('kit:')===0||(ctxPromo(cx)&&cx.indexOf('lista:')===0))&&jaRecebeuCampanha(it.c,cx,1))&&!sx.itens[it.c.chave]){ sx.itens[it.c.chave]={prod:it.prod||'',modo:it.modo||''}; nn++; } }); if(cx.indexOf('prod:')===0) abrirProduto(cx.slice(5)); else render(); toast(nn+' cliente(s) marcado(s).','ok'); return; }
     if((b=t.closest('[data-selnone]'))){ S.sel={ctx:b.dataset.selnone,itens:{}}; if(b.dataset.selnone.indexOf('prod:')===0) abrirProduto(b.dataset.selnone.slice(5)); else render(); return; }
     if((b=t.closest('[data-selenviar]'))){ enviarMarcados(b.dataset.selenviar); return; }
     if((b=t.closest('[data-compra]'))){ var pc3=b.dataset.compra.split('|'); abrirCompra(pc3[0],pc3[1],pc3[2]); return; }
@@ -2217,7 +2342,7 @@ function bind(){
     else if(id==='varrer'){ t.disabled=true; t.textContent='Buscando…'; try{ await varrerCelular($('#varrDesde').value||hoje().slice(0,8)+'01'); }finally{ t.disabled=false; t.textContent='🔎 Trazer para a cesta'; } }
     else if(id==='lerResp'){ t.disabled=true; t.textContent='Lendo respostas…'; await verificarRespostas(true); render(); }
     else if(id==='salvarRegras'){ var md={}; document.querySelectorAll('[data-meta]').forEach(function(x){ md[x.dataset.meta]=Math.max(0,parseInt(x.value)||0); }); S.cfg.metaDiaria=md; await salvarCfg('metaDiaria',md);
-      var nr={diasCliente:Math.max(7,parseInt($('#rgCli').value)||7),diasProduto:Math.max(1,parseInt($('#rgProd').value)||7),ciclo:$('#rgCiclo').checked,cicloMax:Math.max(7,parseInt($('#rgCicloMax').value)||30)}; S.cfg.regrasContato=nr; await salvarCfg('regrasContato',nr); limparSugestoes(); S.crmSujo=true; $('#modal').classList.remove('on'); render(); toast('Regras salvas: 1 mensagem a cada '+nr.diasCliente+' dias; produto não se repete por '+nr.diasProduto+' dias.','ok'); }
+      var nr={diasCliente:Math.max(7,parseInt($('#rgCli').value)||7),diasProduto:Math.max(1,parseInt($('#rgProd').value)||7),ciclo:$('#rgCiclo').checked,cicloMax:Math.max(7,parseInt($('#rgCicloMax').value)||30),diasPosCompra:Math.max(0,parseInt($('#rgPos').value)||0)}; S.cfg.regrasContato=nr; await salvarCfg('regrasContato',nr); limparSugestoes(); S.crmSujo=true; $('#modal').classList.remove('on'); render(); toast('Regras salvas: 1 mensagem a cada '+nr.diasCliente+' dias; produto não se repete por '+nr.diasProduto+' dias.','ok'); }
     else if(id==='salvarMsg'){ await salvarMsg($('#msgModelo').value); $('#modal').classList.remove('on'); render(); toast('Modelo salvo.','ok'); }
     else if(id==='padraoMsg'){ $('#msgModelo').value=MSG_PADRAO; }
     else if(id==='expJson') exportJSON(); else if(id==='expCli') exportClientes(); else if(id==='expCesta') exportCestas(); else if(id==='expCompras') exportCompras(); else if(id==='expItens') exportItens();
@@ -2256,7 +2381,8 @@ function bind(){
     if(t.id==='pmdmin'||t.id==='pmdmax'||t.id==='pmord'||t.id==='pmstatus'){ S.pm[{pmdmin:'dmin',pmdmax:'dmax',pmord:'ord',pmstatus:'status'}[t.id]]=t.value; abrirProduto(S.pm.chave); return; }
     if(t.id==='fpdf'){ importarArquivos(t.files); t.value=''; } else if(t.id==='frest'){ if(t.files[0]) restaurar(t.files[0]); t.value=''; }
     else if(t.id==='fvinc'){ if(t.files[0]) importarVinculos(t.files[0]); t.value=''; }
-    else if(t.id==='floja'){ S.filtro.loja=t.value; S.limite=200; render(); } else if(t.id==='fstatus'){ S.filtro.status=t.value; S.limite=200; render(); }
+    else if(t.id==='floja'){ S.filtro.loja=t.value; S.limite=200; render(); } else if(t.id==='fstatus'){ S.filtro.status=t.value; S.limite=200; render(); } else if(t.id==='flista'){ S.filtro.lista=t.value; S.limite=200; render(); }
+    else if(t.id==='lsPromo'||t.id==='lsImg'){ var cfL=(S.campLista=S.campLista||{})[S.listaAt]||(S.campLista[S.listaAt]={texto:CAMP_PADRAO}); cfL.promo=$('#lsPromo').checked; cfL.img=($('#lsImg')||{}).value||''; cfL.texto=$('#lsTexto').value; render(); }
     else if(t.id==='fperfil'){ S.filtro.perfil=t.value; S.limite=200; render(); } else if(t.id==='fcod'){ S.filtro.cod=t.value; S.limite=200; render(); }
     else if(t.id==='ploja'){ S.prodLoja=t.value; render(); }
     else if(t.id==='rloja'){ S.rec.loja=t.value; S.limite=200; render(); }
@@ -2273,9 +2399,9 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'sugestoes':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
-    setTimeout(enviarHist,5000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
+    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
