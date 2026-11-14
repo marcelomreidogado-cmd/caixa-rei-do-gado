@@ -260,8 +260,32 @@ h2.secao{font-size:17px;border:0;margin:28px 0 10px;padding:0}
 .ex-h p{text-transform:none}
 .lbt small,.lb small{font-family:inherit}
 .lbnovo{grid-template-columns:1fr 1fr 90px 34px}.lbnovo #lbTxt{grid-column:1/-1}
+
+/* ===== Fase 1: campanhas, segmentos, astro ===== */
+.ex-act{display:flex;gap:8px;align-items:center}.ex-kpis.sm{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.ex-kpis.sm .ek b{font-size:20px}
+.ek.ok b{color:#15803d}
+.atags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.atag{font-size:11px;font-weight:600;background:#f3efe9;color:#6b4f2a;border-radius:6px;padding:1px 7px}
+.sgc{display:flex;flex-direction:column}.sgi{display:grid;grid-template-columns:minmax(0,1fr) 90px auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid #f2f1ef}.sgi:first-child{border-top:0}
+.sgi small{display:block;color:var(--mut);font-size:12px}.sgn{text-align:right}.sgn b{display:block;font-size:20px;letter-spacing:-.02em}.sgn small{font-size:11px}
+.cpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.cpc{border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;background:#fff;transition:box-shadow .12s}.cpc:hover{box-shadow:0 6px 18px rgba(16,24,40,.08)}
+.cph{display:flex;justify-content:space-between;gap:8px;align-items:center}.cpc>small{color:var(--mut);font-size:12px}
+.st{font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;background:#f1f0ee;color:#57534e}.st.ativa{background:#ecf7ef;color:#15803d}.st.encerrada{background:#eef2f7;color:#475569}
+.cpm{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}.cpm small{display:block;font-size:11px;color:var(--mut)}.cpm b{font-size:15px}
+#campTexto{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;resize:vertical}
+.campos{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0}.campos small{color:#a1a1aa;font-size:11.5px;margin-left:4px}
+.wa-prev{background:#efeae2;border-radius:14px;padding:12px;margin-top:10px}.wa-prev img{max-width:100%;border-radius:10px;display:block;margin-bottom:6px}.wa-prev pre{white-space:pre-wrap;font:13px/1.45 inherit;background:#dcf5d3;padding:9px 11px;border-radius:10px;margin:0}.wa-prev small{color:#71717a;font-size:11px}
+.regras{display:flex;flex-direction:column;gap:6px;margin:8px 0;padding:10px;background:#fafaf9;border:1px dashed #e4e1dc;border-radius:12px}.regras>.btn{align-self:flex-start}
+.rgl2{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.rgl2 select,.rgl2 input{height:34px;font-size:13px;padding:4px 8px}
+.listasgrid{grid-template-columns:300px minmax(0,1fr)!important;gap:16px!important}.segl .lista-it{padding:9px 8px;border-radius:10px}.ln{display:flex;flex-direction:column;flex:1;min-width:0}.ln small{color:#a1a1aa;font-size:11px;margin:0!important}
+.segnovo{display:flex;flex-direction:column;gap:6px;margin:12px 0}.segnovo div{display:flex;gap:6px}
+.modelo{padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin:6px 0;cursor:pointer}.modelo:hover{background:#fafaf9}.modelo small{display:block;color:var(--mut);font-size:11.5px}
+.card>header>div{display:flex;gap:6px;align-items:center}
+.cadrow{display:grid;grid-template-columns:80px minmax(0,1fr) 54px;gap:10px;align-items:center;margin:10px 0}.cadrow b{font-size:13px}.cadrow .pc{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.cbar{position:relative;height:9px;background:#f1f0ee;border-radius:9px}.cbar i{display:block;height:100%;border-radius:9px}.cbar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:#18181b;border-radius:2px}
+.cadsub{grid-column:2/4;font-size:11.5px;color:var(--mut);margin-top:-6px}.cadsub b{color:#b91c1c;font-size:11.5px}
 </style></head><body>
-<aside class="side"><div class="logo">RG</div><nav class="tabs"><button data-aba="hoje" data-g="hoje" data-tip="Hoje" aria-label="Hoje"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><em>Hoje</em><span class="bdg"></span></button><button data-aba="conversas" data-g="conversas" data-tip="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5A8.5 8.5 0 1 1 21 11.5z"/></svg><em>Conversas</em><span class="bdg"></span></button><button data-aba="clientes" data-g="clientes" data-tip="Clientes" aria-label="Clientes"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6a6.5 6.5 0 0 1 3 5.9"/></svg><em>Clientes</em><span class="bdg"></span></button><button data-aba="sugestoes" data-g="campanhas" data-tip="Campanhas" aria-label="Campanhas"><svg viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5V4.5L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 8.5a5 5 0 0 1 0 7"/></svg><em>Campanhas</em><span class="bdg"></span></button><button data-aba="produtos" data-g="produtos" data-tip="Produtos" aria-label="Produtos"><svg viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg><em>Produtos</em><span class="bdg"></span></button><button data-aba="painel" data-g="painel" data-tip="Painel" aria-label="Painel"><svg viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M2 20.5h20"/></svg><em>Painel</em><span class="bdg"></span></button></nav><nav class="tabs fim"><button data-aba="importacoes" data-g="ajustes" data-tip="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M17 6h3"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg><em>Ajustes</em><span class="bdg"></span></button></nav></aside><div class="app"><header class="top"><div class="tl"><button id="sideTg" class="ico side-tg" title="Mostrar/esconder menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="busca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="buscaG" placeholder="Buscar cliente, código ou celular" autocomplete="off"><div id="buscaR"></div></div></div><div id="lojabar" class="lojabar"></div><div class="tr"><span class="per" id="periodo"></span><button id="syncst" class="syncst off">○ Nuvem</button></div></header><div id="subnav"></div><main id="main">Carregando…</main></div>
+<aside class="side"><div class="logo">RG</div><nav class="tabs"><button data-aba="hoje" data-g="hoje" data-tip="Hoje" aria-label="Hoje"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><em>Hoje</em><span class="bdg"></span></button><button data-aba="conversas" data-g="conversas" data-tip="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5A8.5 8.5 0 1 1 21 11.5z"/></svg><em>Conversas</em><span class="bdg"></span></button><button data-aba="clientes" data-g="clientes" data-tip="Clientes" aria-label="Clientes"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6a6.5 6.5 0 0 1 3 5.9"/></svg><em>Clientes</em><span class="bdg"></span></button><button data-aba="campanhas" data-g="campanhas" data-tip="Campanhas" aria-label="Campanhas"><svg viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5V4.5L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 8.5a5 5 0 0 1 0 7"/></svg><em>Campanhas</em><span class="bdg"></span></button><button data-aba="produtos" data-g="produtos" data-tip="Produtos" aria-label="Produtos"><svg viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg><em>Produtos</em><span class="bdg"></span></button><button data-aba="painel" data-g="painel" data-tip="Painel" aria-label="Painel"><svg viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M2 20.5h20"/></svg><em>Painel</em><span class="bdg"></span></button></nav><nav class="tabs fim"><button data-aba="importacoes" data-g="ajustes" data-tip="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M17 6h3"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg><em>Ajustes</em><span class="bdg"></span></button></nav></aside><div class="app"><header class="top"><div class="tl"><button id="sideTg" class="ico side-tg" title="Mostrar/esconder menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="busca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="buscaG" placeholder="Buscar cliente, código ou celular" autocomplete="off"><div id="buscaR"></div></div></div><div id="lojabar" class="lojabar"></div><div class="tr"><span class="per" id="periodo"></span><button id="syncst" class="syncst off">○ Nuvem</button></div></header><div id="subnav"></div><main id="main">Carregando…</main></div>
 <div id="modal"><div class="modal-c"></div></div><div id="toast" class="toast"></div>
 <script>/**
  * @licstart The following is the entire license notice for the
@@ -1068,7 +1092,7 @@ async function crmGravar(no,id,val){ crmGuardar(); if(!syncAtivo()) return; try{
 function quemSou(loja){ return atendenteDe(loja||S.loja||'CORONEL')||(S.sync&&S.sync.computador)||''; }
 function clientePorK(K){ var m=S.model; if(!m) return null; if(!S._porK||S._porKM!==m){ S._porK={}; m.lista.forEach(function(c){ S._porK[histK(c)]=c; }); S._porKM=m; } return S._porK[K]||null; }
 function listasDe(c){ var K=histK(c); return Object.keys(CRM.seg).filter(function(id){ var s=CRM.seg[id]; return s&&s.c&&s.c[K]; }); }
-function membros(id){ var s=CRM.seg[id]; if(!s||!s.c) return []; return Object.keys(s.c).map(clientePorK).filter(Boolean); }
+function membros(id){ var s=CRM.seg[id]; if(s&&s.regras) return membrosRegras(s.regras); if(!s||!s.c) return []; return Object.keys(s.c).map(clientePorK).filter(Boolean); }
 async function novaLista(nome,desc){ nome=String(nome||'').trim(); if(!nome) return null; var id='S'+Date.now().toString(36);
   CRM.seg[id]={nome:nome,desc:desc||'',cor:CORES_SEG[Object.keys(CRM.seg).length%CORES_SEG.length],criadoEm:new Date().toISOString(),por:quemSou()}; await crmGravar('seg',id,CRM.seg[id]); return id; }
 async function porNaLista(id,clientes){ var s=CRM.seg[id]; if(!s) return 0; s.c=s.c||{}; var add={}, n=0, por=quemSou();
@@ -1111,6 +1135,14 @@ function graficoVendas(d,ref,n){ var dias=[]; for(var i=n-1;i>=0;i--){ var k=add
   var ym=H-18-Math.round(med/mx*(H-24));
   return '<svg viewBox="0 0 '+W+' '+H+'" class="gv" preserveAspectRatio="none">'+bars+(med?'<line x1="0" x2="'+W+'" y1="'+ym+'" y2="'+ym+'" stroke="#71717a" stroke-dasharray="4 4" stroke-width="1"/><text x="'+(W-2)+'" y="'+(ym-4)+'" text-anchor="end" class="gm">média '+brl(med)+'</text>':'')+'</svg>'; }
 function delta(a,b){ if(!b) return ''; var p=(a-b)/b*100; return '<i class="dl '+(p>=0?'up':'dn')+'">'+(p>=0?'▲':'▼')+' '+Math.abs(p).toFixed(0)+'%</i>'; }
+function cardCadastro(){ var m=S.model, meta=(S.cfg.metaCadastro||80)/100, ref=m.refData>=hoje()?addDias(hoje(),-1):m.refData, i7=addDias(ref,-6), im=ref.slice(0,8)+'01';
+  var lojas=(S.loja?[S.loja]:LOJAS_ENVIO).filter(function(l){ return m.cupons.some(function(c){ return c.loja===l&&c.data>=im; }); }); if(!lojas.length) return '';
+  var cor=function(p){ return p>=meta?'#22a35a':p>=meta-0.05?'#d39b2a':'#c2410c'; };
+  return '<section class="card"><header><h3>Cadastro de clientes</h3><span class="cnt">meta '+Math.round(meta*100)+'%</span></header>'+lojas.map(function(l){
+    var a7=agrega(m.cupons.filter(function(c){ return c.loja===l&&c.data>=i7&&c.data<=ref; })), am=agrega(m.cupons.filter(function(c){ return c.loja===l&&c.data>=im&&c.data<=ref; })), a1=agrega(m.cupons.filter(function(c){ return c.loja===l&&c.data===ref; }));
+    var p=a7.pctValor, falta=Math.max(0,meta*am.valor-am.valorNome);
+    return '<div class="cadrow" title="Ontem: '+pct0(a1.pctValor)+' · Mês: '+pct0(am.pctValor)+'"><b>'+esc(tituloProd(l))+'</b><div class="cbar"><i style="width:'+Math.min(100,p*100)+'%;background:'+cor(p)+'"></i><em style="left:'+(meta*100)+'%"></em></div><span class="pc" style="color:'+cor(p)+'">'+pct0(p)+'</span>'+
+      '<div class="cadsub">7 dias · mês '+pct0(am.pctValor)+(falta>0?' · <b>faltam '+brl(falta)+' com cadastro</b>':' · ✔ meta do mês')+'</div></div>'; }).join('')+'</section>'; }
 function telaHoje(){ var m=S.model, h=hoje(), A=alertas(), Ls=lembretesAbertos(), atras=Ls.filter(function(x){return x.data<h;}), hj=Ls.filter(function(x){return x.data===h;}), prox=Ls.filter(function(x){return x.data>h;}).slice(0,8);
   var VD=vendasPorDia(), ref=m.refData>=h?addDias(h,-1):m.refData, dr=VD[ref]||{v:0,n:0,id:0,cli:0}, dw=new Date(ref+'T12:00:00').getDay();
   var mesmos=[7,14,21,28].map(function(k){ return (VD[addDias(ref,-k)]||{}).v||0; }).filter(Boolean), mediaDs=mesmos.length?mesmos.reduce(function(a,b){return a+b;},0)/mesmos.length:0;
@@ -1135,7 +1167,7 @@ function telaHoje(){ var m=S.model, h=hoje(), A=alertas(), Ls=lembretesAbertos()
       '<section class="card"><header><h3>Vendas · últimos 30 dias</h3></header>'+graficoVendas(VD,ref,30)+'</section>'+
       '<section class="card"><header><h3>Prioridades</h3><span class="cnt">'+A.length+'</span></header>'+(tiles||'<div class="vazio">Tudo em dia ✔</div>')+'</section>'+
     '</div><div class="ex-col">'+
-      '<section class="card"><header><h3>Meta de mensagens</h3></header>'+metas+'</section>'+
+      cardCadastro()+'<section class="card"><header><h3>Meta de mensagens</h3></header>'+metas+'</section>'+
       '<section class="card"><header><h3>Lembretes</h3><span class="cnt">'+(atras.length+hj.length)+'</span></header>'+
         '<div class="lbnovo"><input id="lbTxt" placeholder="Adicionar lembrete…"><input id="lbData" type="date" value="'+h+'"><input id="lbHora" type="time"><select id="lbLoja"><option value="">Todas</option>'+LOJAS_ENVIO.map(function(l){ return '<option value="'+l+'"'+(S.loja===l?' selected':'')+'>'+esc(tituloProd(l))+'</option>'; }).join('')+'</select><button class="btn" id="lbSalvar">+</button></div>'+
         (atras.length?'<h4>Atrasados</h4>'+atras.map(lin).join(''):'')+(hj.length?'<h4>Hoje</h4>'+hj.map(lin).join(''):'')+(prox.length?'<h4>Próximos</h4>'+prox.map(lin).join(''):'')+
@@ -1153,23 +1185,19 @@ function sgLista(c,id,cfg){ var at=atendenteDe(c.loja), h=new Date().getHours(),
   if(cfg.img&&kitImg(cfg.img)) r.midia={type:'image',file:kitImg(cfg.img)};
   return r; }
 function telaListas(){ var ids=Object.keys(CRM.seg).filter(function(id){return CRM.seg[id];}).sort(function(a,b){ return (CRM.seg[a].nome||'').localeCompare(CRM.seg[b].nome||''); }), at=S.listaAt&&CRM.seg[S.listaAt]?S.listaAt:ids[0];
-  var esq='<div class="listas"><h3>🏷 Listas</h3>'+ids.map(function(id){ var s=CRM.seg[id], n=Object.keys(s.c||{}).length; return '<div class="lista-it'+(id===at?' on':'')+'" data-lista="'+id+'"><span class="bol" style="background:'+esc(s.cor||'#888')+'"></span><b>'+esc(s.nome)+'</b><small>'+n+'</small></div>'; }).join('')+
-    '<div class="lembnovo" style="margin-top:10px"><input id="lsNome" placeholder="Nova lista (ex.: Churrasqueiros de sábado, Clientes do condomínio, Aniversário em dezembro)"><button class="btn mini" id="lsCriar">Criar</button></div>'+
-    '</div>';
-  if(!at) return '<div class="listasgrid">'+esq+'<div><div class="vazio">Crie a primeira lista ao lado.</div></div></div>';
-  S.listaAt=at; var s=CRM.seg[at], ms=membros(at).filter(function(c){ return !S.loja||c.loja===S.loja; }).sort(function(a,b){ return a.nome.localeCompare(b.nome); }), cf=(S.campLista&&S.campLista[at])||{texto:CAMP_PADRAO,promo:false,img:''};
-  var ctx='lista:'+at, ex=ms.filter(function(c){ return foneWa(c.celular); })[0], fn=function(c){ return sgLista(c,at,cf); };
-  var dir='<div><div class="lista-h"><h2><span class="bol" style="background:'+esc(s.cor)+'"></span>'+esc(s.nome)+'</h2><small class="nota">'+ms.length+' cliente(s)'+(S.loja?' da loja '+esc(tituloProd(S.loja)):'')+' · criada por '+esc(s.por||'?')+' em '+dBR(String(s.criadoEm||'').slice(0,10))+'</small> <button class="btn sec mini" data-lsrenom="'+at+'">Renomear</button> <button class="btn sec mini" data-lsdel="'+at+'">Apagar lista</button></div>'+
-    '<div class="lembnovo"><input id="lsBusca" list="dlcli" placeholder="Adicionar cliente: nome, código ou celular…"><datalist id="dlcli">'+(S.model.lista.length<6000?S.model.lista.filter(function(c){return !S.loja||c.loja===S.loja;}).slice(0,4000).map(function(c){ return '<option value="'+esc(c.nome+' · '+(c.codigo||''))+'">'; }).join(''):'')+'</datalist><button class="btn mini" id="lsAdd">Adicionar</button></div>'+
-    '<div class="campbox"><h3>📣 Campanha para esta lista</h3><textarea id="lsTexto" rows="4">'+esc(cf.texto)+'</textarea>'+
-    '<small class="nota">Campos: {saudacao} {nome} {quem} {loja} {atendente} {fav} (produto que ele mais leva). Para variar o texto entre os clientes, separe versões com uma linha só com ---. A linha do SAIR entra sozinha.</small>'+
-    '<div class="filtros"><label class="chk"><input type="checkbox" id="lsPromo"'+(cf.promo?' checked':'')+'> é promoção (vai também para quem recebeu mensagem esta semana)</label>'+(kits().length?'<select id="lsImg"><option value="">Sem foto</option>'+kits().filter(function(k){return kitImg(k.id);}).map(function(k){ return '<option value="'+k.id+'"'+(cf.img===k.id?' selected':'')+'>📷 foto do kit '+esc(k.nome)+'</option>'; }).join('')+'</select>':'')+'<button class="btn sec mini" id="lsPrev">Atualizar prévia</button></div>'+
-    (ex?'<div class="prev"><small class="nota">Prévia para '+esc(ex.nome)+':</small><pre>'+esc(fn(ex).mensagem)+'</pre></div>':'')+'</div>'+
-    barraSel(ctx,ms.filter(function(c){ return elegivel(c,!!cf.promo); }).length)+
-    '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th>Loja</th><th>Perfil</th><th class="r">Dias s/ comprar</th><th>Última mensagem</th><th>Outras listas</th><th></th></tr></thead><tbody>'+
-    ms.map(function(c){ var e=estadoContato(c), outras=listasDe(c).filter(function(x){return x!==at;}); return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(c.nome)+'</b>'+(c.celular?'<small class="cod">📱 '+esc(foneFmt(c.celular))+'</small>':'<small class="cod warn">sem celular</small>')+'</td><td>'+esc(tituloProd(c.loja))+'</td><td>'+tag(c.perfil)+'</td><td class="r">'+c.recencia+'</td><td>'+(e.ultimo?esc(txtUltimo(e)):'—')+(optout(c)?' <span class="pill late">SAIR</span>':'')+'</td><td>'+outras.map(function(x){ return '<span class="pill" style="border-color:'+esc(CRM.seg[x].cor)+'">'+esc(CRM.seg[x].nome)+'</span>'; }).join(' ')+'</td><td><button class="btn sec mini" data-lstirar="'+esc(c.chave)+'" title="Tirar da lista">✕</button></td></tr>'; }).join('')+'</tbody></table></div></div>';
+  var sg=sugestoesCamp();
+  var esq='<section class="card segl"><header><h3>Segmentos</h3><span class="cnt">'+ids.length+'</span></header>'+ids.map(function(id){ var s=CRM.seg[id], n=s.regras?membrosRegras(s.regras).filter(function(c){return !S.loja||c.loja===S.loja;}).length:Object.keys(s.c||{}).length; return '<div class="lista-it'+(id===at?' on':'')+'" data-lista="'+id+'"><span class="bol" style="background:'+esc(s.cor||'#888')+'"></span><span class="ln">'+esc(s.nome)+'<small>'+(s.regras?'por regras':'lista manual')+'</small></span><small>'+num(n)+'</small></div>'; }).join('')+
+    '<div class="segnovo"><input id="lsNome" placeholder="Nome do novo segmento"><div><button class="btn mini" id="lsCriarR">+ Por regras</button><button class="btn sec mini" id="lsCriar">+ Lista manual</button></div></div>'+
+    (sg.length?'<h4>Modelos prontos</h4>'+sg.map(function(x,i){ return '<div class="modelo" data-segmod="'+i+'"><b>'+esc(x.tit)+'</b><small>'+num(x.n)+' clientes</small></div>'; }).join(''):'')+'</section>';
+  if(!at) return '<div class="listasgrid">'+esq+'<section class="card"><div class="vazio">Crie um segmento ou use um modelo pronto</div></section></div>';
+  S.listaAt=at; var s=CRM.seg[at], din=!!s.regras, ms=(din?membrosRegras(s.regras):membros(at)).filter(function(c){ return !S.loja||c.loja===S.loja; }).sort(function(a,b){ return b.total-a.total; });
+  var com=ms.filter(function(c){return foneWa(c.celular)&&!optout(c);}).length, tot=ms.reduce(function(a,c){return a+c.total;},0), tk=ms.length?ms.reduce(function(a,c){return a+(c.ticketMedio||0);},0)/ms.length:0;
+  var dir='<section class="card"><header><h3><span class="bol" style="background:'+esc(s.cor)+'"></span>'+esc(s.nome)+'</h3><div><button class="btn mini" data-segcamp="'+at+'">📣 Criar campanha</button> <button class="ico" data-lsrenom="'+at+'" title="Renomear">✎</button> <button class="ico perigo" data-lsdel="'+at+'" title="Apagar">✕</button></div></header>'+
+    '<div class="ex-kpis sm">'+kc2('Clientes',num(ms.length),num(com)+' com WhatsApp')+kc2('Total comprado',brl(tot),'histórico')+kc2('Ticket médio',brl(tk),'por compra')+kc2('Ativos',num(ms.filter(function(c){return c.status==='Ativo';}).length),num(ms.filter(function(c){return c.status!=='Ativo';}).length)+' em risco/inativos')+'</div>'+
+    (din?editorRegras(s.regras,'seg:'+at):'<div class="lembnovo"><input id="lsBusca" list="dlcli" placeholder="Adicionar cliente: nome, código ou celular"><datalist id="dlcli">'+S.model.lista.filter(function(c){return !S.loja||c.loja===S.loja;}).slice(0,4000).map(function(c){ return '<option value="'+esc(c.nome+' · '+(c.codigo||''))+'">'; }).join('')+'</datalist><button class="btn mini" id="lsAdd">Adicionar</button></div>')+
+    '<div class="tw" style="margin-top:10px"><table class="tbl"><thead><tr><th>Cliente</th><th>Perfil</th><th class="r">Sem comprar</th><th class="r">Ticket</th><th>Favoritos</th><th>Última mensagem</th>'+(din?'':'<th></th>')+'</tr></thead><tbody>'+
+    ms.slice(0,300).map(function(c){ var e=estadoContato(c); return '<tr class="click" data-cli="'+esc(c.chave)+'"><td><b>'+esc(tituloProd(c.nome))+'</b><small class="cod">'+esc(tituloProd(c.loja))+(c.celular?'':' · sem celular')+'</small><div class="atags">'+tagsAstro(c)+'</div></td><td>'+tag(c.perfil)+'</td><td class="r">'+c.recencia+'d</td><td class="r">'+brl(c.ticketMedio||0)+'</td><td><small>'+esc(c.cestaArr.slice(0,3).map(function(x){return tituloProd(x.produto);}).join(', '))+'</small></td><td><small>'+(e.ultimo?esc(txtUltimo(e)):'—')+'</small>'+(optout(c)?' <span class="pill late">SAIR</span>':'')+'</td>'+(din?'':'<td><button class="ico" data-lstirar="'+esc(c.chave)+'" title="Tirar">✕</button></td>')+'</tr>'; }).join('')+'</tbody></table></div>'+(ms.length>300?'<small class="nota">mostrando 300 de '+num(ms.length)+'</small>':'')+'</section>';
   return '<div class="listasgrid">'+esq+dir+'</div>'; }
-/* ficha do cliente: listas e lembretes */
 function blocoCRMFicha(c){ var ids=Object.keys(CRM.seg).filter(function(id){return CRM.seg[id];}), K=histK(c), noC=listasDe(c);
   var lb=Object.keys(CRM.lemb).map(function(id){ return Object.assign({id:id},CRM.lemb[id]); }).filter(function(x){ return x.K===K&&!x.feito; });
   return '<div class="crmficha"><div><b>🏷 Listas:</b> '+ids.map(function(id){ var s=CRM.seg[id], on=noC.indexOf(id)>=0; return '<button class="btn mini '+(on?'':'sec')+'" data-lstog="'+id+'" data-c="'+esc(c.chave)+'" style="'+(on?'background:'+esc(s.cor)+';border-color:'+esc(s.cor):'')+'">'+(on?'✔ ':'+ ')+esc(s.nome)+'</button>'; }).join(' ')+' <button class="btn sec mini" data-lsnova="'+esc(c.chave)+'">+ nova lista</button></div>'+
@@ -1178,16 +1206,137 @@ function blocoCRMFicha(c){ var ids=Object.keys(CRM.seg).filter(function(id){retu
 /* TESTE: copia os dados das lojas (produção) para a base de teste — só leitura na produção */
 async function copiarProducao(){ if(!window.AMB_TESTE) return; if(!confirm('Copiar TODOS os dados atuais das lojas para a base de TESTE?\n\nA base de teste é apagada e recebe uma cópia nova. A base das lojas não é alterada.')) return;
   var U=S.sync.url.replace(/\/+$/,''), P=function(no){ return U+'/'+RAIZ_PROD.split('/').concat(no.split('/')).map(encodeURIComponent).join('/')+'.json'; };
-  var NOS=['imports_meta','imports_cli','vinculos','config','contatos','contatos_ult','kit_img','hist','seg','lemb'], n=0;
+  var NOS=['imports_meta','imports_cli','vinculos','config','contatos','contatos_ult','kit_img','hist','seg','lemb','camp'], n=0;
   if(S.sync.raiz!==RAIZ_TESTE){ alert('Base de teste não configurada.'); return; }
   try{ await fb('DELETE',''); 
     for(var i=0;i<NOS.length;i++){ setSync('sync','Copiando '+NOS[i]+'…'); var d=await (await fetch(P(NOS[i]),{cache:'no-store'})).json(); if(d!=null){ await fb('PUT',NOS[i],d); n++; } }
     var ks=Object.keys((await (await fetch(P('imports_linhas')+'?shallow=true',{cache:'no-store'})).json())||{});
     for(var j=0;j<ks.length;j++){ setSync('sync','Copiando vendas '+(j+1)+'/'+ks.length+'…'); var dl=await (await fetch(P('imports_linhas/'+ks[j]),{cache:'no-store'})).json(); if(dl!=null) await fb('PUT','imports_linhas/'+ks[j],dl); }
     await new Promise(function(res){ var rq=indexedDB.deleteDatabase('teste_cesta_rei_do_gado_v2'); rq.onsuccess=rq.onerror=rq.onblocked=function(){ res(); }; });
-    ['cesta_seg','cesta_lemb','cesta_histfila','cesta_histult','cesta_excl'].forEach(function(k){ localStorage.removeItem(k); });
+    ['cesta_seg','cesta_lemb','cesta_histfila','cesta_histult','cesta_excl','cesta_camp'].forEach(function(k){ localStorage.removeItem(k); });
     alert('Cópia concluída. A página vai recarregar com os dados da loja na base de teste.'); location.reload(); }
   catch(e){ setSync('erro',e.message); alert('Falhou: '+e.message); } }
+/* =================== FASE 1: perfil Astro, segmentos por regras e campanhas com métricas =================== */
+/* ---- perfil Astro (calculado das compras) ---- */
+function astro(c){ if(c._astro&&c._astroM===S.model) return c._astro; var A={tags:[]}, cp=c.compras||[], n=cp.length, ref=S.model.refData;
+  var dw=[0,0,0,0,0,0,0], ini=0; cp.forEach(function(d){ dw[new Date(d.data+'T12:00:00').getDay()]++; if(+d.data.slice(8,10)<=10) ini++; });
+  var top=dw.indexOf(Math.max.apply(null,dw)); A.diaFav=n>=3&&dw[top]/n>=0.4?top:null; A.fimSemana=n>=3&&(dw[5]+dw[6]+dw[0])/n>=0.65; A.inicioMes=n>=4&&ini/n>=0.6;
+  var cortes={}; (c.cestaArr||[]).forEach(function(e){ var k=corte(e.produto); cortes[k]=(cortes[k]||0)+e.valor; }); A.cortes=Object.keys(cortes).sort(function(a,b){return cortes[b]-cortes[a];}).slice(0,3);
+  var r90=0,a90=0; cp.forEach(function(d){ var x=dias(d.data,ref); if(x<=90) r90+=d.valor; else if(x<=180) a90+=d.valor; });
+  A.tendencia=(a90>0&&r90>=a90*1.25)?'subindo':(a90>0&&r90<=a90*0.6)?'caindo':(a90===0&&r90>0&&c.primeiraCompra&&dias(c.primeiraCompra,ref)<=90?'novo':'estavel');
+  var lin=Object.keys(c.linhas?c.linhas.reduce(function(o,l){ o[l.linha]=1; return o; },{}):{}).join(' ')+' '+(c.linhaPrincipal||'');
+  A.estilo=(/Hamb/i.test(lin)||(c.cestaArr||[]).some(function(e){ return RE_BURGER.test(rgNorm(e.produto)); }))&&!LINHAS_CHURRASCO.test(c.linhaPrincipal||'')?'burger':LINHAS_CHURRASCO.test(c.linhaPrincipal||'')?'churrasco':'dia';
+  A.foraRitmo=!!(c.intervaloMedio&&n>=3&&c.recencia>Math.max(14,c.intervaloMedio*1.6));
+  if(A.fimSemana) A.tags.push('Compra no fim de semana'); else if(A.diaFav!=null) A.tags.push('Costuma vir '+(A.diaFav===0||A.diaFav===6?'no ':'na ')+DSEM[A.diaFav]);
+  if(A.inicioMes) A.tags.push('Compra no início do mês');
+  A.tags.push({churrasco:'Churrasqueiro',dia:'Dia a dia',burger:'Público burger'}[A.estilo]);
+  if(A.tendencia==='subindo') A.tags.push('Gasto subindo ▲'); else if(A.tendencia==='caindo') A.tags.push('Gasto caindo ▼');
+  if(A.foraRitmo) A.tags.push('Fora do ritmo de compra');
+  c._astro=A; c._astroM=S.model; return A; }
+function tagsAstro(c){ return astro(c).tags.map(function(t){ return '<span class="atag">'+esc(t)+'</span>'; }).join(''); }
+/* ---- segmentos por regras ---- */
+var DIAS_OP=[['fds','fim de semana (sex a dom)'],['1','segunda'],['2','terça'],['3','quarta'],['4','quinta'],['5','sexta'],['6','sábado'],['0','domingo']];
+var CAMPOS_SEG=[
+  {k:'produto',rot:'Comprou o produto',t:'texto',d:true},{k:'naoProduto',rot:'Nunca comprou o produto',t:'texto'},{k:'repor',rot:'Na hora de repor o produto',t:'texto'},
+  {k:'diaSemana',rot:'Costuma comprar',t:'op',ops:DIAS_OP},{k:'estilo',rot:'Estilo',t:'op',ops:[['churrasco','Churrasqueiro'],['dia','Dia a dia'],['burger','Público burger']]},
+  {k:'recencia',rot:'Dias sem comprar',t:'faixa'},{k:'compras',rot:'Nº de compras',t:'faixa'},{k:'total',rot:'Total gasto (R$)',t:'faixa'},{k:'ticket',rot:'Ticket médio (R$)',t:'faixa'},{k:'ciclo',rot:'Compra a cada (dias)',t:'faixa'},
+  {k:'perfil',rot:'Perfil',t:'op',ops:['VIP','Frequente','Regular','Esporádico','Compra única']},{k:'status',rot:'Status',t:'op',ops:['Ativo','Em risco','Inativo']},
+  {k:'linha',rot:'Linha principal',t:'op',ops:LINHAS},{k:'loja',rot:'Loja',t:'op',ops:[['CORONEL','Coronel'],['CORREAS','Correas'],['BINGEN','Bingen']]},
+  {k:'tendencia',rot:'Gasto',t:'op',ops:[['subindo','subindo'],['caindo','caindo'],['novo','cliente novo']]},{k:'foraRitmo',rot:'Fora do ritmo de compra',t:'bool'},
+  {k:'inicioMes',rot:'Compra no início do mês',t:'bool'},{k:'novo',rot:'1ª compra há até (dias)',t:'num'},
+  {k:'respondeu',rot:'Mensagens',t:'op',ops:[['sim','já respondeu alguma'],['nao','nunca respondeu']]},{k:'semMsg',rot:'Sem receber mensagem há (dias)',t:'num'},
+  {k:'celular',rot:'Tem celular',t:'bool'}];
+function campoSeg(k){ return CAMPOS_SEG.filter(function(x){return x.k===k;})[0]; }
+function temProduto(c,txt,diasMax){ var q=rgNorm(txt||''); if(!q) return true; return (c.cestaArr||[]).some(function(e){ return rgNorm(e.produto).indexOf(q)>=0&&(!diasMax||dias(e.ultima,S.model.refData)<=+diasMax); }); }
+function avaliaRegra(c,r){ var A=astro(c), num2=function(x){ return x===''||x==null?null:+x; }, fx=function(v){ var a=num2(r.a), b=num2(r.b); return (a==null||v>=a)&&(b==null||v<=b); };
+  switch(r.k){
+    case 'produto': return temProduto(c,r.v,r.d); case 'naoProduto': return !temProduto(c,r.v);
+    case 'repor': var q=rgNorm(r.v||''); return (c.cestaArr||[]).some(function(e){ return e.atrasado&&(!q||rgNorm(e.produto).indexOf(q)>=0); });
+    case 'diaSemana': return r.v==='fds'?A.fimSemana:A.diaFav===+r.v;
+    case 'estilo': return A.estilo===r.v; case 'recencia': return fx(c.recencia); case 'compras': return fx(c.nCompras); case 'total': return fx(c.total); case 'ticket': return fx(c.ticketMedio||0);
+    case 'ciclo': return !!c.intervaloMedio&&fx(c.intervaloMedio); case 'perfil': return c.perfil===r.v; case 'status': return c.status===r.v; case 'linha': return c.linhaPrincipal===r.v; case 'loja': return c.loja===r.v;
+    case 'tendencia': return A.tendencia===r.v; case 'foraRitmo': return A.foraRitmo; case 'inicioMes': return A.inicioMes;
+    case 'novo': return !!c.primeiraCompra&&dias(c.primeiraCompra,S.model.refData)<=(+r.v||30);
+    case 'respondeu': var rs=contatosDe(c).some(function(x){return !!x.resp;}); return r.v==='sim'?rs:!rs;
+    case 'semMsg': var u=contatosDe(c).filter(function(x){return !x.semTrava;})[0]; return !u||dias(u.dia,hoje())>=(+r.v||7);
+    case 'celular': return !!foneWa(c.celular); }
+  return true; }
+function membrosRegras(regras){ var rs=(regras||[]).filter(function(r){ return r&&r.k; }); return S.model.lista.filter(function(c){ for(var i=0;i<rs.length;i++) if(!avaliaRegra(c,rs[i])) return false; return true; }); }
+function descRegra(r){ var f=campoSeg(r.k); if(!f) return ''; var v=r.v; if(f.ops){ var o=f.ops.filter(function(x){ return (Array.isArray(x)?x[0]:x)==v; })[0]; v=o?(Array.isArray(o)?o[1]:o):v; }
+  return f.rot+(f.t==='faixa'?' '+(r.a!==''&&r.a!=null?'de '+r.a+' ':'')+(r.b!==''&&r.b!=null?'até '+r.b:''):f.t==='bool'?'':': '+v)+(r.d?' (últimos '+r.d+' dias)':''); }
+/* ---- campanhas ---- */
+var CAMPS={};
+try{ CAMPS=JSON.parse(localStorage.getItem('cesta_camp')||'{}')||{}; }catch(e){}
+function campGuardar(){ try{ localStorage.setItem('cesta_camp',JSON.stringify(CAMPS)); }catch(e){} }
+async function campLer(){ if(!syncAtivo()) return; try{ var d=await fb('GET','camp')||{}; if(JSON.stringify(d)!==JSON.stringify(CAMPS)){ CAMPS=d; campGuardar(); if(/campanhas/.test(S.aba)&&!document.querySelector('#modal.on')) render(); } }catch(e){} }
+async function campGravar(id,val){ campGuardar(); if(!syncAtivo()) return; try{ if(val===null) await fb('DELETE','camp/'+id); else await fb('PATCH','camp/'+id,val); }catch(e){ toast('Sem conexão: guardado aqui.','erro'); } }
+function publicoCamp(cp){ var seg=cp.seg&&CRM.seg[cp.seg], base=cp.regras?membrosRegras(cp.regras):seg?(seg.regras?membrosRegras(seg.regras):membros(cp.seg)):[]; return base.filter(function(c){ return !S.loja||c.loja===S.loja; }); }
+function metCamp(chave){ var idx=indiceClientesContato(), o={env:0,resp:0,comp:0,rec:0,ped:0,sair:0,cli:[]}, vis={};
+  (S.contatos||[]).forEach(function(r){ if(r.excluido||r.campanha!==chave) return; var c=clienteDoContato(r,idx); if(S.loja&&c&&c.loja!==S.loja) return; o.env++; if(r.resp) o.resp++; if(r.sair) o.sair++;
+    if(c&&!vis[c.chave]){ vis[c.chave]=1; var cp=c.compras.filter(function(d){ return d.data>=r.dia&&dias(r.dia,d.data)<=7; }); var v=cp.reduce(function(a,d){return a+d.valor;},0); if(cp.length){ o.comp++; o.rec+=v; o.ped+=cp.length; } o.cli.push({c:c,r:r,v:v,n:cp.length}); } });
+  o.ticket=o.ped?o.rec/o.ped:0; o.tResp=o.env?o.resp/o.env:0; o.tComp=o.cli.length?o.comp/o.cli.length:0; return o; }
+var CAMP_TXT_PADRAO='{saudacao}, {nome}! {quem} Rei do Gado {loja} 😊 ';
+function sgCamp(c,id){ var cp=CAMPS[id]||{}, at=atendenteDe(c.loja), h=new Date().getHours(), A=astro(c);
+  var v={nome:primeiroNome(c.nome),loja:tituloProd(c.loja||''),atendente:at||'o pessoal',quem:at?'Aqui é '+at+', do':'Aqui é o pessoal do',saudacao:h<12?'Bom dia':h<18?'Boa tarde':'Boa noite',fav:tituloProd((c.cestaArr[0]||{}).produto||''),corte:tituloProd(A.cortes[0]||''),dia:A.diaFav!=null?DSEM[A.diaFav]:'fim de semana'};
+  var ts=String(cp.texto||'').split(/\n\s*---\s*\n/).map(function(x){return x.trim();}).filter(Boolean); if(!ts.length) ts=['[escreva a mensagem]'];
+  var usados={}; contatosDe(c).slice(0,8).forEach(function(r){ if(r.vh) usados[r.vh]=1; });
+  var cand=ts.map(function(t,i){return i;}).filter(function(i){ return !usados['camp|'+hashN(ts[i])]; }); if(!cand.length) cand=ts.map(function(t,i){return i;});
+  var i=cand[(hashN(c.chave+'|'+id+'|'+hoje())+((S.regen&&S.regen[c.chave])||0))%cand.length], txt=ts[i].replace(/\{(\w+)\}/g,function(a,x){ return v[x]!=null?v[x]:a; });
+  if(bib().sair) txt+='\n'+linhaSair(c.chave+'|'+id);
+  var r={mensagem:txt,situacao:'campanha',variante:'camp:'+id+':'+i,vh:'camp|'+hashN(ts[i]),ofertas:[],novidades:[],atendente:at,produtos:[cp.nome||'campanha'],campanha:'camp:'+id};
+  if(cp.promo){ r.promo=true; r.semTrava=true; r.campanhaDias=1; } if(cp.img&&kitImg(cp.img)) r.midia={type:'image',file:kitImg(cp.img)}; return r; }
+async function novaCampanha(o){ var id='C'+Date.now().toString(36); CAMPS[id]=Object.assign({nome:'Nova campanha',texto:CAMP_TXT_PADRAO,promo:false,img:'',status:'rascunho',criadaEm:new Date().toISOString(),por:quemSou(),loja:S.loja||''},o||{}); await campGravar(id,CAMPS[id]); return id; }
+/* sugestões automáticas de campanha */
+function sugestoesCamp(){ var m=S.model, out=[], dw=new Date().getDay(), dia=new Date().getDate(), ok=function(c){ return (!S.loja||c.loja===S.loja)&&foneWa(c.celular)&&!optout(c); };
+  var mk=function(id,tit,desc,regras,texto){ var n=membrosRegras(regras).filter(ok).length; if(n>=3) out.push({id:id,tit:tit,desc:desc,regras:regras,texto:texto,n:n}); };
+  if(dw>=3&&dw<=5) mk('fds','Churrasco de fim de semana','Churrasqueiros que compram no fim de semana e não vêm há 7+ dias',[{k:'estilo',v:'churrasco'},{k:'diaSemana',v:'fds'},{k:'recencia',a:7,b:45}],'{saudacao}, {nome}! {quem} Rei do Gado {loja} 🔥 Fim de semana chegando! Quer que eu já deixe {fav} separado pro seu churrasco?\n---\nOi, {nome}! {quem} Rei do Gado {loja}. Sábado com churrasco? Separei uns cortes caprichados, {corte} inclusive. Reservo pra você?');
+  mk('vip','VIPs fora do ritmo','Clientes VIP e frequentes que passaram bem do tempo de compra',[{k:'perfil',v:'VIP'},{k:'foraRitmo'},{k:'recencia',b:120}],'{saudacao}, {nome}! {quem} Rei do Gado {loja}. Senti sua falta essas semanas! Tá tudo bem? Quando quiser, separo {fav} do jeitinho que você gosta 😊');
+  mk('novos','Boas-vindas','Clientes com a 1ª compra nos últimos 15 dias',[{k:'novo',v:15},{k:'compras',b:1}],'{saudacao}, {nome}! {quem} Rei do Gado {loja} 😊 Obrigado pela primeira compra com a gente! Como foi {fav}? Qualquer coisa, me chama aqui.');
+  var cont={}; m.lista.forEach(function(c){ if(!ok(c)) return; (c.cestaArr||[]).forEach(function(e){ if(e.atrasado){ var k=corte(e.produto); cont[k]=(cont[k]||0)+1; } }); });
+  var tp=Object.keys(cont).sort(function(a,b){return cont[b]-cont[a];})[0]; if(tp) mk('repor','Hora de repor: '+tituloProd(tp),'Clientes que compram '+tituloProd(tp)+' e já passaram do tempo de repor',[{k:'repor',v:tp}],'{saudacao}, {nome}! {quem} Rei do Gado {loja}. Acho que o '+tituloProd(tp)+' já tá acabando, né? Quer que eu separe pra você?');
+  mk('risco','Ticket alto em risco','Clientes de ticket acima de R$ 200 entre 31 e 60 dias sem comprar',[{k:'status',v:'Em risco'},{k:'ticket',a:200}],'{saudacao}, {nome}! {quem} Rei do Gado {loja}. Faz um tempinho que não te vejo por aqui! Chegou {fav} fresquinho, quer que eu separe?');
+  if(dia<=10) mk('inimes','Início do mês','Clientes que costumam comprar nos primeiros dias do mês',[{k:'inicioMes'},{k:'recencia',a:10}],'{saudacao}, {nome}! {quem} Rei do Gado {loja} 😊 Começo de mês: quer que eu já separe {fav} pra abastecer?');
+  mk('caindo','Gasto caindo','Clientes frequentes cujo gasto caiu nos últimos 90 dias',[{k:'tendencia',v:'caindo'},{k:'compras',a:4}],'{saudacao}, {nome}! {quem} Rei do Gado {loja}. Queria saber de você: tá tudo certo com nossos produtos? Se algo não agradou, me conta 🙏');
+  return out; }
+/* ---- tela CAMPANHAS ---- */
+function kc2(rot,val,sub,cls){ return '<div class="ek'+(cls?' '+cls:'')+'"><span>'+rot+'</span><b>'+val+'</b><small>'+(sub||'')+'</small></div>'; }
+function telaCampanhas(){ if(S.campAt&&CAMPS[S.campAt]) return telaCampanha(S.campAt);
+  var ids=Object.keys(CAMPS).filter(function(id){ return CAMPS[id]&&(!S.loja||!CAMPS[id].loja||CAMPS[id].loja===S.loja); }).sort(function(a,b){ return (CAMPS[a].criadaEm||'')<(CAMPS[b].criadaEm||'')?1:-1; }), sg=sugestoesCamp();
+  var tot={env:0,comp:0,rec:0}; var cards=ids.map(function(id){ var cp=CAMPS[id], mt=metCamp('camp:'+id); tot.env+=mt.env; tot.comp+=mt.comp; tot.rec+=mt.rec;
+    return '<div class="cpc" data-campab="'+id+'"><div class="cph"><b>'+esc(cp.nome)+'</b><span class="st '+(cp.status||'rascunho')+'">'+({rascunho:'Rascunho',ativa:'Ativa',encerrada:'Encerrada'}[cp.status||'rascunho'])+'</span></div><small>'+esc(cp.seg&&CRM.seg[cp.seg]?CRM.seg[cp.seg].nome:cp.regras?'Segmento próprio':'Sem público')+(cp.promo?' · promoção':'')+' · '+dBR(String(cp.criadaEm||'').slice(0,10)).slice(0,5)+'</small>'+
+      '<div class="cpm"><div><small>Enviadas</small><b>'+num(mt.env)+'</b></div><div><small>Respostas</small><b>'+pct0(mt.tResp)+'</b></div><div><small>Compraram</small><b>'+num(mt.comp)+'</b></div><div><small>Receita</small><b>'+brl(mt.rec)+'</b></div></div></div>'; }).join('');
+  // automáticas
+  var auto=[['Reconquista','reconquista']].concat(kits().map(function(k){ return ['Kit '+k.nome,'kit:'+k.id]; })).map(function(x){ var mt=metCamp(x[1]); return mt.env?'<tr><td>'+esc(x[0])+'</td><td class="r">'+num(mt.env)+'</td><td class="r">'+pct0(mt.tResp)+'</td><td class="r">'+num(mt.comp)+'</td><td class="r">'+brl(mt.rec)+'</td><td class="r">'+brl(mt.ticket)+'</td></tr>':''; }).join('');
+  return '<div class="exec"><div class="ex-h"><div><h1>Campanhas</h1></div><button class="btn" id="campNova">+ Nova campanha</button></div>'+
+    '<div class="ex-kpis">'+kc2('Campanhas',num(ids.length),ids.filter(function(i){return CAMPS[i].status==='ativa';}).length+' ativas')+kc2('Mensagens enviadas',num(tot.env),'em campanhas')+kc2('Clientes que compraram',num(tot.comp),'até 7 dias depois','ok')+kc2('Receita gerada',brl(tot.rec),'compras desses clientes','ok')+'</div>'+
+    (sg.length?'<section class="card"><header><h3>Sugestões da Cesta</h3><span class="cnt">'+sg.length+'</span></header><div class="sgc">'+sg.map(function(x,i){ return '<div class="sgi"><div><b>'+esc(x.tit)+'</b><small>'+esc(x.desc)+'</small></div><div class="sgn"><b>'+num(x.n)+'</b><small>clientes</small></div><button class="btn sec mini" data-campsug="'+i+'">Criar</button></div>'; }).join('')+'</div></section>':'')+
+    '<section class="card" style="margin-top:16px"><header><h3>Minhas campanhas</h3></header>'+(cards?'<div class="cpg">'+cards+'</div>':'<div class="vazio">Nenhuma campanha ainda</div>')+'</section>'+
+    (auto?'<section class="card" style="margin-top:16px"><header><h3>Campanhas automáticas</h3></header><div class="tw"><table class="tbl"><thead><tr><th>Campanha</th><th class="r">Enviadas</th><th class="r">Respostas</th><th class="r">Compraram</th><th class="r">Receita</th><th class="r">Ticket</th></tr></thead><tbody>'+auto+'</tbody></table></div></section>':'')+'</div>'; }
+function telaCampanha(id){ var cp=CAMPS[id], mt=metCamp('camp:'+id), pub=publicoCamp(cp), ctx='camp:'+id, ex=pub.filter(function(c){ return foneWa(c.celular); })[0];
+  var segs=Object.keys(CRM.seg).filter(function(x){return CRM.seg[x];});
+  var regras=cp.regras||null;
+  return '<div class="exec"><div class="ex-h"><div><button class="ico txt" id="campVoltar">← Campanhas</button><h1 style="margin-top:8px"><span id="campNomeT">'+esc(cp.nome)+'</span> <button class="ico" id="campRenom" title="Renomear">✎</button></h1></div><div class="ex-act">'+
+      '<select id="campStatus">'+[['rascunho','Rascunho'],['ativa','Ativa'],['encerrada','Encerrada']].map(function(o){ return '<option value="'+o[0]+'"'+((cp.status||'rascunho')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select> <button class="ico txt perigo" id="campDel">Apagar</button></div></div>'+
+    '<div class="ex-kpis">'+kc2('Público',num(pub.length),pub.filter(function(c){return elegivel(c,!!cp.promo);}).length+' liberados agora')+kc2('Enviadas',num(mt.env),mt.sair?mt.sair+' pediram SAIR':'')+kc2('Respostas',pct0(mt.tResp),num(mt.resp)+' clientes')+kc2('Compraram',pct0(mt.tComp),num(mt.comp)+' clientes em 7 dias','ok')+kc2('Receita',brl(mt.rec),num(mt.ped)+' pedidos','ok')+kc2('Ticket médio',brl(mt.ticket),'das compras geradas')+'</div>'+
+    '<div class="ex-grid"><div class="ex-col"><section class="card"><header><h3>Público</h3><span class="cnt">'+num(pub.length)+'</span></header>'+
+      '<div class="filtros"><select id="campSeg"><option value="">Segmento próprio desta campanha</option>'+segs.map(function(x){ return '<option value="'+x+'"'+(cp.seg===x?' selected':'')+'>🏷 '+esc(CRM.seg[x].nome)+'</option>'; }).join('')+'</select></div>'+
+      (!cp.seg?editorRegras(regras||[],'camp'):'')+
+      barraSel(ctx,pub.filter(function(c){ return elegivel(c,!!cp.promo); }).length)+
+      '<div class="tw" style="max-height:520px"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th>Perfil</th><th class="r">Sem comprar</th><th>Resultado</th></tr></thead><tbody>'+
+      (function(){ var vis={}, arr=[]; mt.cli.forEach(function(x){ if(!vis[x.c.chave]){ vis[x.c.chave]=1; arr.push(x.c); } }); pub.forEach(function(c){ if(!vis[c.chave]){ vis[c.chave]=1; arr.push(c); } }); return arr; })().slice(0,400).map(function(c){ var res=mt.cli.filter(function(x){return x.c===c;})[0]; return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(tituloProd(c.nome))+'</b><small class="cod">'+esc(tituloProd(c.loja))+'</small><div class="atags">'+tagsAstro(c)+'</div></td><td>'+tag(c.perfil)+'</td><td class="r">'+c.recencia+'d</td><td>'+(res?(res.n?'<span class="pill okp">comprou '+brl(res.v)+'</span>':res.r.resp?'<span class="pill">respondeu</span>':'<span class="pill late">enviada</span>'):'—')+'</td></tr>'; }).join('')+'</tbody></table></div></section></div>'+
+    '<div class="ex-col"><section class="card"><header><h3>Mensagem</h3></header><textarea id="campTexto" rows="7">'+esc(cp.texto||'')+'</textarea>'+
+      '<div class="campos">'+['{saudacao}','{nome}','{quem}','{loja}','{fav}','{corte}','{dia}'].map(function(x){ return '<button class="chip" data-campvar="'+x+'">'+x+'</button>'; }).join('')+'<small>versões separadas por ---</small></div>'+
+      '<div class="filtros"><label class="chk"><input type="checkbox" id="campPromo"'+(cp.promo?' checked':'')+'> promoção (sem trava semanal)</label>'+(kits().some(function(k){return kitImg(k.id);})?'<select id="campImg"><option value="">Sem foto</option>'+kits().filter(function(k){return kitImg(k.id);}).map(function(k){ return '<option value="'+k.id+'"'+(cp.img===k.id?' selected':'')+'>📷 '+esc(k.nome)+'</option>'; }).join('')+'</select>':'')+'<button class="btn sec mini" id="campSalvar">Salvar</button></div>'+
+      (ex?'<div class="wa-prev">'+(cp.img&&kitImg(cp.img)?'<img src="'+kitImg(cp.img)+'">':'')+'<pre>'+esc(sgCamp(ex,id).mensagem)+'</pre><small>'+esc(tituloProd(ex.nome))+'</small></div>':'')+'</section></div></div></div>'; }
+function editorRegras(rs,dono){ var linha=function(r,i){ var f=campoSeg(r.k)||CAMPOS_SEG[0], inp='';
+    if(f.t==='texto') inp='<input data-rg="'+i+'" data-rf="v" list="dlprod" value="'+esc(r.v||'')+'" placeholder="produto ou corte">'+(f.d?'<input data-rg="'+i+'" data-rf="d" type="number" min="1" value="'+esc(r.d||'')+'" placeholder="nos últimos … dias" style="width:150px">':'');
+    else if(f.t==='op') inp='<select data-rg="'+i+'" data-rf="v">'+f.ops.map(function(o){ var v=Array.isArray(o)?o[0]:o, l=Array.isArray(o)?o[1]:o; return '<option value="'+esc(v)+'"'+(String(r.v)===String(v)?' selected':'')+'>'+esc(l)+'</option>'; }).join('')+'</select>';
+    else if(f.t==='faixa') inp='<input data-rg="'+i+'" data-rf="a" type="number" value="'+esc(r.a==null?'':r.a)+'" placeholder="de" style="width:90px"><input data-rg="'+i+'" data-rf="b" type="number" value="'+esc(r.b==null?'':r.b)+'" placeholder="até" style="width:90px">';
+    else if(f.t==='num') inp='<input data-rg="'+i+'" data-rf="v" type="number" value="'+esc(r.v||'')+'" style="width:90px">';
+    return '<div class="rgl2"><select data-rg="'+i+'" data-rf="k">'+CAMPOS_SEG.map(function(x){ return '<option value="'+x.k+'"'+(x.k===f.k?' selected':'')+'>'+esc(x.rot)+'</option>'; }).join('')+'</select>'+inp+'<button class="ico" data-rgdel="'+i+'" title="Tirar condição">✕</button></div>'; };
+  return '<div class="regras" data-dono="'+dono+'">'+rs.map(linha).join('')+'<button class="btn sec mini" data-rgadd="1">+ condição</button>'+dlProdutos()+'</div>'; }
+function regrasDe(dono){ if(dono==='camp'){ var cp=CAMPS[S.campAt]; cp.regras=cp.regras||[]; return cp.regras; } var sid=dono.slice(4); CRM.seg[sid].regras=CRM.seg[sid].regras||[]; return CRM.seg[sid].regras; }
+async function salvarRegrasDe(dono,arr){ if(dono==='camp'){ CAMPS[S.campAt].regras=arr; await campGravar(S.campAt,{regras:arr}); } else { var sid=dono.slice(4); CRM.seg[sid].regras=arr; await crmGravar('seg',sid,{regras:arr}); } }
 async function excluirContato(id){ var r=S.contatos.filter(function(x){return x.id===id;})[0]; if(!r) return; r.excluido=true; r.pendente=true; r.excluidoEm=new Date().toISOString();
   await dbTx('contatos',function(st){ st.put(r); }); indexarContatos(); limparSugestoes(); S.crmSujo=true; agendarSync(300); }
 async function enviarContato(c,msg,sg){ /* desativado: todo envio é pela Uazapi */ toast('O envio é só pela Uazapi.','erro'); return false; if(!(await podeEnviar(c))) return false; await registrarContato(c,'whatsapp',msg,null,sg); return true; }
@@ -1610,7 +1759,7 @@ function astroPainel(t){ var c=t.c; if(!c) return '<div class="cv-r"><div class=
   var ult=c.compras.slice(0,4).map(function(d){ return '<div class="uc" data-compra="'+esc(c.chave+'|'+d.doc+'|'+d.data)+'"><span>'+dBR(d.data).slice(0,5)+'</span><b>'+brl(d.valor)+'</b><small>'+esc(d.itens.slice(0,2).map(function(x){return tituloProd(x.produto);}).join(', '))+(d.itens.length>2?' +'+(d.itens.length-2):'')+'</small></div>'; }).join('');
   var k=function(rot,val){ return '<div><small>'+rot+'</small><b>'+val+'</b></div>'; };
   return '<div class="cv-r"><div class="as-h"><div class="av g" style="background:'+corAvatar(c.nome)+'">'+esc(iniciais(c.nome))+'</div><div><b class="lk" data-cli="'+esc(c.chave)+'">'+esc(tituloProd(c.nome))+'</b><div>'+tag(c.perfil)+' <small>'+esc(tituloProd(c.loja))+(c.bairro?' · '+esc(tituloProd(c.bairro)):'')+'</small></div></div></div>'+
-    '<div class="as-k">'+k('Sem comprar',c.recencia===0?'hoje':c.recencia+'d')+k('Ticket',brl(c.ticketMedio))+k('Compra a cada',c.intervaloMedio?Math.round(c.intervaloMedio)+'d':'—')+k('Total',brl(c.total))+'</div>'+
+    '<div class="atags">'+tagsAstro(c)+'</div><div class="as-k">'+k('Sem comprar',c.recencia===0?'hoje':c.recencia+'d')+k('Ticket',brl(c.ticketMedio))+k('Compra a cada',c.intervaloMedio?Math.round(c.intervaloMedio)+'d':'—')+k('Total',brl(c.total))+'</div>'+
     (e.bloqueado?'<div class="as-st">'+(e.comprouRecente?'🛒 Comprou '+quandoCurto(e.comprouRecente+'T12:00:00'):'Mensagem enviada '+esc(txtUltimo(e)))+' · livre em '+dBR(e.liberaEm).slice(0,5)+'</div>':'')+
     '<h5>Favoritos</h5><div class="favs">'+fav+'</div><h5>Últimas compras</h5>'+ult+
     (P.dicas.length?'<h5>Como falar</h5><ul class="as-d">'+P.dicas.slice(0,4).map(function(d){ return '<li>'+esc(d)+'</li>'; }).join('')+'</ul>':'')+
@@ -1847,8 +1996,8 @@ function sgDoModal(c){ var f=S.focoModal; if(!f&&c.recencia>90) return sgReconq(
 /* ---------- SELEÇÃO DE CLIENTES PARA ENVIO ---------- */
 function selCtx(ctx){ if(!S.sel||S.sel.ctx!==ctx) S.sel={ctx:ctx,itens:{}}; return S.sel; }
 function selN(){ return S.sel?Object.keys(S.sel.itens).length:0; }
-function ctxPromo(ctx){ if(ctx==='reconq') return true; if(ctx&&ctx.indexOf('lista:')===0) return !!(((S.campLista||{})[ctx.slice(6)]||{}).promo); if(!ctx||ctx.indexOf('kit:')!==0) return false; var k=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return !!(k&&k.promo!==false); }
-function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(it&&(it.prod||'')===(prod||'')), e=estadoContato(c), pr=ctxPromo(ctx), ok=elegivel(c,pr)&&!((ctx.indexOf('kit:')===0||(pr&&ctx.indexOf('lista:')===0))&&jaRecebeuCampanha(c,ctx,1));
+function ctxPromo(ctx){ if(ctx==='reconq') return true; if(ctx&&ctx.indexOf('camp:')===0) return !!((CAMPS[ctx.slice(5)]||{}).promo); if(ctx&&ctx.indexOf('lista:')===0) return !!(((S.campLista||{})[ctx.slice(6)]||{}).promo); if(!ctx||ctx.indexOf('kit:')!==0) return false; var k=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return !!(k&&k.promo!==false); }
+function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(it&&(it.prod||'')===(prod||'')), e=estadoContato(c), pr=ctxPromo(ctx), ok=elegivel(c,pr)&&!((ctx.indexOf('kit:')===0||(pr&&(ctx.indexOf('lista:')===0||ctx.indexOf('camp:')===0)))&&jaRecebeuCampanha(c,ctx,1));
   if(!ok&&on) delete s.itens[c.chave], on=false;
   return '<input type="checkbox" class="selcli" data-sel="'+esc(c.chave)+'" data-ctx="'+esc(ctx)+'"'+(prod?' data-selprod="'+esc(prod)+'" data-selmodo="'+esc(modo)+'"':'')+(on?' checked':'')+(ok?'':' disabled')+
     ' title="'+(ok?'Marcar para enviar':optout(c)?'Pediu SAIR — não recebe mensagens':(soPromo(c)&&!pr)?'Só promoções — entra apenas em campanha de promoção':!foneWa(c.celular)?'Sem celular':'Já recebeu mensagem — liberado em '+dBR(e.liberaEm)+' ('+e.espera.motivo+')')+'">'; }
@@ -1865,6 +2014,7 @@ function itensCtx(ctx){
   if(ctx==='cli') return filtrarClientes().map(function(c){ return {c:c}; });
   if(ctx==='reconq') return filtrarReconq().filter(function(c){ return !jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ); }).map(function(c){ return {c:c,prod:'x',modo:'reconq'}; });
   if(ctx.indexOf('kit:')===0){ var kx=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return kx?publicoKit(kx,S.kc||{}).map(function(c){ return {c:c}; }):[]; }
+  if(ctx.indexOf('camp:')===0){ var cpx=CAMPS[ctx.slice(5)]; return cpx?publicoCamp(cpx).map(function(c){ return {c:c}; }):[]; }
   if(ctx.indexOf('lista:')===0) return membros(ctx.slice(6)).filter(function(c){ return !S.loja||c.loja===S.loja; }).map(function(c){ return {c:c}; });
   if(ctx==='rec') return filtrarRecompra().map(function(x){ return {c:x.c,prod:x.e.chave,modo:'recompra'}; });
   if(ctx.indexOf('prod:')===0){ var ch=ctx.slice(5); return clientesDoProduto(ch).map(function(y){ return {c:y.c,prod:ch,modo:'produto'}; }); }
@@ -1875,6 +2025,7 @@ async function enviarMarcados(ctx){ var s=selCtx(ctx), its=s.itens, m=S.model;
   if(ctx==='reconq'){ if(!rqCfg().oferta){ toast('Defina a oferta da reconquista e salve a campanha antes de enviar.','erro'); return; } await loteUazapi(lista,sgReconq); }
   else if(ctx.indexOf('kit:')===0){ var kk=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; if(!kk){ toast('Kit não encontrado.','erro'); return; } if(!kitImg(kk.id)){ toast('Esse kit está sem foto.','erro'); return; }
     if($('#kleg')&&S.kc) S.kc.legendas=$('#kleg').value; await loteUazapi(lista,function(c){ return sgKit(c,kk); }); }
+  else if(ctx.indexOf('camp:')===0){ var cid=ctx.slice(5), cpe=CAMPS[cid]; if(!cpe) return; if($('#campTexto')) cpe.texto=$('#campTexto').value; if(!String(cpe.texto||'').replace(CAMP_TXT_PADRAO.trim(),'').trim()){ toast('Escreva a mensagem da campanha.','erro'); return; } if(cpe.status!=='ativa'){ cpe.status='ativa'; cpe.inicio=cpe.inicio||new Date().toISOString(); } await campGravar(cid,{texto:cpe.texto,status:cpe.status,inicio:cpe.inicio}); await loteUazapi(lista,function(c){ return sgCamp(c,cid); }); }
   else if(ctx.indexOf('lista:')===0){ var lid=ctx.slice(6), cfE=(S.campLista=S.campLista||{})[lid]||(S.campLista[lid]={texto:CAMP_PADRAO}); if($('#lsTexto')) cfE.texto=$('#lsTexto').value; if(!cfE.texto.trim()||cfE.texto.trim()===CAMP_PADRAO.trim()){ toast('Escreva a mensagem da campanha antes de enviar.','erro'); return; } await loteUazapi(lista,function(c){ return sgLista(c,lid,cfE); }); }
   else await loteUazapi(lista,function(c){ var it=its[c.chave]||{}; return sugFoco(c,it.prod,it.modo); });
   // tira da seleção quem já recebeu; quem passou do limite do lote continua marcado para o próximo envio
@@ -2148,7 +2299,7 @@ function barraLojas(){ var m=S.model; if(!m) return '';
   return '<span class="lojat">Loja:</span>'+b('','Todas as lojas','🏬','#555')+lojas.map(function(l){ return b(l,tituloProd(l),'🏪',COR_LOJA_BAR[l]||'#777'); }).join('')+
     (S.loja?'<span class="lojanota">Todas as abas mostram só a loja <b>'+esc(tituloProd(S.loja))+'</b></span>':''); }
 /* navegação: ícones na lateral = grupos; dentro do grupo, subabas no topo */
-var GRUPOS={hoje:[['hoje','Hoje']],conversas:[['conversas','Conversas']],clientes:[['clientes','Clientes']],campanhas:[['sugestoes','Sugestões'],['recompra','Recompra'],['reconquista','Reconquista'],['kits','Kits'],['listas','Listas']],produtos:[['produtos','Produtos']],painel:[['painel','Painel']],ajustes:[['importacoes','Importar e configurar'],['cadastro','Cadastro'],['conferencia','Conferência']]};
+var GRUPOS={hoje:[['hoje','Hoje']],conversas:[['conversas','Conversas']],clientes:[['clientes','Clientes']],campanhas:[['campanhas','Campanhas'],['listas','Segmentos'],['sugestoes','Sugestões'],['recompra','Recompra'],['reconquista','Reconquista'],['kits','Kits']],produtos:[['produtos','Produtos']],painel:[['painel','Painel']],ajustes:[['importacoes','Importar e configurar'],['cadastro','Cadastro'],['conferencia','Conferência']]};
 function grupoDe(aba){ for(var g in GRUPOS) if(GRUPOS[g].some(function(x){return x[0]===aba;})) return g; return 'campanhas'; }
 function subnav(){ var g=grupoDe(S.aba), it=GRUPOS[g]; S.ultAba=S.ultAba||{}; S.ultAba[g]=S.aba; return it.length>1?it.map(function(x){ return '<button data-sub="'+x[0]+'" class="'+(x[0]===S.aba?'on':'')+'">'+esc(x[1])+'</button>'; }).join(''):''; }
 function badge(g,n){ var b=document.querySelector('.tabs button[data-g='+g+'] .bdg'); if(b) b.textContent=n?(n>99?'99+':String(n)):''; }
@@ -2164,7 +2315,7 @@ function render(){
   $('#periodo').textContent=m?'Vendas até '+dBR(m.refData):''; $('#periodo').title=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens':'';
   var y=window.scrollY;
   var avB=''; if(m&&/sugestoes|recompra|reconquista|kits|listas|produtos/.test(S.aba)){ var a0=alertas()[0]; if(a0&&a0.ic==='📥') avB='<div class="'+(a0.nivel==='alto'?'erro':'aviso')+'" style="margin-bottom:10px">'+a0.ic+' <b>'+esc(a0.tit)+'.</b> '+esc(a0.txt)+' '+a0.acao+'</div>'; }
-  $('#main').innerHTML=(m&&S.aba!=='conversas'?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas}[S.aba]||telaSugestoes)();
+  $('#main').innerHTML=(m&&S.aba!=='conversas'?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas,campanhas:telaCampanhas}[S.aba]||telaSugestoes)();
   window.scrollTo(0,y); if(S.aba==='conversas') rolarChat();
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
@@ -2219,7 +2370,7 @@ function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; 
     '<div class="vinc"><label>Código do cliente</label>'+codInput(c)+'<button class="btn sec mini" data-salvarcod="'+esc(c.chave)+'">Salvar código</button>'+'<span class="nota">'+(function(){ var v=S.vinc[c.nomeKeysArr[0]]; return v&&v.codigo?'Salvo'+(v.por?' por <b>'+esc(v.por)+'</b>':'')+(v.atualizadoEm?' em '+new Date(v.atualizadoEm).toLocaleString('pt-BR'):'')+(v.pendente?' · <span class="warn">aguardando envio à nuvem</span>':' · ☁ na nuvem')+'. ':''; })()+'Usar o mesmo código em dois nomes junta os dois.</span>'+
     '<button class="btn sec mini perigo" data-movefunc="'+esc(c.chave)+'" style="margin-left:auto">É funcionário / uso interno</button></div>'+
     (c.abc?'<p class="nota">Cadastro Alterdata: <b>'+esc(c.abc.nome)+'</b>'+(c.bairro?' · '+esc(c.bairro):'')+(c.celular?' · 📱 '+esc(foneFmt(c.celular)):'')+' · última compra no Alterdata '+dBR(c.abc.ult)+'</p>':'')+
-    blocoCRMFicha(c)+'<h3>Sugestão para enviar</h3>'+avisoContato(c)+blocoSugestao(c)+'<h3>💬 Conversas e jeito de falar com '+esc(primeiroNome(c.nome))+'</h3><div id="histBox" data-cli="'+esc(c.chave)+'">'+blocoHistCompleto(c)+'</div>'+blocoHistorico(c)+
+    '<div class="atags" style="margin:8px 0">'+tagsAstro(c)+'</div>'+blocoCRMFicha(c)+'<h3>Sugestão para enviar</h3>'+avisoContato(c)+blocoSugestao(c)+'<h3>💬 Conversas e jeito de falar com '+esc(primeiroNome(c.nome))+'</h3><div id="histBox" data-cli="'+esc(c.chave)+'">'+blocoHistCompleto(c)+'</div>'+blocoHistorico(c)+
     '<div class="kpis sm">'+k('Total gasto',brl(c.total))+k('Compras',c.nCompras)+k('Ticket médio',brl(c.ticketMedio))+k('Primeira / última',dBR(c.primeiraCompra)+'<br>'+dBR(c.ultimaCompra))+k('Compra a cada',c.intervaloMedio==null?'—':Math.round(c.intervaloMedio)+' dias')+k('Próxima prevista',c.proximaPrevista?dBR(c.proximaPrevista):'—')+'</div>'+
     '<h3>Linhas que mais compra</h3><div class="linhasbar">'+c.linhas.map(function(x){return '<span style="flex:'+Math.max(x.pct,0.04)+'" title="'+esc(x.linha)+': '+brl(x.valor)+'"><b>'+esc(x.linha)+'</b> '+pct0(x.pct)+'</span>';}).join('')+'</div>'+
     '<h3>Gasto por mês</h3>'+barrasMensais(m.meses,c.meses)+
@@ -2490,6 +2641,18 @@ function bind(){
     if((b=t.closest('[data-ir]'))){ S.aba=b.dataset.ir; render(); return; }
     if((b=t.closest('[data-alertalista]'))){ var ga=(alertas().filter(function(a){ return a.grupo&&(b.dataset.alertalista==='vip'?a.ic==='⭐':a.ic==='🆕'); })[0]||{}).grupo||[]; var nmA=prompt('Nome da lista para estes '+ga.length+' clientes (se já existir, eles entram nela):',b.dataset.alertalista==='vip'?'VIPs sumindo '+dBR(hoje()):'Boas-vindas '+dBR(hoje())); if(!nmA) return;
       var idA=Object.keys(CRM.seg).filter(function(x){ return CRM.seg[x]&&rgNorm(CRM.seg[x].nome)===rgNorm(nmA); })[0]||await novaLista(nmA); var na=await porNaLista(idA,ga); S.listaAt=idA; S.aba='listas'; render(); toast(na+' cliente(s) na lista '+nmA+'.','ok'); return; }
+    if(t.id==='campNova'){ var idn=await novaCampanha({regras:[{k:'celular'}]}); S.campAt=idn; render(); return; }
+    if((b=t.closest('[data-campab]'))){ S.campAt=b.dataset.campab; window.scrollTo(0,0); render(); return; }
+    if(t.id==='campVoltar'){ S.campAt=null; render(); return; }
+    if(t.id==='campRenom'){ var cpr=CAMPS[S.campAt], nn6=prompt('Nome da campanha:',cpr.nome); if(!nn6) return; cpr.nome=nn6.trim(); await campGravar(S.campAt,{nome:cpr.nome}); render(); return; }
+    if(t.id==='campDel'){ if(!confirm('Apagar a campanha "'+CAMPS[S.campAt].nome+'"? As mensagens já enviadas continuam no histórico.')) return; delete CAMPS[S.campAt]; await campGravar(S.campAt,null); S.campAt=null; render(); return; }
+    if(t.id==='campSalvar'){ var cps=CAMPS[S.campAt]; cps.texto=$('#campTexto').value; await campGravar(S.campAt,{texto:cps.texto}); render(); toast('Campanha salva.','ok'); return; }
+    if((b=t.closest('[data-campvar]'))){ var ta6=$('#campTexto'); if(ta6){ var p0=ta6.selectionStart||ta6.value.length; ta6.value=ta6.value.slice(0,p0)+b.dataset.campvar+ta6.value.slice(p0); ta6.focus(); ta6.selectionStart=ta6.selectionEnd=p0+b.dataset.campvar.length; } return; }
+    if((b=t.closest('[data-campsug]'))){ var sx6=sugestoesCamp()[+b.dataset.campsug]; if(!sx6) return; var idc=await novaCampanha({nome:sx6.tit+' · '+dBR(hoje()).slice(0,5),regras:JSON.parse(JSON.stringify(sx6.regras)),texto:sx6.texto}); S.campAt=idc; S.aba='campanhas'; window.scrollTo(0,0); render(); return; }
+    if((b=t.closest('[data-segmod]'))){ var sm=sugestoesCamp()[+b.dataset.segmod]; if(!sm) return; var ids7=await novaLista(sm.tit); CRM.seg[ids7].regras=JSON.parse(JSON.stringify(sm.regras)); await crmGravar('seg',ids7,{regras:CRM.seg[ids7].regras}); S.listaAt=ids7; render(); return; }
+    if(t.id==='lsCriarR'){ var nr7=await novaLista($('#lsNome').value||'Novo segmento'); CRM.seg[nr7].regras=[{k:'recencia',a:'',b:30}]; await crmGravar('seg',nr7,{regras:CRM.seg[nr7].regras}); S.listaAt=nr7; render(); return; }
+    if((b=t.closest('[data-segcamp]'))){ var sgc=CRM.seg[b.dataset.segcamp]; var idc2=await novaCampanha({nome:sgc.nome+' · '+dBR(hoje()).slice(0,5),seg:b.dataset.segcamp}); S.campAt=idc2; S.aba='campanhas'; window.scrollTo(0,0); render(); return; }
+    if((b=t.closest('[data-rgadd]'))||(b=t.closest('[data-rgdel]'))){ var box=b.closest('.regras'), dn=box.dataset.dono, arr=regrasDe(dn); if(b.dataset.rgadd) arr.push({k:'recencia',a:'',b:''}); else arr.splice(+b.dataset.rgdel,1); await salvarRegrasDe(dn,arr); render(); return; }
     if(t.id==='copiarProd'){ await copiarProducao(); return; }
     if(t.id==='lbSalvar'){ var tx=$('#lbTxt').value.trim(); if(!tx){ toast('Escreva o lembrete.','erro'); return; } await novoLembrete({txt:tx,data:$('#lbData').value||hoje(),hora:$('#lbHora').value||'',loja:$('#lbLoja').value||''}); render(); toast('Lembrete salvo.','ok'); return; }
     if((b=t.closest('[data-lembcli]'))){ e.preventDefault(); var cL=S.model.clientes[b.dataset.lembcli], txL=$('#lbcTxt').value.trim(); if(!txL){ toast('Escreva o lembrete.','erro'); return; } await novoLembrete({txt:txL,data:$('#lbcData').value||hoje(),hora:$('#lbcHora').value||'',K:histK(cL),nome:cL.nome,loja:cL.loja||''}); histAdd(cL,[{id:'N'+Date.now().toString(36),de:'n',txt:'⏰ Lembrete para '+dBR($('#lbcData').value||hoje())+': '+txL,por:quemSou(cL.loja),loja:cL.loja}]); if(b.closest('#modal')) abrirCliente(cL.chave); else render(); toast('Lembrete agendado para '+dBR($('#lbcData').value||hoje())+'.','ok'); return; }
@@ -2557,7 +2720,7 @@ function bind(){
       if(S.aba!=='sugestoes'){ S.aba='sugestoes'; }
       fl.forEach(function(c){ sx2.itens[c.chave]={prod:'',modo:''}; }); S.sug.cont='liberados'; S.sug.status=''; S.limite=Math.max(S.limite,400); render();
       toast(fl.length?fl.length+' cliente(s) da '+tituloProd(lj)+' marcados para hoje: recompra atrasada primeiro, depois em risco, ativos e quem está sem mensagem há mais tempo. Confira e clique em Enviar para os marcados.':'Não há mais clientes liberados na '+tituloProd(lj)+' hoje — use Reconquista ou uma campanha de Kits.','ok'); return; }
-    if((b=t.closest('[data-selall]'))){ var cx=b.dataset.selall, sx=selCtx(cx), nn=0; itensCtx(cx).forEach(function(it){ if(elegivel(it.c,ctxPromo(cx))&&!((cx.indexOf('kit:')===0||(ctxPromo(cx)&&cx.indexOf('lista:')===0))&&jaRecebeuCampanha(it.c,cx,1))&&!sx.itens[it.c.chave]){ sx.itens[it.c.chave]={prod:it.prod||'',modo:it.modo||''}; nn++; } }); if(cx.indexOf('prod:')===0) abrirProduto(cx.slice(5)); else render(); toast(nn+' cliente(s) marcado(s).','ok'); return; }
+    if((b=t.closest('[data-selall]'))){ var cx=b.dataset.selall, sx=selCtx(cx), nn=0; itensCtx(cx).forEach(function(it){ if(elegivel(it.c,ctxPromo(cx))&&!((cx.indexOf('kit:')===0||(ctxPromo(cx)&&(cx.indexOf('lista:')===0||cx.indexOf('camp:')===0)))&&jaRecebeuCampanha(it.c,cx,1))&&!sx.itens[it.c.chave]){ sx.itens[it.c.chave]={prod:it.prod||'',modo:it.modo||''}; nn++; } }); if(cx.indexOf('prod:')===0) abrirProduto(cx.slice(5)); else render(); toast(nn+' cliente(s) marcado(s).','ok'); return; }
     if((b=t.closest('[data-selnone]'))){ S.sel={ctx:b.dataset.selnone,itens:{}}; if(b.dataset.selnone.indexOf('prod:')===0) abrirProduto(b.dataset.selnone.slice(5)); else render(); return; }
     if((b=t.closest('[data-selenviar]'))){ enviarMarcados(b.dataset.selenviar); return; }
     if((b=t.closest('[data-compra]'))){ var pc3=b.dataset.compra.split('|'); abrirCompra(pc3[0],pc3[1],pc3[2]); return; }
@@ -2614,7 +2777,7 @@ function bind(){
     if(e.key==='Enter'&&t.id==='notaTxt'){ e.preventDefault(); var bn=document.querySelector('[data-nota]'); if(bn) bn.click(); return; }
     if(e.key==='Enter'&&t.matches&&t.matches('input[data-codcli]')){ e.preventDefault(); salvarCodigo(t.dataset.codcli,t.value); return; }
     if(e.key==='Escape') $('#modal').classList.remove('on'); });
-  document.addEventListener('change',function(e){ var t=e.target;
+  document.addEventListener('change',async function(e){ var t=e.target;
     if(t.matches('input[data-codcli]')){ if(!t.closest('#modal')) salvarCodigo(t.dataset.codcli,t.value); return; }
     if(t.matches('select[data-linha]')){ salvarLinha(t.dataset.linha,t.value); return; }
     if(t.id==='fabc'){ if(t.files[0]) importarCurvaABC(t.files[0]); t.value=''; return; }
@@ -2629,6 +2792,10 @@ function bind(){
     if(t.id==='kpub'||t.id==='kstatus'||t.id==='kdmin'||t.id==='kdmax'){ var kl=$('#kleg'); if(kl) S.kc.legendas=kl.value; S.kc[{kpub:'pub',kstatus:'status',kdmin:'dmin',kdmax:'dmax'}[t.id]]=t.value; render(); return; }
     if(t.id==='kleg'){ S.kc.legendas=t.value; return; }
     if(t.id==='rqfaixa'||t.id==='rqord'||t.id==='rqmin'||t.id==='rqq'){ S.rq=S.rq||{}; S.rq[{rqfaixa:'faixa',rqord:'ord',rqmin:'min',rqq:'q'}[t.id]]=t.value; S.limite=200; render(); return; }
+    if(t.dataset&&t.dataset.rg!=null){ var box2=t.closest('.regras'), dn2=box2.dataset.dono, arr2=regrasDe(dn2), ri=+t.dataset.rg, rf=t.dataset.rf; if(rf==='k'){ var fz=campoSeg(t.value); arr2[ri]={k:t.value}; if(fz&&fz.t==='op') arr2[ri].v=Array.isArray(fz.ops[0])?fz.ops[0][0]:fz.ops[0]; } else arr2[ri][rf]=t.value; await salvarRegrasDe(dn2,arr2); render(); return; }
+    if(t.id==='campStatus'){ var cst=CAMPS[S.campAt]; cst.status=t.value; if(t.value==='encerrada') cst.fim=new Date().toISOString(); await campGravar(S.campAt,{status:cst.status,fim:cst.fim||null}); render(); return; }
+    if(t.id==='campSeg'){ var csg=CAMPS[S.campAt]; csg.seg=t.value||''; if(!csg.seg&&!csg.regras) csg.regras=[{k:'celular'}]; await campGravar(S.campAt,{seg:csg.seg,regras:csg.regras||null}); render(); return; }
+    if(t.id==='campPromo'||t.id==='campImg'){ var cpp=CAMPS[S.campAt]; cpp.texto=$('#campTexto').value; cpp.promo=$('#campPromo').checked; cpp.img=($('#campImg')||{}).value||''; await campGravar(S.campAt,{texto:cpp.texto,promo:cpp.promo,img:cpp.img}); render(); return; }
     if(t.id==='cvq') return;
     if(t.id==='rcont'){ S.rec.cont=t.value; S.limite=200; render(); return; }
     if(t.id==='rdmin'||t.id==='rdmax'||t.id==='rde'||t.id==='rate'){ S.rec[{rdmin:'dmin',rdmax:'dmax',rde:'de',rate:'ate'}[t.id]]=t.value; S.limite=200; render(); return; }
@@ -2660,7 +2827,7 @@ async function init(){
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
-    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
+    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setTimeout(campLer,3000); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
