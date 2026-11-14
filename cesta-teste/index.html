@@ -1013,8 +1013,8 @@ function perfilComunicacao(c,itens){ var cl=itens.filter(function(x){return x.de
   P.tipos=tipos;
   var at={}; nos.forEach(function(x){ if(x.por&&!/celular|PC|computador/i.test(x.por)) at[x.por]=(at[x.por]||0)+1; }); P.atendentes=Object.keys(at).sort(function(a,b){return at[b]-at[a];});
   // dicas práticas
-  if(optout(c)) P.dicas.push('🚫 Pediu SAIR: não mandar mensagem. Só responder se ele escrever.');
-  else if(soPromo(c)) P.dicas.push('🏷 Só quer promoções: falar com ele apenas em campanha de oferta.');
+  if(optout(c)) P.dicas.push('🚫 Pediu SAIR: não mandar mensagem. Só responder se '+pronome(c)+' escrever.');
+  else if(soPromo(c)) P.dicas.push('🏷 Só quer promoções: falar com '+pronome(c)+' apenas em campanha de oferta.');
   if(P.tResp!=null) P.dicas.push(P.tResp<=30?'⚡ Responde rápido (em uns '+Math.max(1,Math.round(P.tResp))+' min): vale conversar na hora e fechar o pedido ali.':P.tResp<=240?'⏱ Costuma responder em umas '+Math.round(P.tResp/60*10)/10+' h.':'🐢 Demora para responder (mais de 4 h): mande cedo e sem pressa.');
   if(P.periodo) P.dicas.push('🕐 Escreve mais '+P.periodo+(P.diaSem?', principalmente '+(/sábado|domingo/.test(P.diaSem)?'no ':'na ')+P.diaSem:'')+': prefira mandar nesse horário.');
   else if(P.diaSem) P.dicas.push('📅 Escreve mais '+(/sábado|domingo/.test(P.diaSem)?'no ':'na ')+P.diaSem+'.');
@@ -1027,7 +1027,7 @@ function perfilComunicacao(c,itens){ var cl=itens.filter(function(x){return x.de
   if(bons.length) P.dicas.push('🛒 Comprou depois de: '+bons.join(', ')+'. Repita esse tipo de mensagem.');
   if(resps.length) P.dicas.push('💬 Respondeu a: '+resps.join(', ')+'.');
   var tent=Object.keys(tipos).filter(function(k){ return tipos[k].n>=2&&!tipos[k].resp&&!tipos[k].comp; }); if(tent.length) P.dicas.push('➖ Não funcionou até agora: '+tent.join(', ')+'.');
-  if(P.atendentes.length) P.dicas.push('👤 Quem mais conversou com ele: '+P.atendentes.slice(0,2).join(' e ')+'.');
+  if(P.atendentes.length) P.dicas.push('👤 Quem mais conversou com '+pronome(c)+': '+P.atendentes.slice(0,2).join(' e ')+'.');
   P.dicas=P.dicas.filter(Boolean); return P; }
 var NOTAS_RAPIDAS=['Prefere áudio','Prefere ligação','Prefere mensagem curta','Gosta de novidades','Atento a preço','Pede pra entregar','Só compra no fim de semana','Chamar pelo apelido: '];
 function blocoHistCompleto(c){ var itens=linhaTempo(c), P=perfilComunicacao(c,itens), K=histK(c), todos=S.histTudo===c.chave;
@@ -1043,7 +1043,7 @@ function blocoHistCompleto(c){ var itens=linhaTempo(c), P=perfilComunicacao(c,it
       '<div class="hnums"><span>'+P.nNos+' mensagens da loja</span><span>'+P.nCli+' do cliente</span><span>'+(P.envios?Math.round(P.respondeu/P.envios*100)+'% das mensagens respondidas ('+P.respondeu+'/'+P.envios+')':'ainda sem envios pela Uazapi')+'</span>'+(P.notas.length?'<span>'+P.notas.length+' anotação(ões)</span>':'')+'</div>'+
       (P.notas.length?'<div class="hnotas">'+P.notas.slice(-5).reverse().map(function(n){ return '<div>📝 '+esc(n.txt)+' <small>'+esc(n.por||'')+' · '+dBR(horaSP(n.em).dia)+'</small></div>'; }).join('')+'</div>':'')+
       (P.dicas.length?'<ul>'+P.dicas.map(function(d){return '<li>'+esc(d)+'</li>';}).join('')+'</ul>':'<p class="nota">Ainda tem pouca conversa para entender o jeito dele. Cada mensagem e resposta fica guardada aqui e as dicas aparecem sozinhas.</p>')+
-      '<div class="hnova"><input id="notaTxt" placeholder="Anotar algo sobre como falar com ele (ex.: prefere áudio, chama de Dona Maria, compra pra família)…"><button class="btn mini" data-nota="'+esc(c.chave)+'">Salvar anotação</button></div>'+
+      '<div class="hnova"><input id="notaTxt" placeholder="Anotar algo sobre como falar com '+pronome(c)+' (ex.: prefere áudio, chama de Dona Maria, compra pra família)…"><button class="btn mini" data-nota="'+esc(c.chave)+'">Salvar anotação</button></div>'+
       '<div class="hchips">'+NOTAS_RAPIDAS.map(function(t){ return '<button class="btn sec mini" data-notarap="'+esc(t)+'">'+esc(t)+'</button>'; }).join('')+'</div></div>'+
     '<div class="htl" id="htl">'+(bolhas||'<div class="vazio">Nenhuma conversa guardada ainda.</div>')+'</div>'+
     '<div class="filtros">'+(tl.length>mostrar.length?'<button class="btn sec mini" data-histtudo="'+esc(c.chave)+'">Ver tudo ('+tl.length+')</button>':'')+'<button class="btn sec mini" data-histatu="'+esc(c.chave)+'" title="Lê de novo a nuvem e a conversa no WhatsApp da loja">🔄 Atualizar conversa</button><small class="nota">'+(HI.ok[K]?'☁ histórico completo carregado':'carregando da nuvem…')+'</small></div>'; }
@@ -1342,6 +1342,7 @@ function lerLinguagem(c){ var tx=textosCliente(c), eq=textosEquipe(c), pn=primei
 function lingua(c){ var K=histK(c), man=LG[K]||{}, li=c._lgM===S.model&&c._lg?c._lg:(c._lg=lerLinguagem(c),c._lgM=S.model,c._lg), au=man.auto||{};
   return {genero:man.genero||li.genero||au.genero||generoNome(c.nome),tratamento:man.trat||li.trat||au.trat||nomeChamada(c.nome),tom:man.tom||li.tom||au.tom||'neutro',
     emoji:man.tom==='formal'?false:(li.emoji!=null?li.emoji:au.emoji!=null?au.emoji:true),curto:li.curto||au.curto||false,risada:li.risada||au.risada||false,fontes:li.n,manual:!!(man.genero||man.trat||man.tom)}; }
+function pronome(c){ return lingua(c).genero==='f'?'ela':'ele'; }
 function nomeTrat(c){ return lingua(c).tratamento; }
 /* nome para chamar o cliente quando não há tratamento ensinado: tira títulos (Dr., Dra.) e mantém o título junto do nome */
 var NOME_ACENTO={"JOAO": "João", "JOSE": "José", "ANTONIO": "Antônio", "FATIMA": "Fátima", "MARCIA": "Márcia", "PATRICIA": "Patrícia", "LETICIA": "Letícia", "CLAUDIA": "Cláudia", "SERGIO": "Sérgio", "MARCIO": "Márcio", "FABIO": "Fábio", "ROGERIO": "Rogério", "VINICIUS": "Vinícius", "LUCIA": "Lúcia", "MONICA": "Mônica", "VITORIA": "Vitória", "JULIO": "Júlio", "CESAR": "César", "ANDRE": "André", "FLAVIO": "Flávio", "CASSIO": "Cássio", "CAIO": "Caio", "OTAVIO": "Otávio", "MAURICIO": "Maurício", "CLAUDIO": "Cláudio", "ROMULO": "Rômulo", "TANIA": "Tânia", "SONIA": "Sônia", "SILVIA": "Sílvia", "LIVIA": "Lívia", "LIGIA": "Lígia", "DEBORA": "Débora", "BARBARA": "Bárbara", "NATALIA": "Natália", "JULIA": "Júlia", "LAIS": "Laís", "THAIS": "Thaís", "INES": "Inês", "IRIA": "Íria", "ANGELA": "Ângela", "ROSANGELA": "Rosângela", "VALERIA": "Valéria", "GLORIA": "Glória", "AURELIO": "Aurélio", "EMILIO": "Emílio", "GERSON": "Gérson", "HELIO": "Hélio", "VERONICA": "Verônica", "JESSICA": "Jéssica", "MARILIA": "Marília", "ALVARO": "Álvaro", "SEBASTIAO": "Sebastião", "ESTEVAO": "Estevão", "CONCEICAO": "Conceição", "ASSUNCAO": "Assunção", "NIVEA": "Nívea", "LUCIO": "Lúcio", "LEA": "Léa", "ERICA": "Érica", "ERIKA": "Érika", "TATIANA": "Tatiana", "RAFAELA": "Rafaela", "ANDREIA": "Andréia", "ANDREA": "Andréa", "CINTIA": "Cíntia", "PRISCILA": "Priscila", "VANIA": "Vânia", "MARIO": "Mário", "DARIO": "Dário", "ELIO": "Élio", "EDIO": "Édio", "TULIO": "Túlio", "TEO": "Téo", "NOE": "Noé"};
