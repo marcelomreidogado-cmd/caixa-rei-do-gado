@@ -975,11 +975,11 @@ try{ HI.fila=JSON.parse(localStorage.getItem('cesta_histfila')||'{}')||{}; }catc
 function histK(c){ return 'C_'+String(c.codigo||hashN(c.chave)).replace(/[.#$\[\]\/\s]/g,'_'); }
 function histId(id){ return String(id||'').replace(/[.#$\[\]\/]/g,'_').slice(0,120)||('x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)); }
 function mtUaz(m){ var t=String(m.messageType||'').replace(/Message$/,'').toLowerCase(); return /audio|ptt/.test(t)?'audio':/image|sticker/.test(t)?'imagem':/video/.test(t)?'video':/document/.test(t)?'documento':/location/.test(t)?'localização':/contact/.test(t)?'contato':''; }
-function histDeUaz(x,loja){ var t=tsMs(x.messageTimestamp); return {id:x.id||x.messageid||String(x.messageTimestamp),em:new Date(t).toISOString(),de:x.fromMe?'l':'c',txt:txtMsgUaz(x),loja:loja||'',mt:mtUaz(x)}; }
+function histDeUaz(x,loja){ var t=tsMs(x.messageTimestamp); return {id:x.id||x.messageid||String(x.messageTimestamp),mid:x.messageid||x.id||'',em:new Date(t).toISOString(),de:x.fromMe?'l':'c',txt:txtMsgUaz(x),loja:loja||'',mt:mtUaz(x)}; }
 function salvarFilaHist(){ try{ localStorage.setItem('cesta_histfila',JSON.stringify(HI.fila)); }catch(e){} }
 function histAdd(c,msgs){ if(!c||!msgs||!msgs.length) return 0; var K=histK(c), cache=HI.cache[K]=HI.cache[K]||{}, f=HI.fila[K]=HI.fila[K]||{}, n=0;
   msgs.forEach(function(m){ if(!m||!(m.txt||m.mt)) return; var id=histId(m.id); if(cache[id]&&!m.forcar) return;
-    var o={em:m.em||new Date().toISOString(),de:m.de||'c',txt:String(m.txt||'').slice(0,1000)}; ['loja','por','mt','tags'].forEach(function(k){ if(m[k]) o[k]=String(m[k]).slice(0,80); });
+    var o={em:m.em||new Date().toISOString(),de:m.de||'c',txt:String(m.txt||'').slice(0,1000)}; ['loja','por','mt','tags','mid'].forEach(function(k){ if(m[k]) o[k]=String(m[k]).slice(0,120); }); if(m.tr) o.tr=1; if(m.dur) o.dur=m.dur;
     cache[id]=o; f[id]=o; n++; });
   if(!Object.keys(f).length) delete HI.fila[K];
   if(n){ salvarFilaHist(); clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,1500); } return n; }
@@ -1043,7 +1043,8 @@ function blocoHistCompleto(c){ var itens=linhaTempo(c), P=perfilComunicacao(c,it
   var bolhas=mostrar.map(function(x){ var t=horaSP(x.em), dh=t.dia!==ultDia?'<div class="hdia">'+dBR(t.dia)+' · '+DSEM[t.dw]+'</div>':''; ultDia=t.dia;
     if(x.de==='$') return dh+'<div class="hcomp">'+esc(x.txt)+'</div>';
     var hora=x.de==='$'?'':new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    return dh+'<div class="hb '+(x.de==='c'?'cli':x.de==='n'?'nota':'loja')+'">'+(x.de==='n'?'📝 ':'')+(x.mt?'<i>['+esc(x.mt)+']</i> ':'')+esc(x.txt||'').replace(/\n/g,'<br>')+'<small>'+(x.de==='c'?esc(primeiroNome(c.nome)):esc(x.por||(x.de==='n'?'anotação':'loja')))+(x.loja?' · '+esc(tituloProd(x.loja)):'')+(x.tags?' · '+esc(x.tags):'')+' · '+hora+'</small></div>'; }).join('');
+    if(ehAudio(x)&&!x.tr&&x.de!=='n') return dh+'<div class="hb '+(x.de==='c'?'cli':'loja')+'"><i>🎤 áudio</i> <button class="btn sec mini" data-transc="'+esc(x.id)+'" data-c="'+esc(c.chave)+'">Transcrever</button></div>';
+    return dh+'<div class="hb '+(x.de==='c'?'cli':x.de==='n'?'nota':'loja')+'">'+(x.de==='n'?'📝 ':'')+(x.mt&&!x.tr?'<i>['+esc(x.mt)+']</i> ':'')+esc(x.txt||'').replace(/\n/g,'<br>')+'<small>'+(x.de==='c'?esc(primeiroNome(c.nome)):esc(x.por||(x.de==='n'?'anotação':'loja')))+(x.loja?' · '+esc(tituloProd(x.loja)):'')+(x.tags?' · '+esc(x.tags):'')+' · '+hora+'</small></div>'; }).join('');
   return '<div class="hperfil"><b>Como falar com '+esc(primeiroNome(c.nome))+'</b>'+
       '<div class="hnums"><span>'+P.nNos+' mensagens da loja</span><span>'+P.nCli+' do cliente</span><span>'+(P.envios?Math.round(P.respondeu/P.envios*100)+'% das mensagens respondidas ('+P.respondeu+'/'+P.envios+')':'ainda sem envios pela Uazapi')+'</span>'+(P.notas.length?'<span>'+P.notas.length+' anotação(ões)</span>':'')+'</div>'+
       (P.notas.length?'<div class="hnotas">'+P.notas.slice(-5).reverse().map(function(n){ return '<div>📝 '+esc(n.txt)+' <small>'+esc(n.por||'')+' · '+dBR(horaSP(n.em).dia)+'</small></div>'; }).join('')+'</div>':'')+
@@ -1073,7 +1074,7 @@ async function radarHistorico(lojas,chatsPorLoja){ if(!S.model) return; var porN
       digitosVariantes(jid.split('@')[0]).some(function(x){ c=porNum[x]; return !!c; }); if(!c){ HR.ult[k]=ts; continue; }
       var d; try{ d=await uazReq(inst,'POST','/message/find',{chatid:jid,limit:HR.ult[k]?50:200,offset:0,sort:'-messageTimestamp'}); }catch(e){ continue; } feitos++;
       var desde=HR.ult[k]||0, ms=(d.messages||d.data||[]).filter(function(x){ return tsMs(x.messageTimestamp)>desde-60000; });
-      if(histAdd(c,ms.map(function(x){ return histDeUaz(x,loja); }))) pintarHist(c);
+      if(histAdd(c,ms.map(function(x){ return histDeUaz(x,loja); }))){ pintarHist(c); if(trCfg().auto) enfileirarAudios(c); }
       HR.ult[k]=ts; } }
   try{ localStorage.setItem('cesta_histult',JSON.stringify(HR.ult)); }catch(e){} }
 /* nome travado do produto (pelo código) */
@@ -1375,6 +1376,59 @@ function blocoLingua(c){ var L=lingua(c), K=histK(c), man=LG[K]||{};
     '<details><summary>Ajustar</summary><div class="lgf"><input data-lg="trat" data-c="'+esc(c.chave)+'" placeholder="Como chamar (ex.: Dona Maria)" value="'+esc(man.trat||'')+'">'+
     '<select data-lg="genero" data-c="'+esc(c.chave)+'"><option value="">Gênero: automático</option><option value="f"'+(man.genero==='f'?' selected':'')+'>Feminino</option><option value="m"'+(man.genero==='m'?' selected':'')+'>Masculino</option></select>'+
     '<select data-lg="tom" data-c="'+esc(c.chave)+'"><option value="">Tom: automático</option><option value="formal"'+(man.tom==='formal'?' selected':'')+'>Formal</option><option value="neutro"'+(man.tom==='neutro'?' selected':'')+'>Neutro</option><option value="informal"'+(man.tom==='informal'?' selected':'')+'>Descontraído</option></select></div></details></div>'; }
+
+/* =================== ÁUDIOS: transcrição local (grátis) e aprendizado em lote ===================
+   O áudio é baixado pela Uazapi (/message/download) e transcrito NO PRÓPRIO COMPUTADOR com o Whisper
+   (modelo aberto, roda no navegador via transformers.js). Na 1ª vez o computador baixa o modelo (~80 a 250 MB)
+   e guarda; depois funciona sem custo. O texto fica no histórico do cliente (🎤) e entra no aprendizado de tom. */
+var TR={pipe:null,carregando:null,fila:[],rodando:false,feitos:0,status:''};
+function trCfg(){ try{ return JSON.parse(localStorage.getItem('cesta_transc')||'{}')||{}; }catch(e){ return {}; } }
+function trSalvarCfg(o){ try{ localStorage.setItem('cesta_transc',JSON.stringify(Object.assign(trCfg(),o))); }catch(e){} }
+var TR_MODELOS={rapido:'onnx-community/whisper-base',preciso:'onnx-community/whisper-small'};
+async function motorTranscricao(){ if(window.__trStub) return window.__trStub; if(TR.pipe) return TR.pipe; if(TR.carregando) return TR.carregando;
+  TR.carregando=(async function(){ TR.status='Baixando o modelo de transcrição (só na 1ª vez)…'; atualizarTrStatus();
+    var m=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1'); m.env.allowLocalModels=false;
+    var dev=navigator.gpu?'webgpu':'wasm', mod=TR_MODELOS[trCfg().modelo||'preciso'], ult=0;
+    try{ TR.pipe=await m.pipeline('automatic-speech-recognition',mod,{device:dev,dtype:dev==='webgpu'?'fp32':'q8',progress_callback:function(x){ if(x.progress&&Date.now()-ult>700){ ult=Date.now(); TR.status='Baixando o modelo: '+Math.round(x.progress)+'%'; atualizarTrStatus(); } }}); }
+    catch(e){ if(dev==='webgpu'){ TR.pipe=await m.pipeline('automatic-speech-recognition',mod,{device:'wasm',dtype:'q8'}); } else throw e; }
+    TR.status='Transcrição pronta neste computador'; atualizarTrStatus(); return TR.pipe; })();
+  try{ return await TR.carregando; }catch(e){ TR.carregando=null; TR.status='Não consegui carregar a transcrição: '+e.message; atualizarTrStatus(); throw e; } }
+function atualizarTrStatus(){ var el=document.getElementById('trStatus'); if(el) el.textContent=TR.status+(TR.fila.length?' · '+TR.fila.length+' na fila':''); }
+function b64ParaBuf(b64){ var s=atob(String(b64).replace(/^data:[^,]+,/,'')), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u.buffer; }
+async function baixarAudio(loja,mid){ var inst=uazLeitura(loja)||uazLeitura(LOJAS_ENVIO.filter(function(l){return uazLeitura(l);})[0]); if(!inst) throw new Error('WhatsApp da loja não configurado neste computador');
+  var j=await uazReq(inst,'POST','/message/download',{id:mid,return_base64:true,return_link:true,generate_mp3:false});
+  var b64=j.base64Data||j.base64||j.data||(j.file&&j.file.base64); if(b64) return b64ParaBuf(b64);
+  var url=j.fileURL||j.fileUrl||j.url||j.link; if(url){ var r=await fetch(url); if(!r.ok) throw new Error('Arquivo indisponível ('+r.status+')'); return await r.arrayBuffer(); }
+  throw new Error('A Uazapi não devolveu o áudio'); }
+async function pcm16k(buf){ var Ctx=window.AudioContext||window.webkitAudioContext, ctx=new Ctx({sampleRate:16000}); try{ var ab=await ctx.decodeAudioData(buf.slice(0)); var ch=ab.getChannelData(0); if(ab.numberOfChannels>1){ var c2=ab.getChannelData(1), mix=new Float32Array(ch.length); for(var i=0;i<ch.length;i++) mix[i]=(ch[i]+c2[i])/2; ch=mix; } return {pcm:ch,dur:ab.duration}; } finally{ try{ ctx.close(); }catch(e){} } }
+function ehAudio(x){ return x&&(x.mt==='audio'||/^\[(audio|ptt)\]$/i.test(String(x.txt||'').trim())); }
+/* transcreve um áudio do histórico do cliente e grava o texto */
+async function transcreverAudio(c,hid){ var K=histK(c), H=HI.cache[K]||{}, x=H[hid]; if(!x) throw new Error('Áudio não encontrado no histórico');
+  var buf=await baixarAudio(x.loja,x.mid||hid), au=await pcm16k(buf), motor=await motorTranscricao();
+  var out=await motor(au.pcm,{language:'portuguese',task:'transcribe',chunk_length_s:30,stride_length_s:5}), txt=String((out&&out.text)||'').trim()||'(áudio sem fala)';
+  var novo=Object.assign({},x,{txt:'🎤 '+txt,mt:'audio',tr:1,dur:Math.round(au.dur)}); histAdd(c,[Object.assign({id:hid,forcar:true},novo)]); HI.cache[K][hid]=Object.assign(HI.cache[K][hid],{tr:1});
+  (S.contatos||[]).forEach(function(r){ (r.conversa||[]).forEach(function(y){ if(y.id===hid||(y.id&&histId(y.id)===hid)){ y.txt='🎤 '+txt; r.pendente=true; } }); });
+  delete c._lg; TR.feitos++; return txt; }
+function enfileirarAudios(c){ var H=HI.cache[histK(c)]||{}; Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='c'&&ehAudio(x)&&!x.tr&&!TR.fila.some(function(f){return f.id===id;})) TR.fila.push({c:c,id:id}); }); rodarFila(); }
+async function rodarFila(){ if(TR.rodando||!TR.fila.length) return; TR.rodando=true;
+  while(TR.fila.length){ var it=TR.fila.shift(); atualizarTrStatus(); try{ await transcreverAudio(it.c,it.id); if(S.aba==='conversas'||document.getElementById('histBox')) { if(S.aba==='conversas') render(); else pintarHist(it.c); } }catch(e){ TR.status='Erro ao transcrever: '+e.message; atualizarTrStatus(); if(/modelo|import|fetch|carregar/i.test(e.message)) { TR.fila=[]; break; } } }
+  TR.rodando=false; await enviarHist(); TR.status=TR.status.indexOf('Erro')===0?TR.status:'Transcrição pronta neste computador · '+TR.feitos+' áudio(s) transcrito(s)'; atualizarTrStatus(); }
+/* APRENDER COM TODAS AS CONVERSAS: lê o histórico de quem já falou com a loja e grava tom, tratamento e gênero */
+var AP={rodando:false};
+async function aprenderTodas(comAudio){ if(AP.rodando||!syncAtivo()) return; AP.rodando=true; var el=function(t){ var e=document.getElementById('apStatus'); if(e) e.textContent=t; };
+  try{ el('Listando conversas…'); var ks=Object.keys((await fb('GET','hist',undefined,'shallow=true'))||{}), n=0, aprendidos=0, audios=0;
+    for(var i=0;i<ks.length;i+=6){ var lote=ks.slice(i,i+6); await Promise.all(lote.map(async function(K){ var c=clientePorK(K); if(!c) return; var tinha=!!HI.ok[K]; await carregarHist(c,true); delete c._lg; var li=lerLinguagem(c); if(li.n||li.trat){ salvarLinguaAuto(c); aprendidos++; }
+        if(comAudio){ var H=HI.cache[K]||{}; Object.keys(H).forEach(function(id){ if(H[id].de==='c'&&ehAudio(H[id])&&!H[id].tr){ TR.fila.push({c:c,id:id}); audios++; } }); }
+        else if(!tinha&&S.cvSel!==c.chave){ delete HI.cache[K]; delete HI.ok[K]; } n++; }));
+      el('Lendo conversas: '+Math.min(i+6,ks.length)+' de '+ks.length+' · '+aprendidos+' clientes com linguagem aprendida'+(comAudio?' · '+audios+' áudios na fila':'')); }
+    el('Pronto: '+ks.length+' conversas lidas · '+aprendidos+' clientes com linguagem aprendida'+(comAudio?' · '+audios+' áudios para transcrever (seguem em segundo plano)':''));
+    if(comAudio) rodarFila(); }
+  catch(e){ el('Erro: '+e.message); } finally{ AP.rodando=false; } }
+function blocoInteligencia(){ var tc=trCfg();
+  return '<h2 class="secao">Inteligência das conversas</h2><section class="card"><div class="filtros"><button class="btn" id="apRodar">🧠 Aprender com todas as conversas</button><label class="chk"><input type="checkbox" id="apAudio"> transcrever também os áudios</label><span class="nota" id="apStatus" style="margin:0"></span></div>'+
+    '<div class="filtros"><label class="chk"><input type="checkbox" id="trAuto"'+(tc.auto?' checked':'')+'> transcrever automaticamente os áudios novos dos clientes neste computador</label>'+
+    '<select id="trModelo"><option value="preciso"'+((tc.modelo||'preciso')==='preciso'?' selected':'')+'>Transcrição precisa (modelo ~250 MB)</option><option value="rapido"'+(tc.modelo==='rapido'?' selected':'')+'>Transcrição rápida (modelo ~80 MB)</option></select>'+
+    '<button class="btn sec mini" id="trCarregar">Preparar transcrição</button><span class="nota" id="trStatus" style="margin:0">'+esc(TR.status||'')+'</span></div></section>'; }
 
 /* =================== FASE 1: perfil Astro, segmentos por regras e campanhas com métricas =================== */
 /* ---- perfil Astro (calculado das compras) ---- */
@@ -1941,7 +1995,8 @@ function chatConversa(t){ var c=t.c, r=t.r, rid=r?r.id:'K_'+t.k, itens=c?linhaTe
   var bol=tl.map(function(x){ var tt=horaSP(x.em), dh=tt.dia!==ud?'<div class="cv-dia"><span>'+(tt.dia===hoje()?'Hoje':dBR(tt.dia))+'</span></div>':''; ud=tt.dia;
     if(x.de==='$') return dh+'<div class="cv-comp" data-compra="'+esc(c.chave+'|'+x.doc+'|'+x.data)+'">🛒 '+esc(x.txt)+'</div>';
     if(x.de==='n') return dh+'<div class="cv-nota">'+esc(x.txt)+' <small>'+esc(x.por||'')+'</small></div>';
-    return dh+'<div class="bb '+(x.de==='c'?'in':'out')+'">'+(x.mt?'<i>['+esc(x.mt)+']</i> ':'')+esc(x.txt||'').replace(/\n/g,'<br>')+'<small>'+(x.de==='l'&&x.por?esc(x.por)+' · ':'')+new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</small></div>'; }).join('');
+    if(ehAudio(x)&&!x.tr) return dh+'<div class="bb '+(x.de==='c'?'in':'out')+'"><i>🎤 áudio</i> '+(c&&x.id?'<button class="ico txt" data-transc="'+esc(x.id)+'" data-c="'+esc(c.chave)+'">Transcrever</button>':'')+'<small>'+new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</small></div>';
+    return dh+'<div class="bb '+(x.de==='c'?'in':'out')+'">'+(x.mt&&!x.tr?'<i>['+esc(x.mt)+']</i> ':'')+esc(x.txt||'').replace(/\n/g,'<br>')+'<small>'+(x.de==='l'&&x.por?esc(x.por)+' · ':'')+new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</small></div>'; }).join('');
   var st=c?(optout(c)?'<button class="ico txt" data-cvlibc="'+esc(rid)+'" title="Voltar a receber mensagens">↩ Liberar</button>':(soPromo(c)?'<button class="ico txt" data-cvlibc="'+esc(rid)+'">↩ Liberar</button>':'<button class="ico txt" data-cvpromoc="'+esc(rid)+'" title="Só recebe promoções">Só promo</button>')+'<button class="ico txt perigo" data-cvsairc="'+esc(rid)+'" title="Não recebe mais mensagens">SAIR</button>'):'';
   return '<div class="cv-m"><div class="cv-h"><div class="av" style="background:'+corAvatar(t.nome)+'">'+esc(iniciais(t.nome))+'</div><div><b'+(c?' class="lk" data-cli="'+esc(c.chave)+'"':'')+'>'+esc(tituloProd(t.nome))+'</b><small>'+esc(tituloProd(t.loja))+(c&&c.celular?' · '+esc(foneFmt(c.celular)):'')+(c&&optout(c)?' · <span class="tg">SAIR</span>':c&&soPromo(c)?' · <span class="tg p">só promoções</span>':'')+'</small></div><div class="cv-acts">'+st+(c?'<button class="ico" data-histatu="'+esc(c.chave)+'" title="Buscar a conversa inteira no WhatsApp da loja">⟳</button>':'')+'</div></div>'+
     '<div class="cv-chat" id="cvchat">'+(bol||'<div class="cv-vazio">Sem mensagens ainda</div>')+'</div>'+
@@ -2702,7 +2757,7 @@ function telaFuncs(){ var m=S.model;
 
 function telaConferencia(){ return '<h2 class="secao">Qualidade dos dados</h2>'+telaQualidade()+'<h2 class="secao">Funcionários e uso interno</h2>'+telaFuncs(); }
 function blocoVarredura(){ if(!uazLojasLeitura().length) return ''; return '<h2 class="secao">WhatsApp das lojas</h2><div class="filtros varr"><span>Números lidos: '+linhaNumeros()+'</span></div><div class="filtros varr">Trazer conversas do celular desde <input type="date" id="varrDesde" value="'+hoje().slice(0,8)+'01"><button class="btn" id="varrer">Trazer para a cesta</button><span class="nota" id="varrInfo" style="margin:0">'+esc(S.varrInfo||'')+'</span></div>'; }
-function telaConfigurar(){ return blocoVarredura()+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
+function telaConfigurar(){ return blocoVarredura()+(uazLojasLeitura().length?blocoInteligencia():'')+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
 function telaQualidade(){ var m=S.model;
   var h='';
   h+='<h3>Vendas sem cliente identificado</h3><p class="nota">"Cliente padrão para vendas": <b>'+brl(m.anon.valor)+'</b> em '+num(m.anon.docs)+' cupons ('+pct(m.anon.valor/m.somaValor)+' do faturamento). Acompanhe por loja na aba <b>Cadastro</b>.</p>';
@@ -2848,6 +2903,10 @@ function bind(){
     if((b=t.closest('[data-txreset]'))){ var cfr=taxCfg(); delete cfr.prod[b.dataset.txreset]; await salvarTax(cfr); render(); return; }
     if(t.id==='tmAdd'){ var tt=rgNorm($('#tmTermo').value).toLowerCase(), tv=rgNorm($('#tmValor').value), tp=$('#tmTipo').value; if(!tt||!tv){ toast('Preencha a palavra e o que ela significa.','erro'); return; } var cft=taxCfg(); var ob={}; ob[tp]=tp==='categoria'?(Object.keys(CAT_NOME).filter(function(k){ return rgNorm(CAT_NOME[k])===tv||k===tv; })[0]||tv):tp==='especie'?(Object.keys(ESP_NOME).filter(function(k){ return k===tv||rgNorm(k).indexOf(tv)===0; })[0]||tv):tv; cft.termos[tt]=ob; await salvarTax(cft); render(); toast('Aprendido: '+tt,'ok'); return; }
     if((b=t.closest('[data-tmdel]'))){ var cfd=taxCfg(); delete cfd.termos[b.dataset.tmdel]; await salvarTax(cfd); render(); return; }
+    if(t.id==='apRodar'){ t.disabled=true; await aprenderTodas(($('#apAudio')||{}).checked); t.disabled=false; return; }
+    if(t.id==='trCarregar'){ t.disabled=true; try{ await motorTranscricao(); }catch(e){} t.disabled=false; return; }
+    if((b=t.closest('[data-transc]'))){ e.stopPropagation(); var thT=S.aba==='conversas'?threadsConversa().filter(function(x){return x.k===S.cvSel;})[0]:null, cT=thT?thT.c:S.model.clientes[b.dataset.c]; if(!cT) return; b.disabled=true; b.textContent='⏳ transcrevendo…';
+      try{ await transcreverAudio(cT,b.dataset.transc); await enviarHist(); }catch(err){ toast('Não transcreveu: '+err.message,'erro'); } if(S.aba==='conversas'&&!b.closest('#modal')){ render(); rolarChat(); } else pintarHist(cT); return; }
     if(t.id==='campNova'){ var idn=await novaCampanha({regras:[{k:'celular'}]}); S.campAt=idn; render(); return; }
     if((b=t.closest('[data-campab]'))){ S.campAt=b.dataset.campab; window.scrollTo(0,0); render(); return; }
     if(t.id==='campVoltar'){ S.campAt=null; render(); return; }
@@ -3008,6 +3067,8 @@ function bind(){
       if(v===auto[t.dataset.tf]) delete o[t.dataset.tf]; else o[t.dataset.tf]=v; if(Object.keys(o).length) cfx.prod[chx]=o; else delete cfx.prod[chx]; await salvarTax(cfx); render(); toast('Dicionário atualizado: '+S.model.produtos[chx].produto,'ok'); return; }
     if(t.id==='diccat'){ S.dic=S.dic||{}; S.dic.cat=t.value; render(); return; }
     if(t.dataset&&t.dataset.lg){ var cl=S.model.clientes[t.dataset.c], o2={}; o2[t.dataset.lg]=t.value; await linguaGravar(histK(cl),o2); delete cl._sug; delete cl._sugF; delete cl._lg; if(t.closest('#modal')) abrirCliente(cl.chave); else render(); toast('Linguagem de '+primeiroNome(cl.nome)+' ajustada.','ok'); return; }
+    if(t.id==='trAuto'){ trSalvarCfg({auto:t.checked}); toast(t.checked?'Áudios novos serão transcritos neste computador.':'Transcrição automática desligada.','ok'); return; }
+    if(t.id==='trModelo'){ trSalvarCfg({modelo:t.value}); TR.pipe=null; TR.carregando=null; return; }
     if(t.id==='cvq') return;
     if(t.id==='rcont'){ S.rec.cont=t.value; S.limite=200; render(); return; }
     if(t.id==='rdmin'||t.id==='rdmax'||t.id==='rde'||t.id==='rate'){ S.rec[{rdmin:'dmin',rdmax:'dmax',rde:'de',rate:'ate'}[t.id]]=t.value; S.limite=200; render(); return; }
@@ -3039,7 +3100,7 @@ async function init(){
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
-    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
+    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
