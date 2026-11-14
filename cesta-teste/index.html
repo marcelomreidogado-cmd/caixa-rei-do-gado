@@ -1426,12 +1426,16 @@ async function aprenderTodas(comAudio){ if(AP.rodando||!syncAtivo()) return; AP.
     el('Pronto: '+ks.length+' conversas lidas · '+aprendidos+' clientes com linguagem aprendida'+(comAudio?' · '+audios+' áudios para transcrever (seguem em segundo plano)':''));
     if(comAudio) rodarFila(); }
   catch(e){ el('Erro: '+e.message); } finally{ AP.rodando=false; } }
+async function trTestarBuf(nome,buf){ var elT=document.getElementById('trTeste'); var mostra=function(x){ S.trTeste=x; var e2=document.getElementById('trTeste'); if(e2) e2.textContent=x; };
+  try{ mostra('Preparando…'); var motorA=await motorTranscricao(); mostra('Transcrevendo '+nome+'…'); var auA=await pcm16k(buf); var t1=Date.now(); var outA=await motorA(auA.pcm,{language:'portuguese',task:'transcribe',chunk_length_s:30,stride_length_s:5});
+    mostra('🎤 "'+String(outA.text||'').trim()+'" — áudio de '+Math.round(auA.dur)+'s transcrito em '+Math.round((Date.now()-t1)/1000)+'s'); }catch(errA){ mostra('Erro: '+errA.message); } }
+async function trTestarExemplo(){ try{ var r=await fetch('exemplo-audio.wav',{cache:'no-store'}); if(!r.ok) throw new Error('áudio de exemplo não encontrado'); await trTestarBuf('áudio de exemplo', await r.arrayBuffer()); }catch(e){ S.trTeste='Erro: '+e.message; var e2=document.getElementById('trTeste'); if(e2) e2.textContent=S.trTeste; } }
 function blocoInteligencia(){ var tc=trCfg();
   return '<h2 class="secao">Inteligência das conversas</h2><section class="card"><div class="filtros"><button class="btn" id="apRodar">🧠 Aprender com todas as conversas</button><label class="chk"><input type="checkbox" id="apAudio"> transcrever também os áudios</label><span class="nota" id="apStatus" style="margin:0"></span></div>'+
     '<div class="filtros"><label class="chk"><input type="checkbox" id="trAuto"'+(tc.auto?' checked':'')+'> transcrever automaticamente os áudios novos dos clientes neste computador</label>'+
     '<select id="trModelo"><option value="preciso"'+((tc.modelo||'preciso')==='preciso'?' selected':'')+'>Transcrição precisa (modelo ~250 MB)</option><option value="rapido"'+(tc.modelo==='rapido'?' selected':'')+'>Transcrição rápida (modelo ~80 MB)</option></select>'+
     '<button class="btn sec mini" id="trCarregar">Preparar transcrição</button><span class="nota" id="trStatus" style="margin:0">'+esc(TR.status||'')+'</span></div>'+
-    '<div class="filtros"><label class="btn sec mini">🎤 Testar com um arquivo de áudio<input type="file" id="trArquivo" accept="audio/*,.ogg,.opus,.m4a,.mp3,.wav" hidden></label><span class="nota" id="trTeste" style="margin:0">'+esc(S.trTeste||'')+'</span></div></section>'; }
+    '<div class="filtros"><label class="btn sec mini">🎤 Testar com um arquivo de áudio<input type="file" id="trArquivo" accept="audio/*,.ogg,.opus,.m4a,.mp3,.wav" hidden></label>'+(window.AMB_TESTE?'<button class="btn sec mini" data-trexemplo="1">▶ Testar com áudio de exemplo</button>':'')+'<span class="nota" id="trTeste" style="margin:0">'+esc(S.trTeste||'')+'</span></div></section>'; }
 
 /* =================== FASE 1: perfil Astro, segmentos por regras e campanhas com métricas =================== */
 /* ---- perfil Astro (calculado das compras) ---- */
@@ -2908,6 +2912,7 @@ function bind(){
     if((b=t.closest('[data-tmdel]'))){ var cfd=taxCfg(); delete cfd.termos[b.dataset.tmdel]; await salvarTax(cfd); render(); return; }
     if(t.id==='apRodar'){ t.disabled=true; await aprenderTodas(($('#apAudio')||{}).checked); t.disabled=false; return; }
     if(t.id==='trCarregar'){ t.disabled=true; try{ await motorTranscricao(); }catch(e){} t.disabled=false; return; }
+    if((b=t.closest('[data-trexemplo]'))){ trTestarExemplo(); return; }
     if((b=t.closest('[data-transc]'))){ e.stopPropagation(); var thT=S.aba==='conversas'?threadsConversa().filter(function(x){return x.k===S.cvSel;})[0]:null, cT=thT?thT.c:S.model.clientes[b.dataset.c]; if(!cT) return; b.disabled=true; b.textContent='⏳ transcrevendo…';
       try{ await transcreverAudio(cT,b.dataset.transc); await enviarHist(); }catch(err){ toast('Não transcreveu: '+err.message,'erro'); } if(S.aba==='conversas'&&!b.closest('#modal')){ render(); rolarChat(); } else pintarHist(cT); return; }
     if(t.id==='campNova'){ var idn=await novaCampanha({regras:[{k:'celular'}]}); S.campAt=idn; render(); return; }
@@ -3070,9 +3075,7 @@ function bind(){
       if(v===auto[t.dataset.tf]) delete o[t.dataset.tf]; else o[t.dataset.tf]=v; if(Object.keys(o).length) cfx.prod[chx]=o; else delete cfx.prod[chx]; await salvarTax(cfx); render(); toast('Dicionário atualizado: '+S.model.produtos[chx].produto,'ok'); return; }
     if(t.id==='diccat'){ S.dic=S.dic||{}; S.dic.cat=t.value; render(); return; }
     if(t.dataset&&t.dataset.lg){ var cl=S.model.clientes[t.dataset.c], o2={}; o2[t.dataset.lg]=t.value; await linguaGravar(histK(cl),o2); delete cl._sug; delete cl._sugF; delete cl._lg; if(t.closest('#modal')) abrirCliente(cl.chave); else render(); toast('Linguagem de '+primeiroNome(cl.nome)+' ajustada.','ok'); return; }
-    if(t.id==='trArquivo'&&t.files&&t.files[0]){ var fA=t.files[0], elT=document.getElementById('trTeste'), t0=Date.now(); var mostra=function(x){ S.trTeste=x; if(elT) elT.textContent=x; };
-      try{ mostra('Preparando…'); var motorA=await motorTranscricao(); mostra('Transcrevendo '+fA.name+'…'); var auA=await pcm16k(await fA.arrayBuffer()); var t1=Date.now(); var outA=await motorA(auA.pcm,{language:'portuguese',task:'transcribe',chunk_length_s:30,stride_length_s:5});
-        mostra('🎤 "'+String(outA.text||'').trim()+'" — áudio de '+Math.round(auA.dur)+'s transcrito em '+Math.round((Date.now()-t1)/1000)+'s'); }catch(errA){ mostra('Erro: '+errA.message); } return; }
+    if(t.id==='trArquivo'&&t.files&&t.files[0]){ var fA=t.files[0]; await trTestarBuf(fA.name, await fA.arrayBuffer()); return; }
     if(t.id==='trAuto'){ trSalvarCfg({auto:t.checked}); toast(t.checked?'Áudios novos serão transcritos neste computador.':'Transcrição automática desligada.','ok'); return; }
     if(t.id==='trModelo'){ trSalvarCfg({modelo:t.value}); TR.pipe=null; TR.carregando=null; return; }
     if(t.id==='cvq') return;
