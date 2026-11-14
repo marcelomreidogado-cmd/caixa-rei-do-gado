@@ -1099,7 +1099,7 @@ function alertas(){ var m=S.model, out=[], h=hoje(), L=S.loja, ag=new Date(), hr
   var conv=(S.contatos||[]).filter(function(r){ return !r.excluido&&r.dia>=addDias(h,-7)&&/uazapi/.test(r.tipo||'')&&r.tipo!=='uazapi-celular'; }), idx=null, comp=0;
   conv.forEach(function(r){ idx=idx||indiceClientesContato(); var c=clienteDoContato(r,idx); if(c&&noL(c)&&c.ultimaCompra>=r.dia) comp++; });
   if(comp) out.push({nivel:'bom',ic:'🛒',tit:comp+' cliente(s) compraram depois da mensagem (7 dias)',txt:'Veja quais mensagens funcionaram no Painel.',acao:'<button class="btn sec mini" data-ir="painel">Painel</button>'});
-  var sair=(S.contatos||[]).filter(function(r){ return !r.excluido&&r.sair&&String(r.sair.em||r.atu||'').slice(0,10)===h; }).length; if(sair) out.push({nivel:'info',ic:'🚫',tit:sair+' pediram SAIR hoje',txt:'Já saíram das listas de envio automaticamente.',acao:''});
+  var sair=Object.keys(S.vinc||{}).filter(function(k){ var v=S.vinc[k]; return v&&v.optout&&String(v.atualizadoEm||'').slice(0,10)===h; }).length; if(sair) out.push({nivel:'info',ic:'🚫',tit:sair+' pediram SAIR hoje',txt:'Já saíram das listas de envio automaticamente.',acao:''});
   return out; }
 /* ---------- tela HOJE ---------- */
 /* ---------- tela HOJE executiva ---------- */
@@ -1112,7 +1112,7 @@ function graficoVendas(d,ref,n){ var dias=[]; for(var i=n-1;i>=0;i--){ var k=add
   return '<svg viewBox="0 0 '+W+' '+H+'" class="gv" preserveAspectRatio="none">'+bars+(med?'<line x1="0" x2="'+W+'" y1="'+ym+'" y2="'+ym+'" stroke="#71717a" stroke-dasharray="4 4" stroke-width="1"/><text x="'+(W-2)+'" y="'+(ym-4)+'" text-anchor="end" class="gm">média '+brl(med)+'</text>':'')+'</svg>'; }
 function delta(a,b){ if(!b) return ''; var p=(a-b)/b*100; return '<i class="dl '+(p>=0?'up':'dn')+'">'+(p>=0?'▲':'▼')+' '+Math.abs(p).toFixed(0)+'%</i>'; }
 function telaHoje(){ var m=S.model, h=hoje(), A=alertas(), Ls=lembretesAbertos(), atras=Ls.filter(function(x){return x.data<h;}), hj=Ls.filter(function(x){return x.data===h;}), prox=Ls.filter(function(x){return x.data>h;}).slice(0,8);
-  var VD=vendasPorDia(), ref=m.refData, dr=VD[ref]||{v:0,n:0,id:0,cli:0}, dw=new Date(ref+'T12:00:00').getDay();
+  var VD=vendasPorDia(), ref=m.refData>=h?addDias(h,-1):m.refData, dr=VD[ref]||{v:0,n:0,id:0,cli:0}, dw=new Date(ref+'T12:00:00').getDay();
   var mesmos=[7,14,21,28].map(function(k){ return (VD[addDias(ref,-k)]||{}).v||0; }).filter(Boolean), mediaDs=mesmos.length?mesmos.reduce(function(a,b){return a+b;},0)/mesmos.length:0;
   var s7=0,s7a=0; for(var i=0;i<7;i++){ s7+=(VD[addDias(ref,-i)]||{}).v||0; s7a+=(VD[addDias(ref,-i-7)]||{}).v||0; }
   var lojas=S.loja?[S.loja]:LOJAS_ENVIO, envH=lojas.reduce(function(a,l){return a+enviadasHoje(l);},0), metaH=lojas.reduce(function(a,l){return a+metaDia(l);},0);
