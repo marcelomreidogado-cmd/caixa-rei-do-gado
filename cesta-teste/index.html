@@ -2595,6 +2595,118 @@ async function salvarBiblioteca(padrao){ var b={}, recus=[];
   S.cfg.biblioteca4=b; await salvarCfg('biblioteca4',b); limparSugestoes(); S.crmSujo=true;
   if(recus.length) toast('Não salvei '+recus.length+' linha(s) fora das regras: '+recus.slice(0,2).join(' | '),'erro'); }
 
+/* =====================================================================
+   ANÁLISE DO HISTÓRICO REAL (só leitura) — base para as regras novas
+   1) mensagens da loja × resposta e compra em 7 dias (tamanho, conteúdo, dia, hora, recência)
+   2) o que os clientes escrevem
+   3) teste no histórico: qual método acerta o que o cliente leva na próxima compra
+   ===================================================================== */
+var AN={rodando:false,res:null,status:''};
+var RE_PROD_MSG=new RegExp('\\b('+['PICANHA','FRALD','PATINHO','ALCATRA','CONTRA','CHORIZO','ANCHO','COSTELA','CUPIM','MAMINHA','MIGNON','ACEM','LAGARTO','KAFTA','ALMONDEGA','LINGUI','HAMBURG','BURGER','BRIOCHE','BACON','FRANGO','SOBRECOXA','CORACAO','TULIPA','COXINHA','CORDEIRO','PANCETA','LOMBO','PERNIL','PAO DE ALHO','QUEIJO','CARVAO','CERVEJA','HEINEKEN','KIT','PROMO','WAGYU','ANGUS','CORTE','CARNE','CHURRASCO'].join('|')+')');
+function anTipoCliente(t){ var n=' '+rgNorm(t).toLowerCase()+' ';
+  if(/ (nao quero|nao preciso|pare|parar|sair|remover|nao mande|nao envie|descadastr)/.test(n)) return 'não quer';
+  if(/ (quanto|valor|preco|precos|custa|kg ta|ta quanto|promocao|promo)/.test(n)) return 'preço';
+  if(/ (entrega|entregar|motoboy|endereco|frete|taxa|chegou|chega)/.test(n)) return 'entrega';
+  if(/ (horario|aberto|abre|fecha|funciona|hoje voces)/.test(n)) return 'horário';
+  if(/ (quero|separa|separar|manda|mandar|me ve|me da|pedido|kg|quilo|kilo|gramas|unidade|uma |um |dois|duas|tres|reserva|vou querer|pode separar|pode mandar)/.test(n)) return 'pedido';
+  if(/ (obrigad|valeu|agradec|show|perfeito|otimo|top|beleza|blz|ok |certo|combinado)/.test(n)) return 'agradecimento/ok';
+  return 'outro'; }
+function anBucket(n,cortes,rot){ for(var i=0;i<cortes.length;i++) if(n<=cortes[i]) return rot[i]; return rot[rot.length-1]; }
+function anAdd(o,k,resp,comp){ var x=o[k]||(o[k]={n:0,resp:0,comp:0}); x.n++; if(resp) x.resp++; if(comp) x.comp++; }
+async function rodarAnalise(){ if(AN.rodando||!S.model) return; AN.rodando=true; var st=function(t){ AN.status=t; var e=document.getElementById('anStatus'); if(e) e.textContent=t; };
+  try{
+    st('Lendo as conversas da nuvem…'); var ks=[]; try{ ks=syncAtivo()?Object.keys((await fb('GET','hist',undefined,'shallow=true'))||{}):[]; }catch(e){ st('Nuvem indisponível: analisando só o que está neste computador…'); }
+    for(var i=0;i<ks.length;i+=8){ await Promise.all(ks.slice(i,i+8).map(async function(K){ var c=clientePorK(K); if(c) await carregarHist(c); })); st('Lendo conversas: '+Math.min(i+8,ks.length)+' de '+ks.length); }
+    st('Calculando…'); await new Promise(function(r){ setTimeout(r,30); });
+    AN.res=calcularAnalise(); st('Pronto: '+num(AN.res.conv.n)+' conversas, '+num(AN.res.env.n)+' mensagens da loja analisadas.'); render();
+  }catch(e){ st('Erro: '+e.message); } finally{ AN.rodando=false; } }
+function calcularAnalise(){ var m=S.model, ref=m.refData, R={conv:{n:0,cliIniciou:0,msgsLoja:0,msgsCli:0},env:{n:0,resp:0,comp:0,base:0},por:{tam:{},produto:{},nome:{},pergunta:{},emoji:{},abertura:{},hora:{},dia:{},recencia:{},diaDele:{},origem:{}},cli:{},melhores:[],bt:null,tempo:null};
+  var D=function(s){ return Date.parse(String(s).slice(0,10)+'T12:00:00Z'); };
+  m.lista.forEach(function(c){ var tl=linhaTempo(c).filter(function(x){ return x.de==='l'||x.de==='c'; }); if(!tl.length) return; R.conv.n++;
+    if(tl[0].de==='c') R.conv.cliIniciou++;
+    var compras=c.diasCompra||[];
+    // blocos da loja: mensagens seguidas em até 10 min
+    var blocos=[], cur=null;
+    tl.forEach(function(x,i){ var t=Date.parse(x.em); if(x.de==='l'){ R.conv.msgsLoja++; if(cur&&t-cur.fim<=10*60e3){ cur.txt+='\n'+(x.txt||''); cur.fim=t; } else { cur={ini:t,fim:t,txt:x.txt||'',i:i,origem:x.tags?'sistema':'celular'}; blocos.push(cur); } }
+      else { R.conv.msgsCli++; cur=null; var tp=x.mt==='audio'?'áudio':anTipoCliente(x.txt||''); R.cli[tp]=(R.cli[tp]||0)+1; } });
+    // só as mensagens que ABREM contato (cliente não falou nas 12h anteriores)
+    blocos.forEach(function(b){ var antes=tl.slice(0,b.i).filter(function(x){ return x.de==='c'&&b.ini-Date.parse(x.em)<12*3600e3; }); if(antes.length) return;
+      if(/^\[/.test(b.txt)||b.txt.length<6) return;
+      var resp=tl.some(function(x){ var t=Date.parse(x.em); return x.de==='c'&&t>b.fim&&t-b.fim<=48*3600e3; });
+      var diaB=new Date(b.ini-3*3600e3).toISOString().slice(0,10), comp=compras.some(function(d){ return d>=diaB&&dias(diaB,d)<=7; });
+      var prev=compras.filter(function(d){ return d<diaB; }), rec=prev.length?dias(prev[prev.length-1],diaB):null;
+      // padrão de dia da semana do cliente (antes da mensagem)
+      var dws=[0,0,0,0,0,0,0]; prev.forEach(function(d){ dws[new Date(D(d)).getUTCDay()]++; }); var mod=dws.indexOf(Math.max.apply(null,dws)), regular=prev.length>=4&&dws[mod]/prev.length>=0.5;
+      var hs=horaSP(new Date(b.ini).toISOString()), dwEnv=hs.dw, alinhado=regular?(dwEnv===mod||(dwEnv+1)%7===mod?'no dia dele ou na véspera':'em outro dia'):'cliente sem dia fixo';
+      // chance de comprar em 7 dias sem mensagem (base do próprio cliente)
+      var span=prev.length>=2?dias(prev[0],diaB):0, semanas={}; prev.forEach(function(d){ semanas[Math.floor(D(d)/(7*864e5))]=1; }); var base=span>=28?Math.min(1,Object.keys(semanas).length/(span/7)):null;
+      R.env.n++; if(resp) R.env.resp++; if(comp) R.env.comp++; if(base!=null){ R.env.baseN=(R.env.baseN||0)+1; R.env.base+=base; R.env.compB=(R.env.compB||0)+(comp?1:0); }
+      var txt=b.txt, n=rgNorm(txt), ch=txt.length, P=R.por;
+      anAdd(P.tam,anBucket(ch,[80,160,300],['até 80 caracteres','81 a 160','161 a 300','mais de 300']),resp,comp);
+      anAdd(P.produto,RE_PROD_MSG.test(n)?'cita produto':'não cita produto',resp,comp);
+      anAdd(P.nome,n.indexOf(rgNorm(primeiroNome(c.nome)))>=0?'usa o nome do cliente':'sem o nome',resp,comp);
+      anAdd(P.pergunta,/\?/.test(txt)?'termina/contém pergunta':'sem pergunta',resp,comp);
+      anAdd(P.emoji,RE_EMO.test(txt)?'com emoji':'sem emoji',resp,comp);
+      anAdd(P.abertura,/^(oi|ola|olá)/i.test(txt.trim())?'"Oi/Olá"':/^(bom dia|boa tarde|boa noite)/i.test(txt.trim())?'"Bom dia/Boa tarde"':'sem saudação',resp,comp);
+      anAdd(P.hora,hs.h<12?'manhã':hs.h<18?'tarde':'noite',resp,comp);
+      anAdd(P.dia,DSEM[dwEnv],resp,comp);
+      anAdd(P.recencia,rec==null?'sem compra antes':rec<=7?'comprou há até 7 dias':rec<=30?'8 a 30 dias':rec<=90?'31 a 90 dias':'mais de 90 dias',resp,comp);
+      anAdd(P.diaDele,alinhado,resp,comp);
+      anAdd(P.origem,b.origem==='sistema'?'enviada pela cesta':'enviada pelo celular',resp,comp);
+      if(resp&&comp) R.melhores.push({cli:tituloProd(c.nome),loja:tituloProd(c.loja),dia:diaB,txt:txt.slice(0,400),ch:ch}); }); });
+  R.melhores.sort(function(a,b){ return a.ch-b.ch; });
+  R.bt=backtestOferta(); R.tempo=padraoDias(); R.grp=backtestGrupo(); return R; }
+/* teste no histórico: na véspera de cada compra, o que cada método teria oferecido × o que o cliente levou */
+function backtestOferta(){ var m=S.model, D=function(s){ return Date.parse(s+'T12:00:00Z'); }, M={}, nomes={M1:'mais comprados no total (regra atual)',M2:'mais comprados, pesando os recentes',M3:'o que ele leva no dia da semana dele',M4:'repetir a última compra',M5:'combinado: recentes + dia da semana + hora de repor'};
+  Object.keys(nomes).forEach(function(k){ M[k]={n:0,hit:0,prec:0}; });
+  var chave=function(it){ return it.cod||rgNorm(it.produto); }, ok=function(it){ return !ehAcessorio(it.produto)&&!/PROMO/.test(rgNorm(it.produto)); };
+  m.lista.forEach(function(c){ var cp=c.compras.slice().sort(function(a,b){ return a.data<b.data?-1:1; }); if(cp.length<5) return;
+    // junta compras do mesmo dia
+    var dd={}; cp.forEach(function(d){ var x=dd[d.data]||(dd[d.data]={data:d.data,itens:{}}); d.itens.forEach(function(it){ if(ok(it)) x.itens[chave(it)]=1; }); }); var vs=Object.keys(dd).sort().map(function(k){ return dd[k]; });
+    for(var k=4;k<vs.length;k++){ var alvo=vs[k], prev=vs.slice(0,k), real=alvo.itens; if(!Object.keys(real).length) continue;
+      var dwAlvo=new Date(D(alvo.data)).getUTCDay(), dws=[0,0,0,0,0,0,0]; prev.forEach(function(v){ dws[new Date(D(v.data)).getUTCDay()]++; }); var mod=dws.indexOf(Math.max.apply(null,dws));
+      var cnt={}, rec={}, dia={}, ult={}, datas={};
+      prev.forEach(function(v){ var w=Math.pow(0.5,dias(v.data,alvo.data)/60), dw=new Date(D(v.data)).getUTCDay(); Object.keys(v.itens).forEach(function(p){ cnt[p]=(cnt[p]||0)+1; rec[p]=(rec[p]||0)+w; if(dw===mod) dia[p]=(dia[p]||0)+1; (datas[p]=datas[p]||[]).push(v.data); }); });
+      Object.keys(prev[prev.length-1].itens).forEach(function(p){ ult[p]=1; });
+      var due=function(p){ var ds=datas[p]; if(ds.length<2) return 0.3; var cyc=dias(ds[0],ds[ds.length-1])/(ds.length-1), s=dias(ds[ds.length-1],alvo.data); return Math.min(1.5,s/Math.max(cyc,1)); };
+      var top=function(sc){ return Object.keys(sc).sort(function(a,b){ return sc[b]-sc[a]; }).slice(0,3); };
+      var tot=prev.length, s5={}; Object.keys(cnt).forEach(function(p){ s5[p]=0.45*rec[p]/(tot*0.5)+0.35*((dia[p]||0)/Math.max(1,dws[mod]))+0.2*Math.min(1,due(p)); });
+      var pr={M1:top(cnt),M2:top(rec),M3:top(Object.keys(dia).length?dia:cnt),M4:top(ult),M5:top(s5)};
+      Object.keys(pr).forEach(function(k2){ var p=pr[k2], h=p.filter(function(x){ return real[x]; }).length; M[k2].n++; if(h) M[k2].hit++; M[k2].prec+=p.length?h/p.length:0; }); } });
+  return Object.keys(M).map(function(k){ var x=M[k]; return {k:k,nome:nomes[k],n:x.n,hit:x.n?x.hit/x.n:0,prec:x.n?x.prec/x.n:0}; }); }
+/* qual GRUPO (dia a dia, churrasco, hambúrguer) ele leva na próxima compra; e QUANDO ele volta */
+function backtestGrupo(){ var m=S.model, M={G1:{n:0,h:0},G2:{n:0,h:0},G3:{n:0,h:0}}, T={n:0,d2:0,d4:0,soma:0};
+  m.lista.forEach(function(c){ var cp=cestaPerfil(c), g={}; cp.grupos.forEach(function(G){ G.itens.forEach(function(e){ g[e.chave]=G.perfil; }); });
+    var dd={}; c.compras.forEach(function(d){ var x=dd[d.data]||(dd[d.data]={data:d.data,v:{},it:{}}); d.itens.forEach(function(it){ var k=it.cod||rgNorm(it.produto), G=g[k]; if(G&&PERFIS_MSG[G]){ x.v[G]=(x.v[G]||0)+it.valor; x.it[k]=1; } }); });
+    var vs=Object.keys(dd).sort().map(function(k){ return dd[k]; }).filter(function(v){ return Object.keys(v.v).length; }); if(vs.length<5) return;
+    for(var k=4;k<vs.length;k++){ var alvo=vs[k], prev=vs.slice(0,k), real=Object.keys(alvo.v).sort(function(a,b){ return alvo.v[b]-alvo.v[a]; })[0];
+      var ic={}, vis={}, rec={}; prev.forEach(function(v){ var w=Math.pow(0.5,dias(v.data,alvo.data)/60); Object.keys(v.it).forEach(function(p){ ic[p]=(ic[p]||0)+1; }); Object.keys(v.v).forEach(function(G){ vis[G]=(vis[G]||0)+1; rec[G]=(rec[G]||0)+w; }); });
+      var topItem=Object.keys(ic).sort(function(a,b){ return ic[b]-ic[a]; })[0], best=function(o){ return Object.keys(o).sort(function(a,b){ return o[b]-o[a]; })[0]; };
+      var pr={G1:g[topItem],G2:best(vis),G3:best(rec)}; Object.keys(pr).forEach(function(q){ M[q].n++; if(pr[q]===real) M[q].h++; });
+      // quando volta: intervalo mediano das últimas compras
+      var ints=[]; for(var j=1;j<prev.length;j++) ints.push(dias(prev[j-1].data,prev[j].data)); ints.sort(function(a,b){ return a-b; }); var med=ints[Math.floor(ints.length/2)], err=Math.abs(dias(prev[prev.length-1].data,alvo.data)-med);
+      T.n++; if(err<=2) T.d2++; if(err<=4) T.d4++; T.soma+=err; } });
+  return {grupos:[{nome:'grupo do item mais comprado (regra atual)',x:M.G1},{nome:'grupo que ele mais leva nas idas à loja',x:M.G2},{nome:'grupo das idas recentes (peso maior)',x:M.G3}],tempo:T}; }
+/* os clientes têm dia certo para comprar? */
+function padraoDias(){ var m=S.model, D=function(s){ return Date.parse(s+'T12:00:00Z'); }, o={clientes:0,diaFixo:0,acertoDia:0,testes:0};
+  m.lista.forEach(function(c){ var ds=c.diasCompra||[]; if(ds.length<5) return; o.clientes++; var dws=[0,0,0,0,0,0,0]; ds.forEach(function(d){ dws[new Date(D(d)).getUTCDay()]++; }); if(Math.max.apply(null,dws)/ds.length>=0.5) o.diaFixo++;
+    for(var k=4;k<ds.length;k++){ var w=[0,0,0,0,0,0,0]; ds.slice(0,k).forEach(function(d){ w[new Date(D(d)).getUTCDay()]++; }); var mod=w.indexOf(Math.max.apply(null,w)); o.testes++; if(new Date(D(ds[k])).getUTCDay()===mod) o.acertoDia++; } });
+  return o; }
+function telaAnalise(){ var r=AN.res, pc=function(a,b){ return b?Math.round(a/b*100)+'%':'—'; };
+  var tab=function(tit,o){ var ks=Object.keys(o).sort(function(a,b){ return o[b].n-o[a].n; }); return '<section class="card"><header><h3>'+esc(tit)+'</h3></header><div class="tw"><table class="tbl"><thead><tr><th>Grupo</th><th class="r">Mensagens</th><th class="r">Responderam (48h)</th><th class="r">Compraram (7 dias)</th></tr></thead><tbody>'+ks.map(function(k){ var x=o[k]; return '<tr><td>'+esc(k)+'</td><td class="r">'+num(x.n)+'</td><td class="r">'+pc(x.resp,x.n)+'</td><td class="r">'+pc(x.comp,x.n)+'</td></tr>'; }).join('')+'</tbody></table></div></section>'; };
+  var h='<div class="exec"><div class="ex-h"><div><h1>Análise do histórico</h1><small class="nota">Só leitura: nada é enviado nem alterado.</small></div><button class="btn" id="anRodar">'+(r?'Rodar de novo':'Rodar análise')+'</button></div><div class="nota" id="anStatus">'+esc(AN.status||'')+'</div>';
+  if(!r) return h+'</div>';
+  var e=r.env;
+  h+='<div class="ex-kpis">'+kc2('Conversas',num(r.conv.n),pc(r.conv.cliIniciou,r.conv.n)+' começaram pelo cliente')+kc2('Mensagens que abriram contato',num(e.n),'loja escreveu primeiro')+kc2('Responderam em 48h',pc(e.resp,e.n),num(e.resp)+' mensagens','ok')+kc2('Compraram em 7 dias',pc(e.comp,e.n),'sem mensagem: '+pc(e.base,e.baseN||0)+' (chance normal do próprio cliente)','ok')+'</div>';
+  h+='<section class="card"><header><h3>Teste no histórico: o que oferecer</h3></header><p class="nota">Na véspera de cada compra real (5ª compra em diante), cada método escolheu 3 produtos só com o histórico anterior. "Acertou" = o cliente levou pelo menos 1 dos 3.</p><div class="tw"><table class="tbl"><thead><tr><th>Método</th><th class="r">Compras testadas</th><th class="r">Acertou ao menos 1</th><th class="r">Dos 3, quantos levou</th></tr></thead><tbody>'+
+    r.bt.slice().sort(function(a,b){ return b.hit-a.hit; }).map(function(x){ return '<tr><td>'+esc(x.nome)+'</td><td class="r">'+num(x.n)+'</td><td class="r"><b>'+pc(x.hit*1000,1000)+'</b></td><td class="r">'+pc(x.prec*1000,1000)+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+    (r.grp?'<h4 style="margin:12px 0 6px">Qual linha ele leva na próxima compra</h4><div class="tw"><table class="tbl"><thead><tr><th>Método</th><th class="r">Compras testadas</th><th class="r">Acertou a linha</th></tr></thead><tbody>'+r.grp.grupos.map(function(x){ return '<tr><td>'+esc(x.nome)+'</td><td class="r">'+num(x.x.n)+'</td><td class="r"><b>'+pc(x.x.h,x.x.n)+'</b></td></tr>'; }).join('')+'</tbody></table></div><p class="nota">Quando ele volta (pelo intervalo mediano das compras anteriores): acertou com diferença de até 2 dias em '+pc(r.grp.tempo.d2,r.grp.tempo.n)+' e até 4 dias em '+pc(r.grp.tempo.d4,r.grp.tempo.n)+' das '+num(r.grp.tempo.n)+' compras testadas (erro médio '+(r.grp.tempo.n?Math.round(r.grp.tempo.soma/r.grp.tempo.n):0)+' dias).</p>':'')+
+    '<p class="nota">Dia da semana: '+num(r.tempo.diaFixo)+' de '+num(r.tempo.clientes)+' clientes (5+ compras) fazem metade ou mais das compras no mesmo dia. Usando o dia mais frequente até ali, o dia da compra seguinte bateu em '+pc(r.tempo.acertoDia,r.tempo.testes)+' das vezes.</p></section>';
+  h+='<div class="ex-grid"><div class="ex-col">'+tab('Tamanho da mensagem',r.por.tam)+tab('Cita produto?',r.por.produto)+tab('Abertura',r.por.abertura)+tab('Pergunta?',r.por.pergunta)+tab('Emoji',r.por.emoji)+tab('Usa o nome',r.por.nome)+'</div><div class="ex-col">'+tab('Dia certo do cliente',r.por.diaDele)+tab('Dias sem comprar quando recebeu',r.por.recencia)+tab('Horário',r.por.hora)+tab('Dia da semana',r.por.dia)+tab('Origem',r.por.origem)+
+    '<section class="card"><header><h3>O que os clientes escrevem</h3></header><div class="tw"><table class="tbl"><tbody>'+Object.keys(r.cli).sort(function(a,b){ return r.cli[b]-r.cli[a]; }).map(function(k){ return '<tr><td>'+esc(k)+'</td><td class="r">'+num(r.cli[k])+'</td></tr>'; }).join('')+'</tbody></table></div></section></div></div>';
+  h+='<section class="card"><header><h3>Mensagens reais que tiveram resposta E compra</h3><span class="cnt">'+r.melhores.length+'</span></header><div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Cliente</th><th>Mensagem</th></tr></thead><tbody>'+r.melhores.slice(0,60).map(function(x){ return '<tr><td>'+dBR(x.dia)+'</td><td>'+esc(x.cli)+'<small class="cod">'+esc(x.loja)+'</small></td><td><small>'+esc(x.txt)+'</small></td></tr>'; }).join('')+'</tbody></table></div></section></div>';
+  return h; }
+
 /* ---------- SELEÇÃO DE CLIENTES PARA ENVIO ---------- */
 function selCtx(ctx){ if(!S.sel||S.sel.ctx!==ctx) S.sel={ctx:ctx,itens:{}}; return S.sel; }
 function selN(){ return S.sel?Object.keys(S.sel.itens).length:0; }
@@ -2841,7 +2953,7 @@ function render(){
   $('#periodo').textContent=m?'Vendas até '+dBR(m.refData):''; $('#periodo').title=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens':'';
   var y=window.scrollY;
   var avB=''; if(m&&/sugestoes|recompra|reconquista|kits|listas|produtos/.test(S.aba)){ var a0=alertas()[0]; if(a0&&a0.ic==='📥') avB='<div class="'+(a0.nivel==='alto'?'erro':'aviso')+'" style="margin-bottom:10px">'+a0.ic+' <b>'+esc(a0.tit)+'.</b> '+esc(a0.txt)+' '+a0.acao+'</div>'; }
-  $('#main').innerHTML=(m&&S.aba!=='conversas'?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas,campanhas:telaCampanhas,dicionario:telaDicionario}[S.aba]||telaSugestoes)();
+  $('#main').innerHTML=(m&&S.aba!=='conversas'?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastro,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas,campanhas:telaCampanhas,dicionario:telaDicionario,analise:telaAnalise}[S.aba]||telaSugestoes)();
   window.scrollTo(0,y); if(S.aba==='conversas') rolarChat();
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
@@ -3021,7 +3133,7 @@ function telaFuncs(){ var m=S.model;
 
 function telaConferencia(){ return '<h2 class="secao">Qualidade dos dados</h2>'+telaQualidade()+'<h2 class="secao">Funcionários e uso interno</h2>'+telaFuncs(); }
 function blocoVarredura(){ if(!uazLojasLeitura().length) return ''; return '<h2 class="secao">WhatsApp das lojas</h2><div class="filtros varr"><span>Números lidos: '+linhaNumeros()+'</span></div><div class="filtros varr">Trazer conversas do celular desde <input type="date" id="varrDesde" value="'+hoje().slice(0,8)+'01"><button class="btn" id="varrer">Trazer para a cesta</button><span class="nota" id="varrInfo" style="margin:0">'+esc(S.varrInfo||'')+'</span></div>'; }
-function telaConfigurar(){ return blocoVarredura()+blocoInteligencia()+blocoQualidadeMsg()+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
+function telaConfigurar(){ return '<section class="card" style="margin-bottom:12px"><header><h3>📊 Análise do histórico</h3></header><p class="nota">Mensagens × respostas × compras e o teste do que oferecer, com os dados reais. Só leitura.</p><div class="filtros"><button class="btn sec" data-ir="analise">Abrir análise</button></div></section>'+blocoVarredura()+blocoInteligencia()+blocoQualidadeMsg()+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
 function telaQualidade(){ var m=S.model;
   var h='';
   h+='<h3>Vendas sem cliente identificado</h3><p class="nota">"Cliente padrão para vendas": <b>'+brl(m.anon.valor)+'</b> em '+num(m.anon.docs)+' cupons ('+pct(m.anon.valor/m.somaValor)+' do faturamento). Acompanhe por loja na aba <b>Cadastro</b>.</p>';
@@ -3179,6 +3291,7 @@ function bind(){
     if(t.id==='campDel'){ if(!confirm('Apagar a campanha "'+CAMPS[S.campAt].nome+'"? As mensagens já enviadas continuam no histórico.')) return; delete CAMPS[S.campAt]; await campGravar(S.campAt,null); S.campAt=null; render(); return; }
     if(t.id==='campSalvar'){ var cps=CAMPS[S.campAt]; cps.texto=$('#campTexto').value; await campGravar(S.campAt,{texto:cps.texto}); render(); toast('Campanha salva.','ok'); return; }
     if((b=t.closest('[data-visor]'))){ S.visor=S.visor||{}; S.visor[b.dataset.visor]=(S.visor[b.dataset.visor]||0)+(+b.dataset.vd); render(); return; }
+    if(t.id==='anRodar'){ rodarAnalise(); return; }
     if(t.id==='audMsg'){ t.disabled=true; t.textContent='Verificando…'; setTimeout(function(){ try{ S.audMsg=auditarMensagens(); }catch(e){ toast('Erro na verificação: '+e.message,'erro'); } render(); },30); return; }
     if((b=t.closest('[data-campvar]'))){ var ta6=$('#campTexto'); if(ta6){ var p0=ta6.selectionStart||ta6.value.length; ta6.value=ta6.value.slice(0,p0)+b.dataset.campvar+ta6.value.slice(p0); ta6.focus(); ta6.selectionStart=ta6.selectionEnd=p0+b.dataset.campvar.length; } return; }
     if((b=t.closest('[data-campsug]'))){ var sx6=sugestoesCamp()[+b.dataset.campsug]; if(!sx6) return; var idc=await novaCampanha({nome:sx6.tit+' · '+dBR(hoje()).slice(0,5),regras:JSON.parse(JSON.stringify(sx6.regras)),texto:sx6.texto}); S.campAt=idc; S.aba='campanhas'; window.scrollTo(0,0); render(); return; }
