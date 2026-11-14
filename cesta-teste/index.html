@@ -709,7 +709,7 @@ async function salvarLinha(chaveProd,linha){
 /* ---------- SINCRONIZAÇÃO NA NUVEM (Firebase Realtime Database via REST — sem SDK, funciona em file://) ---------- */
 var RAIZ_PROD='cesta_rei_do_gado', RAIZ_TESTE='cesta_rei_do_gado/teste';
 var SYNC_PADRAO={url:'https://motoboy-ddefa-default-rtdb.firebaseio.com',raiz:window.AMB_TESTE?RAIZ_TESTE:RAIZ_PROD,token:'',computador:'',ativo:true};
-var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,biblioteca4:1,biblioteca5:1,nomesProd:1,taxonomia:1,atendentes:1,kits:1,reconquista:1,metaDiaria:1}, CHUNK=8000, POLL_MS=30000;
+var CFG_SYNC={linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,biblioteca4:1,biblioteca5:1,aprendidas:1,nomesProd:1,taxonomia:1,atendentes:1,kits:1,reconquista:1,metaDiaria:1}, CHUNK=8000, POLL_MS=30000;
 var SY={estado:'off',msg:'',ultima:null,ocupado:false,timer:null,revNuvem:null,renderPendente:false};
 function lerSync(){ try{ S.sync=Object.assign({},SYNC_PADRAO,JSON.parse(localStorage.getItem('cesta_sync')||'{}')); }catch(e){ S.sync=Object.assign({},SYNC_PADRAO); } if(window.AMB_TESTE&&/motoboy-ddefa/.test(S.sync.url)) S.sync.raiz=RAIZ_TESTE; }
 function gravarSync(){ try{ localStorage.setItem('cesta_sync',JSON.stringify(S.sync)); }catch(e){} }
@@ -2393,11 +2393,11 @@ function corrigirMsg(txt,c){ var ass=assinaturaDe(c), at=[], nc=' '+rgNorm(c.nom
   return ls.join('\n'); }
 
 /* escolhe o texto do corpo: não repete o que ele recebeu, respeita "Outra versão" e o aprendizado */
-function escolherCorpo(c,sit,lista,seed){ var vis=vistoRegen(c), usados={}; contatosDe(c).slice(0,3).forEach(function(r){ if(r.vh) usados[r.vh]=1; if(r.variante) usados[r.variante]=1; });
+function escolherCorpo(c,sit,lista,seed,bonus){ var vis=vistoRegen(c), usados={}; contatosDe(c).slice(0,3).forEach(function(r){ if(r.vh) usados[r.vh]=1; if(r.variante) usados[r.variante]=1; });
   var todos=lista.map(function(t,i){ return {t:t,i:i}; }).filter(function(x){ return x.t&&blocoCombina(x.t,c); }); if(!todos.length) todos=lista.map(function(t,i){ return {t:t,i:i}; });
   var cand=todos.filter(function(x){ var h=sit+'|'+hashN(x.t); return !usados[h]&&!usados[sit+':'+x.i]&&!vis[h]; }); if(!cand.length) cand=todos.filter(function(x){ return !vis[sit+'|'+hashN(x.t)]; }); if(!cand.length){ if(S.regenVisto) delete S.regenVisto[c.chave]; cand=todos; }
   if(lingua(c).curto&&cand.length>2){ cand=cand.slice().sort(function(a,b){ return a.t.length-b.t.length; }).slice(0,Math.ceil(cand.length/2)); }
-  return escolherPonderado(cand,function(x){ return pesoTexto(sit,x.t); },(hashN(seed)%100000)/100000); }
+  return escolherPonderado(cand,function(x){ return pesoTexto(sit,x.t)*((bonus&&bonus[x.t])||1); },(hashN(seed)%100000)/100000); }
 
 /* =====================================================================
    MOTOR v5 — tirado do histórico real (Ajustes → Análise do histórico, 14/11/2026)
@@ -2458,12 +2458,14 @@ function comporMsg(c,o){ var B=bib4(), L=lingua(c), at=atendenteDe(c.loja), loja
   if(B.sair&&primeiraMensagem(c)) partes.push(typeof B.sair==='string'?B.sair:BIB5.sair);
   return {txt:corrigirMsg(personalizar(partes.join('\n'),c,at),c),vb:'',atendente:at}; }
 function montarSug(c,foco,modo){ var o=ofertaHoje(c,foco), sit=situacaoV5(c,o,foco,modo), B=bib4(), seed=c.chave+'|'+hoje()+'|'+((S.regen&&S.regen[c.chave])||0)+'|'+(foco||'');
-  var corpo=escolherCorpo(c,sit,B[sit]||B.padrao,seed), p1=o.itens[0], fm=p1?fem(p1.produto)||fem(p1.nome.toUpperCase()):false;
+  var apr=aprendidasPara(sit), bon={}, base=(B[sit]||B.padrao).slice(); apr.forEach(function(x){ if(base.indexOf(x.t)<0){ base.push(x.t); bon[x.t]=1+6*x.score; } });
+  var corpo=escolherCorpo(c,sit,base,seed,bon), aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null, p1=o.itens[0], fm=p1?fem(p1.produto)||fem(p1.nome.toUpperCase()):false;
   var vars={p:listaPT(o.itens.map(function(x){ return x.nome; })),p1:p1?p1.nome:'',Seu_p1:p1?(fm?'Sua ':'Seu ')+p1.nome:'',seu_p1:p1?(fm?'sua ':'seu ')+p1.nome:'',o_p1:p1?(fm?'a ':'o ')+p1.nome:'',do_p1:p1?(fm?'da ':'do ')+p1.nome:'',tempo:tempoHumano(c.recencia)};
   var r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed});
   if(o.itens.length>1&&!o.escolhaEquipe&&r.txt.split('\n').slice(0,2).join('\n').length>200){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
   var soManual=c.recencia>LIMITE_AUTO, comp=o.grupo?complementoDe(c,o.grupo,o.itens):null;
-  return {cliChave:c.chave,mensagem:r.txt,situacao:sit,variante:'v5:'+sit+':'+corpo.i,vh:sit+'|'+hashN(corpo.t),vtxt:corpo.t,vb:'',atendente:r.atendente,foco:foco||'',soManual:soManual,
+  if(/_p1\}/.test(corpo.t)&&o.itens.length>1&&!o.escolhaEquipe){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
+  return {aprendida:aprX,cliChave:c.chave,mensagem:r.txt,situacao:sit,variante:'v5:'+sit+':'+(aprX?'eq'+aprX.h:corpo.i),vh:sit+'|'+hashN(corpo.t),vtxt:corpo.t,vb:'',atendente:r.atendente,foco:foco||'',soManual:soManual,
     cesta:cestaPerfil(c),grupo:o.grupo,itens:o.itens,motivo:o.motivo,escolhaEquipe:o.escolhaEquipe,comp:null,compTela:comp,primeiro:primeiraMensagem(c),
     ofertas:/^(reativar_inativo|sem_cesta)$/.test(sit)?[]:o.itens.map(function(x){ return {chave:x.chave,produto:x.produto,linha:x.e.linha,hora:sit==='recompra',motivo:'levou '+x.vezes+' vez(es)'}; }),novidades:[]}; }
 function sugestoes(c){ if(c._sug) return c._sug; c._sug=montarSug(c,null,null); return c._sug; }
@@ -2699,6 +2701,70 @@ function telaAnalise(){ var r=AN.res, pc=function(a,b){ return b?Math.round(a/b*
     '<section class="card"><header><h3>O que os clientes escrevem</h3></header><div class="tw"><table class="tbl"><tbody>'+Object.keys(r.cli).sort(function(a,b){ return r.cli[b]-r.cli[a]; }).map(function(k){ return '<tr><td>'+esc(k)+'</td><td class="r">'+num(r.cli[k])+'</td></tr>'; }).join('')+'</tbody></table></div></section></div></div>';
   h+='<section class="card"><header><h3>Mensagens reais que tiveram resposta E compra</h3><span class="cnt">'+r.melhores.length+'</span></header><div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Cliente</th><th>Mensagem</th></tr></thead><tbody>'+r.melhores.slice(0,60).map(function(x){ return '<tr><td>'+dBR(x.dia)+'</td><td>'+esc(x.cli)+'<small class="cod">'+esc(x.loja)+'</small></td><td><small>'+esc(x.txt)+'</small></td></tr>'; }).join('')+'</tbody></table></div></section></div>';
   return h; }
+
+/* =====================================================================
+   APRENDIZADO DIÁRIO COM A EQUIPE
+   Uma vez por dia: traz as conversas novas do celular, lê TODO o histórico, reconhece as mensagens
+   que a equipe escreveu e que tiveram resposta (48h) ou compra (7 dias), transforma em modelo
+   (nome do cliente e produtos viram campos) e passa a usar as melhores nas mensagens do dia.
+   A equipe continua escrevendo do jeito dela: é isso que treina a agente.
+   ===================================================================== */
+var APR={rodando:false,status:''};
+function aprCfg(){ var a=S.cfg.aprendidas||{}; return {data:a.data||'',itens:a.itens||[],excl:a.excl||{},lidas:a.lidas||0,consideradas:a.consideradas||0}; }
+function reAcento(w){ return String(w).toLowerCase().replace(/[aáàâã]/g,'[aáàâã]').replace(/[eéê]/g,'[eéê]').replace(/[ií]/g,'[ií]').replace(/[oóôõ]/g,'[oóôõ]').replace(/[uú]/g,'[uú]').replace(/[cç]/g,'[cç]'); }
+var RE_PRODS=null;
+function reProdutos(){ if(RE_PRODS) return RE_PRODS; var fr={};
+  Object.keys(NAT_FIX).forEach(function(k){ var v=NAT_FIX[k]; if(v&&v.length>=4) fr[v.toLowerCase()]=1; });
+  TX_CORTES.forEach(function(x){ fr[x[0].toLowerCase()]=1; });
+  ['frango','sobrecoxa','sobrecoxa desossada','pão de alho','linguiça','hambúrguer','hamburguer','burger','cerveja','carvão','bacon','cheddar','pão brioche','queijo coalho','kafta','almôndega','coração','tulipa','costela','cupim','maminha','chorizo','ancho','fralda','fraldinha','patinho','alcatra','contra filé','contrafilé','filé mignon','file mignon','picanha','acém','músculo','lagarto','filé de frango','filezinho','estrogonofe','bife','bifes','peito de frango','coxinha da asa','asinha','cordeiro','panceta','lombo','pernil','wagyu','carne moída','moído','moida','cortes de frango','pães','pão'].forEach(function(w){ fr[w]=1; });
+  var ws=Object.keys(fr).sort(function(a,b){ return b.length-a.length; }).map(reAcento);
+  var adj='(?:\\s+(?:angus|red|wagyu|duroc|temperad[oa]s?|desossad[oa]s?|fresquinh[oa]s?|caprichad[oa]s?|em bifes?|em cubos|mo[ií]d[oa]|pe[cç]a|grill|bovin[oa]|su[ií]n[oa]|de frango|frigideira))*';
+  RE_PRODS=new RegExp('(^|[^A-Za-zÀ-ú])('+ws.join('|')+')'+adj+'(?![A-Za-zÀ-ú])','gi'); return RE_PRODS; }
+/* mensagem real → modelo reutilizável (ou null se não serve: pedido, preço do dia, mídia, longa, só apresentação) */
+function modeloDaMensagem(txt,c){ var t=limparCorpo(String(txt||'').replace(/\s*\n\s*/g,' '));
+  if(/\[(image|imagem|sticker|call|nativeflow|audio|áudio|video|vídeo|document)/i.test(txt)) return null;
+  var at=nomesAtendentes().concat(['LETICIA','VANDERLEI','GUSTAVO','JAIANE','BRUNO']);
+  at.forEach(function(p){ var nm=reAcento(p.charAt(0)+p.slice(1).toLowerCase()); t=t.replace(new RegExp('(me chamo|voc[eê] fala com|aqui [eé]|sou)\\s+(a\\s+|o\\s+)?'+nm+'[^.!?,]*[.!?,]?\\s*','gi'),'').replace(new RegExp('(^|[\\s,.!?])(a\\s+|o\\s+)?'+nm+'(\\s+aqui)?(\\s+d[ao]\\s+(loja\\s+)?rei do gado(\\s+\\S+)?)?\\s*[,.!]?','gi'),'$1'); });
+  var fr=(t.match(/[^.!?]+[.!?]*\s*/g)||[]).filter(function(f){ var n=' '+rgNorm(f)+' '; if(/rei do gado|me chamo|aqui e |voce fala com|estarei aqui|lhe atender|a disposicao|disposicao|tudo bem|como vai|como voce esta|bom dia|boa tarde|boa noite/i.test(rgNorm(f).toLowerCase())) return false; return !at.some(function(p){ return n.indexOf(' '+p+' ')>=0; }); });
+  t=fr.join('').replace(/\s{2,}/g,' ').trim(); if(!t||t.length<15||t.length>170) return null;
+  if(RE_OPERACIONAL.test(t)||/(R\$|\$)\s*\d|\d+,\d{2}|\d+\s*(kg|g|gr)\b/i.test(t)) return null;
+  var pn=primeiroNome(c.nome); if(pn.length>=3) t=t.replace(new RegExp('(^|[^A-Za-zÀ-ú])'+reAcento(pn)+'(?![A-Za-zÀ-ú])','gi'),'$1{nome}');
+  var P='⁣'; t=t.replace(reProdutos(),function(m,a){ return a+P; });
+  for(var k=0;k<3;k++) t=t.replace(new RegExp(P+'(?:\\s*,\\s*|\\s+e\\s+)'+P,'g'),P);
+  t=t.replace(new RegExp('\\b(seu|sua|seus|suas)\\s+'+P,'gi'),function(m,a){ return /^[SA-Z]/.test(a)?'{Seu_p1}':'{seu_p1}'; })
+     .replace(new RegExp('\\b(do|da|dos|das)\\s+'+P,'gi'),'{do_p1}').replace(new RegExp('(^|\\s)(o|a|os|as)\\s+'+P,'gi'),'$1{o_p1}').replace(new RegExp(P,'g'),'{p}');
+  t=t.replace(/^[,\s]+/,'').replace(/^\{nome\}[,!.]?\s*/,''); if(t.length<15) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
+  return {t:t,cat:/\{(p|o_p1|seu_p1|Seu_p1|do_p1)\}/.test(t)?'produto':'sem_produto'}; }
+async function lerTodoHistorico(st){ var ks=[]; try{ ks=syncAtivo()?Object.keys((await fb('GET','hist',undefined,'shallow=true'))||{}):[]; }catch(e){}
+  for(var i=0;i<ks.length;i+=8){ await Promise.all(ks.slice(i,i+8).map(async function(K){ var c=clientePorK(K); if(c) await carregarHist(c); })); if(st) st('Lendo conversas: '+Math.min(i+8,ks.length)+' de '+ks.length); } return ks.length; }
+/* reconhece as melhores mensagens da equipe em todo o histórico */
+function reconhecerMelhores(){ var m=S.model, G={}, lidas=0;
+  m.lista.forEach(function(c){ var tl=linhaTempo(c).filter(function(x){ return x.de==='l'||x.de==='c'; }); if(!tl.length) return; var compras=c.diasCompra||[];
+    var blocos=[], cur=null; tl.forEach(function(x,i){ var t=Date.parse(x.em); if(x.de==='l'){ if(cur&&t-cur.fim<=10*60e3){ cur.txt+='\n'+(x.txt||''); cur.fim=t; } else { cur={ini:t,fim:t,txt:x.txt||'',i:i,sis:!!x.tags,loja:x.loja||c.loja}; blocos.push(cur); } } else cur=null; });
+    blocos.forEach(function(b){ if(b.sis) return; if(tl.slice(0,b.i).some(function(x){ return x.de==='c'&&b.ini-Date.parse(x.em)<72*3600e3; })) return; lidas++;
+      var md=modeloDaMensagem(b.txt,c); if(!md) return;
+      var resp=tl.some(function(x){ var t=Date.parse(x.em); return x.de==='c'&&t>b.fim&&t-b.fim<=48*3600e3; }), dia=new Date(b.ini-3*3600e3).toISOString().slice(0,10), comp=compras.some(function(d){ return d>=dia&&dias(dia,d)<=7; });
+      var k=String(hashN(rgNorm(md.t))), g=G[k]||(G[k]={h:k,t:md.t,cat:md.cat,n:0,resp:0,comp:0,lojas:{},ult:'',ex:''}); g.n++; if(resp) g.resp++; if(comp) g.comp++; g.lojas[tituloProd(b.loja||'')]=1; if(dia>g.ult){ g.ult=dia; g.ex=b.txt.slice(0,220); } }); });
+  var it=Object.keys(G).map(function(k){ var g=G[k]; g.score=(2*g.comp+g.resp+1)/(g.n+3); g.lojas=Object.keys(g.lojas).filter(Boolean); return g; }).filter(function(g){ return g.resp+g.comp>0; }).sort(function(a,b){ return b.score-a.score; });
+  return {itens:it,lidas:lidas}; }
+async function aprenderMensagensEquipe(auto){ if(APR.rodando||!S.model) return; APR.rodando=true; var st=function(t){ APR.status=t; var e=document.getElementById('aprStatus'); if(e) e.textContent=t; };
+  try{ var cfg=aprCfg();
+    if(uazLojasLeitura().length){ st('Trazendo as conversas novas do celular da loja…'); try{ await varrerCelular(cfg.data||addDias(hoje(),-30)); }catch(e){} }
+    st('Lendo o histórico…'); await lerTodoHistorico(st);
+    st('Reconhecendo as melhores mensagens…'); await new Promise(function(r){ setTimeout(r,20); });
+    var R=reconhecerMelhores(), ex=cfg.excl, prod=R.itens.filter(function(g){ return g.cat==='produto'&&!ex[g.h]; }).slice(0,15), sem=R.itens.filter(function(g){ return g.cat==='sem_produto'&&!ex[g.h]; }).slice(0,10);
+    var novo={data:hoje(),itens:prod.concat(sem).map(function(g){ return {h:g.h,t:g.t,cat:g.cat,n:g.n,resp:g.resp,comp:g.comp,score:+g.score.toFixed(3),lojas:g.lojas,ult:g.ult,ex:g.ex}; }),excl:ex,lidas:R.lidas,consideradas:R.itens.length};
+    S.cfg.aprendidas=novo; await salvarCfg('aprendidas',novo); limparSugestoes();
+    st('Atualizado em '+dBR(hoje())+': '+novo.itens.length+' mensagens da equipe em uso, de '+num(R.lidas)+' lidas.'); if(!auto||S.aba==='importacoes') render();
+  }catch(e){ st('Erro: '+e.message); } finally{ APR.rodando=false; } }
+function aprendidasPara(sit){ var cat=/^(reativar_inativo|sem_cesta)$/.test(sit)?'sem_produto':/^(recompra|vip|padrao|reativar_risco)$/.test(sit)?'produto':''; if(!cat) return [];
+  return aprCfg().itens.filter(function(x){ return x.cat===cat; }); }
+async function excluirAprendida(h){ var a=aprCfg(); a.excl[h]=1; a.itens=a.itens.filter(function(x){ return x.h!==h; }); S.cfg.aprendidas=a; await salvarCfg('aprendidas',a); limparSugestoes(); render(); toast('Mensagem retirada. Ela não volta a ser usada.','ok'); }
+function blocoAprendidas(){ var a=aprCfg(), pc=function(x,n){ return n?Math.round(x/n*100)+'%':'—'; };
+  return '<section class="card" style="margin-bottom:12px"><header><h3>🧠 Mensagens que a equipe ensinou</h3><span class="cnt">'+a.itens.length+'</span></header>'+
+    '<p class="nota">Todo dia a agente lê o histórico inteiro (e traz as conversas novas do celular da loja), reconhece as mensagens da equipe que tiveram resposta ou compra e passa a usar as melhores, com o nome do cliente e os produtos dele. Quanto mais a equipe escrever do jeito dela, mais a agente aprende.</p>'+
+    '<div class="filtros"><button class="btn sec" id="aprRodar">Aprender agora</button><span class="nota" id="aprStatus" style="margin:0">'+esc(APR.status||(a.data?'Última atualização: '+dBR(a.data)+' · '+num(a.lidas)+' mensagens da equipe lidas':'Ainda não rodou.'))+'</span></div>'+
+    (a.itens.length?'<div class="tw"><table class="tbl"><thead><tr><th>Modelo aprendido</th><th>Tipo</th><th class="r">Vezes</th><th class="r">Responderam</th><th class="r">Compraram</th><th>Loja</th><th></th></tr></thead><tbody>'+a.itens.map(function(x){ return '<tr><td><b>'+esc(x.t)+'</b><small class="cod" title="'+esc(x.ex)+'">original: '+esc(x.ex.slice(0,110))+'</small></td><td><small>'+(x.cat==='produto'?'com produto':'sem produto')+'</small></td><td class="r">'+x.n+'</td><td class="r">'+pc(x.resp,x.n)+'</td><td class="r">'+pc(x.comp,x.n)+'</td><td><small>'+esc((x.lojas||[]).join(', '))+'</small></td><td><button class="ico" data-aprexcl="'+esc(x.h)+'" title="Não usar mais esta mensagem">✕</button></td></tr>'; }).join('')+'</tbody></table></div>':'')+'</section>'; }
 
 /* ---------- SELEÇÃO DE CLIENTES PARA ENVIO ---------- */
 function selCtx(ctx){ if(!S.sel||S.sel.ctx!==ctx) S.sel={ctx:ctx,itens:{}}; return S.sel; }
@@ -2990,7 +3056,7 @@ function telaClientes(){ var f=S.filtro,l=filtrarClientes();
 
 function blocoSugestao(c){ var s=sgDoModal(c), fm=S.focoModal&&S.focoModal.cli===c.chave?S.focoModal:null;
   var v5=/^v5:/.test(s.variante||'');
-  return '<div class="sug">'+(v5?'<div class="oferta5"><b>O que oferecer hoje:</b> '+(s.itens.length?esc(listaPT(s.itens.map(function(x){ return x.nome; }))):'nada (sem produto ativo)')+(s.escolhaEquipe?' <span class="pill okp">escolhido pela equipe</span>':'')+'<small>'+esc(s.motivo||'')+(s.itens.length?' · o que '+pronome(c)+' mais leva nas compras recentes. Clique nos produtos abaixo para trocar.':'')+'</small></div>':'')+
+  return '<div class="sug">'+(v5?'<div class="oferta5"><b>O que oferecer hoje:</b> '+(s.itens.length?esc(listaPT(s.itens.map(function(x){ return x.nome; }))):'nada (sem produto ativo)')+(s.escolhaEquipe?' <span class="pill okp">escolhido pela equipe</span>':'')+(s.aprendida?' <span class="pill okp" title="'+esc('Original: '+s.aprendida.ex)+'">texto aprendido com a equipe · '+s.aprendida.n+' envio(s), '+s.aprendida.resp+' resposta(s), '+s.aprendida.comp+' compra(s)</span>':'')+'<small>'+esc(s.motivo||'')+(s.itens.length?' · o que '+pronome(c)+' mais leva nas compras recentes. Clique nos produtos abaixo para trocar.':'')+'</small></div>':'')+
     (v5&&s.soManual?'<div class="warn">✍️ <b>Mais de 30 dias sem comprar.</b> No histórico, a mensagem automática para quem passou de 30 dias trouxe menos gente de volta (6% e 2%) do que não mandar nada (9% e 6%). Use o texto abaixo só como rascunho e escreva do seu jeito; ele não vai em envio em lote.</div>':'')+
     (v5&&!s.soManual&&controleSug(c)?'<div class="warn">🧪 Este cliente está no <b>grupo de controle</b> deste mês: não entra no envio em lote, para medirmos o efeito real das mensagens. Envio individual continua liberado.</div>':'')+
     '<div class="sugcols"><div><h4>1 · Tudo que '+pronome(c)+' compra (clique para pôr ou tirar da mensagem)</h4>'+blocoCesta(c,s)+'</div><div><h4>2 · Complemento</h4>'+blocoComp(s)+'</div></div>'+
@@ -3132,7 +3198,7 @@ function telaFuncs(){ var m=S.model;
 
 function telaConferencia(){ return '<h2 class="secao">Qualidade dos dados</h2>'+telaQualidade()+'<h2 class="secao">Funcionários e uso interno</h2>'+telaFuncs(); }
 function blocoVarredura(){ if(!uazLojasLeitura().length) return ''; return '<h2 class="secao">WhatsApp das lojas</h2><div class="filtros varr"><span>Números lidos: '+linhaNumeros()+'</span></div><div class="filtros varr">Trazer conversas do celular desde <input type="date" id="varrDesde" value="'+hoje().slice(0,8)+'01"><button class="btn" id="varrer">Trazer para a cesta</button><span class="nota" id="varrInfo" style="margin:0">'+esc(S.varrInfo||'')+'</span></div>'; }
-function telaConfigurar(){ return '<section class="card" style="margin-bottom:12px"><header><h3>📊 Análise do histórico</h3></header><p class="nota">Mensagens × respostas × compras e o teste do que oferecer, com os dados reais. Só leitura.</p><div class="filtros"><button class="btn sec" data-ir="analise">Abrir análise</button></div></section>'+blocoVarredura()+blocoInteligencia()+blocoQualidadeMsg()+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
+function telaConfigurar(){ return blocoAprendidas()+'<section class="card" style="margin-bottom:12px"><header><h3>📊 Análise do histórico</h3></header><p class="nota">Mensagens × respostas × compras e o teste do que oferecer, com os dados reais. Só leitura.</p><div class="filtros"><button class="btn sec" data-ir="analise">Abrir análise</button></div></section>'+blocoVarredura()+blocoInteligencia()+blocoQualidadeMsg()+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
 function telaQualidade(){ var m=S.model;
   var h='';
   h+='<h3>Vendas sem cliente identificado</h3><p class="nota">"Cliente padrão para vendas": <b>'+brl(m.anon.valor)+'</b> em '+num(m.anon.docs)+' cupons ('+pct(m.anon.valor/m.somaValor)+' do faturamento). Acompanhe por loja na aba <b>Cadastro</b>.</p>';
@@ -3292,6 +3358,8 @@ function bind(){
     if((b=t.closest('[data-escprod]'))){ e.stopPropagation(); var ce5=S.model.clientes[b.dataset.esccli]; if(!ce5) return; trocarProduto(ce5,b.dataset.escprod); var mc=$('#modal .modal-c'), noM=$('#modal').classList.contains('on')&&b.closest('#modal'), sc=mc?mc.scrollTop:0; if(noM){ abrirCliente(ce5.chave); mc.scrollTop=sc; } else render(); return; }
     if((b=t.closest('[data-visor]'))){ S.visor=S.visor||{}; S.visor[b.dataset.visor]=(S.visor[b.dataset.visor]||0)+(+b.dataset.vd); render(); return; }
     if(t.id==='anRodar'){ rodarAnalise(); return; }
+    if(t.id==='aprRodar'){ aprenderMensagensEquipe(false); return; }
+    if((b=t.closest('[data-aprexcl]'))){ if(confirm('Não usar mais esta mensagem?')) await excluirAprendida(b.dataset.aprexcl); return; }
     if(t.id==='audMsg'){ t.disabled=true; t.textContent='Verificando…'; setTimeout(function(){ try{ S.audMsg=auditarMensagens(); }catch(e){ toast('Erro na verificação: '+e.message,'erro'); } render(); },30); return; }
     if((b=t.closest('[data-campvar]'))){ var ta6=$('#campTexto'); if(ta6){ var p0=ta6.selectionStart||ta6.value.length; ta6.value=ta6.value.slice(0,p0)+b.dataset.campvar+ta6.value.slice(p0); ta6.focus(); ta6.selectionStart=ta6.selectionEnd=p0+b.dataset.campvar.length; } return; }
     if((b=t.closest('[data-campsug]'))){ var sx6=sugestoesCamp()[+b.dataset.campsug]; if(!sx6) return; var idc=await novaCampanha({nome:sx6.tit+' · '+dBR(hoje()).slice(0,5),regras:JSON.parse(JSON.stringify(sx6.regras)),texto:sx6.texto}); S.campAt=idc; S.aba='campanhas'; window.scrollTo(0,0); render(); return; }
@@ -3479,7 +3547,7 @@ async function init(){
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
-    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__m4={CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
+    setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
