@@ -1074,7 +1074,7 @@ async function radarHistorico(lojas,chatsPorLoja){ if(!S.model) return; var porN
       digitosVariantes(jid.split('@')[0]).some(function(x){ c=porNum[x]; return !!c; }); if(!c){ HR.ult[k]=ts; continue; }
       var d; try{ d=await uazReq(inst,'POST','/message/find',{chatid:jid,limit:HR.ult[k]?50:200,offset:0,sort:'-messageTimestamp'}); }catch(e){ continue; } feitos++;
       var desde=HR.ult[k]||0, ms=(d.messages||d.data||[]).filter(function(x){ return tsMs(x.messageTimestamp)>desde-60000; });
-      if(histAdd(c,ms.map(function(x){ return histDeUaz(x,loja); }))){ pintarHist(c); if(trCfg().auto) enfileirarAudios(c); }
+      if(histAdd(c,ms.map(function(x){ return histDeUaz(x,loja); }))){ pintarHist(c); if(trCfg().auto!==false) enfileirarAudios(c); }
       HR.ult[k]=ts; } }
   try{ localStorage.setItem('cesta_histult',JSON.stringify(HR.ult)); }catch(e){} }
 /* nome travado do produto (pelo código) */
@@ -1386,6 +1386,10 @@ function blocoLingua(c){ var L=lingua(c), K=histK(c), man=LG[K]||{};
 var TR={pipe:null,carregando:null,fila:[],rodando:false,feitos:0,status:''};
 function trCfg(){ try{ return JSON.parse(localStorage.getItem('cesta_transc')||'{}')||{}; }catch(e){ return {}; } }
 function trSalvarCfg(o){ try{ localStorage.setItem('cesta_transc',JSON.stringify(Object.assign(trCfg(),o))); }catch(e){} }
+/* uma transcrição por vez neste computador (o motor não aceita duas ao mesmo tempo) */
+function trExecutar(pcm){ var rodar=async function(){ var motor=await motorTranscricao(), op={language:'portuguese',task:'transcribe',chunk_length_s:30,stride_length_s:5};
+    for(var tent=0;;tent++){ try{ return await motor(pcm,op); }catch(e){ if(tent<4&&/already started|busy|session/i.test(e.message||'')){ await new Promise(function(r){ setTimeout(r,1500); }); continue; } throw e; } } };
+  var p=(TR.lock||Promise.resolve()).then(rodar,rodar); TR.lock=p.catch(function(){}); return p; }
 var TR_MODELOS={rapido:'onnx-community/whisper-base',preciso:'onnx-community/whisper-small'};
 async function motorTranscricao(){ if(window.__trStub) return window.__trStub; if(TR.pipe) return TR.pipe; if(TR.carregando) return TR.carregando;
   TR.carregando=(async function(){ TR.status='Baixando o modelo de transcrição (só na 1ª vez)…'; atualizarTrStatus();
@@ -1397,7 +1401,7 @@ async function motorTranscricao(){ if(window.__trStub) return window.__trStub; i
   try{ return await TR.carregando; }catch(e){ TR.carregando=null; TR.status='Não consegui carregar a transcrição: '+e.message; atualizarTrStatus(); throw e; } }
 function atualizarTrStatus(){ var el=document.getElementById('trStatus'); if(el) el.textContent=TR.status+(TR.fila.length?' · '+TR.fila.length+' na fila':''); }
 function b64ParaBuf(b64){ var s=atob(String(b64).replace(/^data:[^,]+,/,'')), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u.buffer; }
-async function baixarAudio(loja,mid){ var inst=uazLeitura(loja)||uazLeitura(LOJAS_ENVIO.filter(function(l){return uazLeitura(l);})[0]); if(!inst) throw new Error('WhatsApp da loja não configurado neste computador');
+async function baixarAudio(loja,mid){ var inst=loja?uazLeitura(loja):uazLeitura(LOJAS_ENVIO.filter(function(l){return uazLeitura(l);})[0]); if(!inst) throw new Error('o áudio é da loja '+loja+' — transcreva pelo computador dessa loja');
   var j=await uazReq(inst,'POST','/message/download',{id:mid,return_base64:true,return_link:true,generate_mp3:false});
   var b64=j.base64Data||j.base64||j.data||(j.file&&j.file.base64); if(b64) return b64ParaBuf(b64);
   var url=j.fileURL||j.fileUrl||j.url||j.link; if(url){ var r=await fetch(url); if(!r.ok) throw new Error('Arquivo indisponível ('+r.status+')'); return await r.arrayBuffer(); }
@@ -1406,12 +1410,12 @@ async function pcm16k(buf){ var Ctx=window.AudioContext||window.webkitAudioConte
 function ehAudio(x){ return x&&(x.mt==='audio'||/^\[(audio|ptt)\]$/i.test(String(x.txt||'').trim())); }
 /* transcreve um áudio do histórico do cliente e grava o texto */
 async function transcreverAudio(c,hid){ var K=histK(c), H=HI.cache[K]||{}, x=H[hid]; if(!x) throw new Error('Áudio não encontrado no histórico');
-  var buf=await baixarAudio(x.loja,x.mid||hid), au=await pcm16k(buf), motor=await motorTranscricao();
-  var out=await motor(au.pcm,{language:'portuguese',task:'transcribe',chunk_length_s:30,stride_length_s:5}), txt=String((out&&out.text)||'').trim()||'(áudio sem fala)';
+  var buf=await baixarAudio(x.loja,x.mid||hid), au=await pcm16k(buf);
+  var out=await trExecutar(au.pcm), txt=String((out&&out.text)||'').trim()||'(áudio sem fala)';
   var novo=Object.assign({},x,{txt:'🎤 '+txt,mt:'audio',tr:1,dur:Math.round(au.dur)}); histAdd(c,[Object.assign({id:hid,forcar:true},novo)]); HI.cache[K][hid]=Object.assign(HI.cache[K][hid],{tr:1});
   (S.contatos||[]).forEach(function(r){ (r.conversa||[]).forEach(function(y){ if(y.id===hid||(y.id&&histId(y.id)===hid)){ y.txt='🎤 '+txt; r.pendente=true; } }); });
   delete c._lg; TR.feitos++; return txt; }
-function enfileirarAudios(c){ var H=HI.cache[histK(c)]||{}; Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='c'&&ehAudio(x)&&!x.tr&&!TR.fila.some(function(f){return f.id===id;})) TR.fila.push({c:c,id:id}); }); rodarFila(); }
+function enfileirarAudios(c){ var H=HI.cache[histK(c)]||{}; Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='c'&&ehAudio(x)&&!x.tr&&(!x.loja||uazLeitura(x.loja))&&!TR.fila.some(function(f){return f.id===id;})) TR.fila.push({c:c,id:id}); }); rodarFila(); }
 async function rodarFila(){ if(TR.rodando||!TR.fila.length) return; TR.rodando=true;
   while(TR.fila.length){ var it=TR.fila.shift(); atualizarTrStatus(); try{ await transcreverAudio(it.c,it.id); if(S.aba==='conversas'||document.getElementById('histBox')) { if(S.aba==='conversas') render(); else pintarHist(it.c); } }catch(e){ TR.status='Erro ao transcrever: '+e.message; atualizarTrStatus(); if(/modelo|import|fetch|carregar/i.test(e.message)) { TR.fila=[]; break; } } }
   TR.rodando=false; await enviarHist(); TR.status=TR.status.indexOf('Erro')===0?TR.status:'Transcrição pronta neste computador · '+TR.feitos+' áudio(s) transcrito(s)'; atualizarTrStatus(); }
@@ -1427,12 +1431,12 @@ async function aprenderTodas(comAudio){ if(AP.rodando||!syncAtivo()) return; AP.
     if(comAudio) rodarFila(); }
   catch(e){ el('Erro: '+e.message); } finally{ AP.rodando=false; } }
 async function trTestarBuf(nome,buf){ var elT=document.getElementById('trTeste'); var mostra=function(x){ S.trTeste=x; var e2=document.getElementById('trTeste'); if(e2) e2.textContent=x; };
-  try{ mostra('Preparando…'); var motorA=await motorTranscricao(); mostra('Transcrevendo '+nome+'…'); var auA=await pcm16k(buf); var t1=Date.now(); var outA=await motorA(auA.pcm,{language:'portuguese',task:'transcribe',chunk_length_s:30,stride_length_s:5});
+  try{ mostra('Preparando…'); await motorTranscricao(); mostra('Transcrevendo '+nome+'…'); var auA=await pcm16k(buf); var t1=Date.now(); var outA=await trExecutar(auA.pcm);
     mostra('🎤 "'+String(outA.text||'').trim()+'" — áudio de '+Math.round(auA.dur)+'s transcrito em '+Math.round((Date.now()-t1)/1000)+'s'); }catch(errA){ mostra('Erro: '+errA.message); } }
 async function trTestarExemplo(){ try{ var r=await fetch('exemplo-audio.wav',{cache:'no-store'}); if(!r.ok) throw new Error('áudio de exemplo não encontrado'); await trTestarBuf('áudio de exemplo', await r.arrayBuffer()); }catch(e){ S.trTeste='Erro: '+e.message; var e2=document.getElementById('trTeste'); if(e2) e2.textContent=S.trTeste; } }
 function blocoInteligencia(){ var tc=trCfg();
   return '<h2 class="secao">Inteligência das conversas</h2><section class="card"><div class="filtros"><button class="btn" id="apRodar">🧠 Aprender com todas as conversas</button><label class="chk"><input type="checkbox" id="apAudio"> transcrever também os áudios</label><span class="nota" id="apStatus" style="margin:0"></span></div>'+
-    '<div class="filtros"><label class="chk"><input type="checkbox" id="trAuto"'+(tc.auto?' checked':'')+'> transcrever automaticamente os áudios novos dos clientes neste computador</label>'+
+    '<div class="filtros"><label class="chk"><input type="checkbox" id="trAuto"'+(tc.auto!==false?' checked':'')+'> transcrever automaticamente os áudios novos dos clientes neste computador</label>'+
     '<select id="trModelo"><option value="preciso"'+((tc.modelo||'preciso')==='preciso'?' selected':'')+'>Transcrição precisa (modelo ~250 MB)</option><option value="rapido"'+(tc.modelo==='rapido'?' selected':'')+'>Transcrição rápida (modelo ~80 MB)</option></select>'+
     '<button class="btn sec mini" id="trCarregar">Preparar transcrição</button><span class="nota" id="trStatus" style="margin:0">'+esc(TR.status||'')+'</span></div>'+
     '<div class="filtros"><label class="btn sec mini">🎤 Testar com um arquivo de áudio<input type="file" id="trArquivo" accept="audio/*,.ogg,.opus,.m4a,.mp3,.wav" hidden></label>'+(window.AMB_TESTE?'<button class="btn sec mini" data-trexemplo="1">▶ Testar com áudio de exemplo</button>':'')+'<span class="nota" id="trTeste" style="margin:0">'+esc(S.trTeste||'')+'</span></div></section>'; }
@@ -3109,7 +3113,7 @@ async function init(){
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
-    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
+    setTimeout(enviarHist,5000); setTimeout(crmLer,2500); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
