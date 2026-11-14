@@ -560,6 +560,8 @@ var S={imports:[],vinc:{},cfg:{linhas:{},msg:MSG_PADRAO},model:null,aba:'cliente
   sug:{q:'',loja:'',status:'ativos',cod:'',linha:'',cont:'liberados',sit:''},cad:{periodo:'mes'},sync:null,contatos:[],contatosIdx:{}};
 
 function linhaDe(cod,nome){ return S.cfg.linhas[cod||rgNorm(nome)]||linhaAuto(nome); }
+var RE_ACESSORIO_LINHA=/^(FSC )?(FACA|FACAS|JOGO|KIT CHURRASCO|KIT TABUA|TABUA|ESPETO|GRELHA|ESCOVA|ESPATULA|CHAIRA|TRINCHANTE|GARFO|PEGADOR|AFIADOR|AVENTAL|TESOURA|SACA ROLHA)\b|TRAMONTINA|\bDYNAMIC\b|POLYWOOD|PLENUS/;
+function ehAcessorio(nome){ return RE_ACESSORIO_LINHA.test(rgNorm(nome||'')); }
 function ehAnonimo(k){ return !k||/^CLIENTE PADRAO/.test(k)||/^CLIENTE INDEFINIDO/.test(k)||/^CONSUMIDOR( FINAL)?$/.test(k); }
 
 /* ---------- modelo ---------- */
@@ -583,15 +585,20 @@ function construirModelo(imports){
       f.total+=valor; f.itens++; f.docs[loja+'|'+doc+'|'+data]=1; f.lojas[lojaN]=1; f.prod[pn]=(f.prod[pn]||0)+valor; if(!f.ultima||data>f.ultima) f.ultima=data; return; }
     somaValor+=valor; nLinhas++; if(!dataMin||data<dataMin) dataMin=data;
     var cpk=loja+'|'+doc+'|'+data, cp=cupons[cpk]; if(!cp) cp=cupons[cpk]={loja:lojaN,data:data,anon:ehAnonimo(nk),valor:0,nk:nk}; cp.valor+=valor;
-    var p=produtos[pk]; if(!p) p=produtos[pk]={chave:pk,cod:pc,produto:pn,nomeRel:L[5],qtd:0,valor:0,linhas:0,inteiro:true,precos:[],clientes:{},porLoja:{},meses:{},ultimaVenda:data};
-    var pl=p.porLoja[lojaN]||(p.porLoja[lojaN]={qtd:0,valor:0,linhas:0,precos:[],ultimaVenda:data,clientes:{},meses:{}}); pl.meses[ym]=(pl.meses[ym]||0)+valor; pl.qtd+=qtd; pl.valor+=valor; pl.linhas++; if(preco>0) pl.precos.push(preco); if(data>pl.ultimaVenda) pl.ultimaVenda=data;
+    /* acessórios (facas, jogos de churrasco, tábuas, grelhas — linha Tramontina e similares) ficam fora da cesta, dos produtos e das sugestões; o valor continua nas vendas */
+    var acess=ehAcessorio(pn), p=null, pl=null;
+    if(!acess){
+    p=produtos[pk]; if(!p) p=produtos[pk]={chave:pk,cod:pc,produto:pn,nomeRel:L[5],qtd:0,valor:0,linhas:0,inteiro:true,precos:[],clientes:{},porLoja:{},meses:{},ultimaVenda:data};
+    pl=p.porLoja[lojaN]||(p.porLoja[lojaN]={qtd:0,valor:0,linhas:0,precos:[],ultimaVenda:data,clientes:{},meses:{}}); pl.meses[ym]=(pl.meses[ym]||0)+valor; pl.qtd+=qtd; pl.valor+=valor; pl.linhas++; if(preco>0) pl.precos.push(preco); if(data>pl.ultimaVenda) pl.ultimaVenda=data;
     p.qtd+=qtd; p.valor+=valor; p.linhas++; if(Math.abs(qtd-Math.round(qtd))>1e-9) p.inteiro=false; if(preco>0) p.precos.push(preco); p.meses[ym]=(p.meses[ym]||0)+valor; if(data>p.ultimaVenda) p.ultimaVenda=data;
+    }
     if(ehAnonimo(nk)){ anon.valor+=valor; anon.itens++; anon.docs[loja+'|'+doc]=1; return; }
     var v=V[nk], codL=L[10]||'', ck=codL?'COD:'+codL:((v&&v.codigo)?'COD:'+v.codigo:nk);
     var c=clientes[ck]; if(!c) c=clientes[ck]={chave:ck,codigo:codL||(v&&v.codigo)||'',nomeKeys:{},nomes:{},lojas:{},total:0,itens:0,docs:{},cesta:{},meses:{}};
     c.nomeKeys[nk]=1; c.nomes[nome]=(c.nomes[nome]||0)+1; c.lojas[lojaN]=(c.lojas[lojaN]||0)+valor; c.total+=valor; c.itens++; c.meses[ym]=(c.meses[ym]||0)+valor;
     var dk=loja+'|'+doc+'|'+data, d=c.docs[dk]; if(!d) d=c.docs[dk]={data:data,loja:lojaN,documento:doc,valor:0,itens:[]};
     d.valor+=valor; d.itens.push({cod:pc,produto:pn,qtd:qtd,preco:preco,valor:valor});
+    if(acess) return;
     var e=c.cesta[pk]; if(!e) e=c.cesta[pk]={chave:pk,cod:pc,produto:pn,qtd:0,valor:0,datas:{}}; e.qtd+=qtd; e.valor+=valor; e.datas[data]=1;
     var pcl=p.clientes[ck]||(p.clientes[ck]={qtd:0,valor:0,datas:{}}); pcl.qtd+=qtd; pcl.valor+=valor; pcl.datas[data]=1;
     var pcll=pl.clientes[ck]||(pl.clientes[ck]={qtd:0,valor:0,datas:{}}); pcll.qtd+=qtd; pcll.valor+=valor; pcll.datas[data]=1;
@@ -643,7 +650,7 @@ function construirModelo(imports){
 
   var anomalias=[];
   lista.forEach(function(c){ c.compras.forEach(function(d){ d.itens.forEach(function(it){ var p=produtos[it.cod||rgNorm(it.produto)];
-    if(p.linhas>=5&&p.precoMediano>0&&it.preco>0){ var r=it.preco/p.precoMediano; if(r<0.3||r>3) anomalias.push({c:c,d:d,it:it,mediano:p.precoMediano}); } }); }); });
+    if(p&&p.linhas>=5&&p.precoMediano>0&&it.preco>0){ var r=it.preco/p.precoMediano; if(r<0.3||r>3) anomalias.push({c:c,d:d,it:it,mediano:p.precoMediano}); } }); }); });
   var semEsp={}; lista.forEach(function(c){ c.nomeKeysArr.forEach(function(nk){ var kk=nk.replace(/ /g,''); (semEsp[kk]=semEsp[kk]||{})[c.chave]=c; }); });
   var duplicados=Object.keys(semEsp).map(function(k){return Object.keys(semEsp[k]).map(function(x){return semEsp[k][x];});}).filter(function(g){return g.length>1;});
   var codigos={}; lista.forEach(function(c){ if(c.codigo) codigos[c.codigo]=c; });
@@ -1497,13 +1504,13 @@ async function novaCampanha(o){ var id='C'+Date.now().toString(36); CAMPS[id]=Ob
 /* sugestões automáticas de campanha */
 function sugestoesCamp(){ var m=S.model, out=[], dw=new Date().getDay(), dia=new Date().getDate(), ok=function(c){ return (!S.loja||c.loja===S.loja)&&foneWa(c.celular)&&!optout(c); };
   var mk=function(id,tit,desc,regras,texto){ var n=membrosRegras(regras).filter(ok).length; if(n>=3) out.push({id:id,tit:tit,desc:desc,regras:regras,texto:texto,n:n}); };
-  if(dw>=3&&dw<=5) mk('fds','Churrasco de fim de semana','Churrasqueiros que compram no fim de semana e não vêm há 7+ dias',[{k:'estilo',v:'churrasco'},{k:'diaSemana',v:'fds'},{k:'recencia',a:7,b:45}],'O fim de semana está chegando. Quer que a gente já deixe a sua {cesta} pronta: {itens}?\n---\nVai ter churrasco no sábado? Podemos separar a sua {cesta} com cortes caprichados: {itens}. Reservamos para você?');
-  mk('vip','VIPs fora do ritmo','Clientes VIP que passaram bem do tempo de compra',[{k:'perfil',v:'VIP'},{k:'foraRitmo'},{k:'recencia',b:120}],'Sentimos a sua falta nas últimas semanas. Quando quiser, a gente prepara a sua {cesta} do jeito que você gosta: {itens}.');
-  mk('novos','Boas-vindas','Clientes com a 1ª compra nos últimos 15 dias',[{k:'novo',v:15},{k:'compras',b:1}],'Agradecemos a sua primeira compra com a gente! Como foi a sua {cesta}? Qualquer coisa, é só responder por aqui.');
+  if(dw>=3&&dw<=5) mk('fds','Churrasco de fim de semana','Churrasqueiros que compram no fim de semana e não vêm há 7+ dias',[{k:'estilo',v:'churrasco'},{k:'diaSemana',v:'fds'},{k:'recencia',a:7,b:45}],'O fim de semana está chegando. Quer que a gente já separe {itens} para o seu churrasco?\n---\nVai ter churrasco no sábado? Podemos separar {itens} com cortes caprichados. Reservamos para você?');
+  mk('vip','VIPs fora do ritmo','Clientes VIP que passaram bem do tempo de compra',[{k:'perfil',v:'VIP'},{k:'foraRitmo'},{k:'recencia',b:120}],'Sentimos a sua falta nas últimas semanas. Quando quiser, a gente prepara {itens} do jeito que você gosta.');
+  mk('novos','Boas-vindas','Clientes com a 1ª compra nos últimos 15 dias',[{k:'novo',v:15},{k:'compras',b:1}],'Agradecemos a sua primeira compra com a gente! Ficou tudo do seu gosto? Qualquer coisa, é só responder por aqui.');
   var cont={}, TXr=taxIdx(), fil={}; m.lista.forEach(function(c){ if(!ok(c)) return; var vis={}; (c.cestaArr||[]).forEach(function(e){ var t=TXr[e.chave]; if(e.atrasado&&t&&t.categoria==='CARNE'&&t.item){ var k=nomeItem(t); if(vis[k]) return; vis[k]=1; cont[k]=(cont[k]||0)+1; fil[k]={categoria:'CARNE',item:t.item,especie:t.especie}; } }); });
-  var tp=Object.keys(cont).sort(function(a,b){return cont[b]-cont[a];})[0]; if(tp) mk('repor','Hora de repor: '+tp,'Clientes que compram '+tp+' e já passaram do tempo de repor',[{k:'repor',v:tp.toLowerCase(),f:fil[tp]}],'Pelo seu ritmo de compras, a sua {cesta} já deve estar no fim: {itens}. Podemos deixar tudo separado para você?');
-  mk('risco','Ticket alto em risco','Clientes de ticket acima de R$ 200 entre 31 e 60 dias sem comprar',[{k:'status',v:'Em risco'},{k:'ticket',a:200}],'Faz um tempinho que a gente não vê você por aqui. A sua {cesta} está à disposição: {itens}. Quer que a gente separe?');
-  if(dia<=10) mk('inimes','Início do mês','Clientes que costumam comprar nos primeiros dias do mês',[{k:'inicioMes'},{k:'recencia',a:10}],'Começo de mês: quer que a gente já separe a sua {cesta} para abastecer a casa: {itens}?');
+  var tp=Object.keys(cont).sort(function(a,b){return cont[b]-cont[a];})[0]; if(tp) mk('repor','Hora de repor: '+tp,'Clientes que compram '+tp+' e já passaram do tempo de repor',[{k:'repor',v:tp.toLowerCase(),f:fil[tp]}],'Pelo seu ritmo de compras, já deve estar na hora de repor {itens}. Podemos deixar tudo separado para você?');
+  mk('risco','Ticket alto em risco','Clientes de ticket acima de R$ 200 entre 31 e 60 dias sem comprar',[{k:'status',v:'Em risco'},{k:'ticket',a:200}],'Faz um tempinho que a gente não vê você por aqui. Quer que a gente separe {itens} para você?');
+  if(dia<=10) mk('inimes','Início do mês','Clientes que costumam comprar nos primeiros dias do mês',[{k:'inicioMes'},{k:'recencia',a:10}],'Começo de mês: quer que a gente já separe {itens} para abastecer a casa?');
   mk('caindo','Gasto caindo','Clientes frequentes cujo gasto caiu nos últimos 90 dias',[{k:'tendencia',v:'caindo'},{k:'compras',a:4}],'Queremos saber de você: está tudo certo com os nossos produtos? Se algo não agradou, conte para a gente. A sua opinião ajuda muito.');
   return out; }
 /* ---- tela CAMPANHAS ---- */
@@ -1536,7 +1543,7 @@ function telaCampanha(id){ var cp=CAMPS[id], mt=metCamp('camp:'+id), pub=publico
       '<div class="tw" style="max-height:520px"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th>Perfil</th><th class="r">Sem comprar</th><th>Resultado</th></tr></thead><tbody>'+
       (function(){ var vis={}, arr=[]; mt.cli.forEach(function(x){ if(!vis[x.c.chave]){ vis[x.c.chave]=1; arr.push(x.c); } }); pub.forEach(function(c){ if(!vis[c.chave]){ vis[c.chave]=1; arr.push(c); } }); return arr; })().slice(0,400).map(function(c){ var res=mt.cli.filter(function(x){return x.c===c;})[0]; return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(tituloProd(c.nome))+'</b><small class="cod">'+esc(tituloProd(c.loja))+'</small><div class="atags">'+tagsAstro(c)+'</div></td><td>'+tag(c.perfil)+'</td><td class="r">'+c.recencia+'d</td><td>'+(controleCamp(c,id)?'<span class="pill">controle</span>':'')+(res?(res.n?'<span class="pill okp">comprou '+brl(res.v)+'</span>':res.r.resp?'<span class="pill">respondeu</span>':'<span class="pill late">enviada</span>'):'—')+'</td></tr>'; }).join('')+'</tbody></table></div></section></div>'+
     '<div class="ex-col"><section class="card"><header><h3>Mensagem</h3></header><textarea id="campTexto" rows="7">'+esc(cp.texto||'')+'</textarea>'+
-      '<div class="campos">'+['{nome}','{loja}','{cesta}','{itens}','{comp}','{corte}','{dia}','{tempo}'].map(function(x){ return '<button class="chip" data-campvar="'+x+'">'+x+'</button>'; }).join('')+'<small>versões separadas por --- · a saudação e a assinatura institucional entram sozinhas</small></div>'+
+      '<div class="campos">'+['{nome}','{loja}','{itens}','{comp}','{corte}','{dia}','{tempo}'].map(function(x){ return '<button class="chip" data-campvar="'+x+'">'+x+'</button>'; }).join('')+'<small>versões separadas por --- · a saudação e a assinatura institucional entram sozinhas</small></div>'+
       '<div class="filtros"><label class="chk"><input type="checkbox" id="campPromo"'+(cp.promo?' checked':'')+'> promoção (sem trava semanal)</label><label class="chk" title="Acrescenta: quem compra o que ele compra costuma levar também…"><input type="checkbox" id="campComp"'+(cp.comp!==false?' checked':'')+'> incluir complemento da cesta</label><label class="chk" title="10% do público não recebe, para medir quanto a campanha realmente trouxe"><input type="checkbox" id="campCtl"'+(cp.controle?' checked':'')+'> grupo de controle</label>'+(kits().some(function(k){return kitImg(k.id);})?'<select id="campImg"><option value="">Sem foto</option>'+kits().filter(function(k){return kitImg(k.id);}).map(function(k){ return '<option value="'+k.id+'"'+(cp.img===k.id?' selected':'')+'>📷 '+esc(k.nome)+'</option>'; }).join('')+'</select>':'')+'<button class="btn sec mini" id="campSalvar">Salvar</button></div>'+
       '<div class="visor-h">Cada cliente do público: cesta, complemento e mensagem</div>'+visorCampanha('camp:'+id,pub.filter(function(c){ return foneWa(c.celular); }),function(c){ return sgCamp(c,id); })+'</section></div></div></div>'; }
 function editorRegras(rs,dono){ var linha=function(r,i){ var f=campoSeg(r.k)||CAMPOS_SEG[0], inp='';
@@ -2288,7 +2295,7 @@ function cestaPerfil(c){ if(c._cp&&c._cpM===S.model) return c._cp; var m=S.model
   it.forEach(function(x){ Object.keys(x.w).forEach(function(p){ sc[p]=(sc[p]||0)+x.e.valor*x.w[p]; }); });
   /* âncoras: perfis em que ele compra algo típico (peso ≥ 0,8: pão brioche, hambúrguer, picanha, patinho…).
      Item ambíguo (bacon, batata, molho, muçarela fatiada) vai para o perfil ancorado com que MAIS combina;
-     ex.: quem compra pão brioche, bacon e batata tem cesta de hambúrguer, mesmo gastando mais no dia a dia. */
+     ex.: o bacon de quem compra pão brioche fica junto do pão brioche. */
   var anc={}, tot=0; Object.keys(sc).forEach(function(p){ tot+=sc[p]; }); it.forEach(function(x){ Object.keys(x.w).forEach(function(p){ if(x.w[p]>=0.8) anc[p]=1; }); });
   var G={}; it.forEach(function(x){ var ps=Object.keys(x.w), cand=ps.filter(function(p){ return anc[p]; }), best=null, bv=-1;
     if(cand.length) cand.forEach(function(p){ var v=x.w[p]+0.001*((sc[p]||0)/(tot||1)); if(v>bv){ bv=v; best=p; } });
@@ -2305,14 +2312,14 @@ function grupoDoProduto(cp,chave){ return cp.grupos.filter(function(g){ return g
 /* qual cesta a mensagem trata hoje: a que está na hora de repor; no fim de semana, a de churrasco; senão, a mais importante */
 function grupoPrincipal(c,cp){ var gs=cp.grupos.filter(function(g){ return PERFIS_MSG[g.perfil]&&g.ativos.length; });
   if(!gs.length) gs=cp.grupos.filter(function(g){ return g.perfil==='BB'&&g.ativos.length; }); if(!gs.length) return null;
-  var due=gs.filter(function(g){ return g.hora; }); if(due.length) return due[0];
-  var dow=new Date().getDay(), fds=gs.filter(function(g){ return (g.perfil==='CH'||g.perfil==='HB')&&g.pct>=0.2; })[0]; if(dow>=4&&dow<=6&&fds) return fds; // fim de semana: churrasco ou hambúrguer, o que ele mais compra
-  return gs[0]; }
+  /* a mensagem fala do que o cliente MAIS compra: a cesta do produto ativo com mais compras (desempate: valor) */
+  var top=null; gs.forEach(function(g){ g.ativos.forEach(function(e){ if(!top||e.vezes>top.e.vezes||(e.vezes===top.e.vezes&&e.valor>top.e.valor)) top={e:e,g:g}; }); });
+  return top?top.g:gs[0]; }
 /* itens da cesta que a mensagem cita (o conjunto, nunca um item solto): foco primeiro, sem repetir o mesmo nome */
 var RANK_CAT={CARNE:0,HAMBURGUER:0,LINGUICA:1,PAO_HB:1,QUEIJO:2,PAO_ALHO:2,ACOMP:2,MOLHOS:3,SOBREMESA:3,CERVEJA:4,REFRIGERANTE:4,AGUA:4,VINHO:4,DESTILADO:4,CARVAO:5,ACESSORIOS:5,OUTROS:5};
 function itensMsg(g,foco){ if(!g) return []; var T=taxIdx(), base=(g.ativos.length?g.ativos:g.itens).slice(), out=[], vis={};
   var rk=function(e){ var t=T[e.chave]||{}; if(BACON_RE.test(rgNorm(e.produto))&&g.perfil==='HB') return 1; var r=RANK_CAT[t.categoria]; return r==null?3:r; };
-  base.sort(function(a,b){ return ((b.chave===foco)-(a.chave===foco))||(rk(a)-rk(b))||(b.valor-a.valor); });
+  base.sort(function(a,b){ return ((b.chave===foco)-(a.chave===foco))||(b.vezes-a.vezes)||(b.valor-a.valor)||(rk(a)-rk(b)); }); // os que ele mais compra primeiro
   base.forEach(function(e){ var t=T[e.chave]||{}, n=nomeNatural(e.produto), k=t.item&&/^(CARNE|HAMBURGUER)$/.test(t.categoria)?t.categoria+'|'+t.item:'n|'+n;
     var kc=/^(CARNE|HAMBURGUER)$/.test(t.categoria)?'':'c|'+(t.categoria||'');
     if(out.length<3&&!vis[k]&&!vis['n|'+n]&&!(kc&&vis[kc])){ vis[k]=1; vis['n|'+n]=1; if(kc) vis[kc]=1; out.push({chave:e.chave,produto:e.produto,nome:n,e:e}); } }); return out; }
@@ -2350,36 +2357,36 @@ var BIB4={
   saud_formal:['{saud}, {nome}. Esperamos que esteja bem.','{saud}, {nome}. É um prazer falar com você.','Olá, {nome}. Esperamos que a sua semana esteja tranquila.'],
   primeiro:['Este é o WhatsApp do Rei do Gado {loja}. Pode salvar o nosso número para fazer pedidos por aqui.'],
   salvar_numero:['Se quiser, salve este número: é por aqui que a gente separa os seus pedidos.'],
-  recompra:['Pelo seu ritmo de compras, a sua {cesta} já deve estar no fim: {itens}. Podemos deixar tudo separado para você?',
-    'Você costuma renovar a sua {cesta} a cada {ciclo} dias, e a hora está chegando. Quer que a gente prepare {itens}?',
-    'Está chegando a época de repor a sua {cesta}: {itens}. Quer que a gente deixe tudo pronto?'],
-  vip:['Para você, que é cliente especial da casa, a gente monta a sua {cesta} com a melhor seleção do dia: {itens}. Quer que a gente reserve?',
-    'A sua {cesta} de sempre pode ser montada hoje com o que chegou de melhor: {itens}. Podemos reservar para você?'],
-  novo:['Agradecemos por escolher o Rei do Gado {loja}! Esperamos que a sua {cesta} tenha agradado. Quando quiser repetir, deixamos {itens} separados.',
-    'Que bom ter você com a gente! Como foi a sua {cesta}? Quando quiser, preparamos {itens} de novo.'],
-  fimdesemana:['O fim de semana está chegando. Quer que a gente já deixe a sua {cesta} pronta: {itens}?',
-    'Vai ter churrasco no fim de semana? Podemos deixar a sua {cesta} separada: {itens}.'],
-  fimdesemana_hb:['O fim de semana está chegando. Que tal um hambúrguer em casa? A sua {cesta} pode ficar pronta: {itens}.',
-    'Para o fim de semana, a gente deixa a sua {cesta} separada: {itens}. Quer que a gente prepare?'],
-  padrao:['A sua {cesta} de sempre está disponível hoje: {itens}. Quer que a gente separe para você?',
-    'Passando para lembrar da sua {cesta}: {itens}, com a qualidade de sempre. Podemos preparar para você?',
-    'Se quiser deixar tudo resolvido, a gente monta a sua {cesta}: {itens}. É só confirmar.'],
-  reativar_risco:['Faz {tempo} que a gente não prepara a sua {cesta}, e sentimos a sua falta por aqui. Quando quiser, deixamos {itens} separados.',
-    'Sentimos a sua falta nas últimas semanas. Quando bater a vontade, a sua {cesta} está garantida: {itens}.'],
-  reativar_foco:['Faz {tempo} que você não passa por aqui, e lembramos de você. Quando quiser, a sua {cesta} está à disposição: {itens}.'],
+  recompra:['Pelo seu ritmo de compras, já deve estar na hora de repor {itens}. Podemos deixar tudo separado para você?',
+    'Você costuma levar {itens} a cada {ciclo} dias, e a hora está chegando. Quer que a gente separe?',
+    'Já está na época de repor {itens}. Quer que a gente deixe tudo pronto?'],
+  vip:['Para você, que é cliente especial da casa, a gente separa {itens} com a melhor seleção do dia. Quer que a gente reserve?',
+    'Hoje chegou uma seleção caprichada e lembramos de você: {itens}. Podemos reservar?'],
+  novo:['Agradecemos por escolher o Rei do Gado {loja}! Quando quiser repetir, é só pedir que a gente separa {itens} para você.',
+    'Que bom ter você com a gente! Quando quiser, preparamos {itens} de novo.'],
+  fimdesemana:['O fim de semana está chegando. Quer que a gente já separe {itens} para o seu churrasco?',
+    'Vai ter churrasco no fim de semana? Podemos separar {itens} para você.'],
+  fimdesemana_hb:['O fim de semana está chegando. Que tal um hambúrguer em casa? Podemos separar {itens} para você.',
+    'Para o fim de semana, podemos separar {itens}. Quer que a gente prepare?'],
+  padrao:['Hoje temos {itens} com a qualidade de sempre. Quer que a gente separe para você?',
+    'Passando para lembrar de você. Podemos preparar {itens} hoje?',
+    'Se quiser deixar tudo resolvido, a gente separa {itens}. É só confirmar.'],
+  reativar_risco:['Faz {tempo} que você não passa por aqui, e sentimos a sua falta. Quando quiser, é só pedir que a gente separa {itens}.',
+    'Sentimos a sua falta nas últimas semanas. Quando bater a vontade, é só pedir: {itens}.'],
+  reativar_foco:['Faz {tempo} que você não passa por aqui, e lembramos de você. Quando quiser, separamos {itens}.'],
   reativar_inativo:['{vinculo} Quando quiser, estamos por aqui.','Faz {tempo} que a gente não se vê. {vinculo}','Passando só para saber de você. {vinculo}'],
   sem_cesta:['Passando para agradecer a sua preferência. Quando precisar, estamos à disposição.'],
-  complemento:['Uma dica para completar: quem leva {base_comp} costuma levar também {comp}. Quer incluir?',
-    'E uma sugestão: muitos clientes que compram {base_comp} incluem {comp}. Podemos colocar na sua cesta?',
-    'Para completar, quem compra {base_comp} costuma escolher também {comp}. Quer que a gente inclua?'],
+  complemento:['Uma dica: quem leva {base_comp} costuma levar também {comp}. Quer incluir?',
+    'E uma sugestão: muitos clientes que compram {base_comp} levam junto {comp}. Quer que a gente separe também?',
+    'Quem compra {base_comp} costuma escolher também {comp}. Quer incluir no pedido?'],
   ctas:['É só responder esta mensagem que a gente separa tudo.','Basta responder por aqui que deixamos tudo pronto.','Responda esta mensagem e a gente cuida do resto.'],
   ctas_neutro:['Quando quiser, é só responder esta mensagem.','Estamos por aqui: é só responder quando quiser.'],
   oferta:'', sair:true};
 var SAIR4=['Se preferir não receber mais mensagens, é só responder SAIR.','Caso não queira mais receber nossas mensagens, responda SAIR.'];
 var BIB4_ROT={saud_f:['Saudação — clientes mulheres','Proximidade com respeito. Nunca "Oi, tudo tranquilo?"'],saud_m:['Saudação — clientes homens','Calorosa e profissional'],saud_n:['Saudação — nome neutro ou casal','Sem palavras de gênero'],
   saud_formal:['Saudação — clientes formais','Para quem escreve "bom dia", "por gentileza" (sem exclamação)'],primeiro:['Primeira mensagem','Para quem nunca recebeu: diz que é o WhatsApp da loja'],salvar_numero:['Salvar o número','Só para quem está há mais de 90 dias sem comprar'],
-  recompra:['Hora de repor a cesta','{cesta} {itens} {ciclo}'],vip:['VIP (10% que mais gastam)','{cesta} {itens}'],novo:['Cliente novo (até 2 compras)','{cesta} {itens}'],fimdesemana:['Fim de semana (qui/sex/sáb) — cesta de churrasco','{cesta} {itens}'],fimdesemana_hb:['Fim de semana (qui/sex/sáb) — cesta de hambúrguer','{cesta} {itens}'],
-  padrao:['Dia comum','{cesta} {itens}'],reativar_risco:['31 a 60 dias sem comprar','{tempo} {cesta} {itens}'],reativar_foco:['Mais de 60 dias, a partir de um produto (Recompra / ficha)','{tempo} {cesta} {itens}'],
+  recompra:['Hora de repor','{itens} {ciclo}'],vip:['VIP (10% que mais gastam)','{itens}'],novo:['Cliente novo (até 2 compras)','{itens}'],fimdesemana:['Fim de semana (qui/sex/sáb) — churrasco','{itens}'],fimdesemana_hb:['Fim de semana (qui/sex/sáb) — hambúrguer','{itens}'],
+  padrao:['Dia comum','{itens}'],reativar_risco:['31 a 60 dias sem comprar','{tempo} {itens}'],reativar_foco:['Mais de 60 dias, a partir de um produto (Recompra / ficha)','{tempo} {itens}'],
   reativar_inativo:['Mais de 60 dias — só vínculo, sem produto','{vinculo} {tempo}'],sem_cesta:['Cliente sem cesta ativa','Sem produto'],complemento:['Complemento','{base_comp} = o que ele compra · {comp} = o que costuma vir junto'],ctas:['Chamadas para responder','Usadas quando o texto não termina em pergunta'],ctas_neutro:['Chamadas sem produto','Reconquista: convida a responder sem falar em separar pedido']};
 function bib4(){ var b=S.cfg.biblioteca4||{}, o={}; Object.keys(BIB4).forEach(function(k){ var v=b[k]; o[k]=(v==null||(Array.isArray(v)&&!v.length))?BIB4[k]:v; }); return o; }
 
@@ -2415,15 +2422,15 @@ function violacoesMsg(txt,c,tipo,s){ var v=[], ls=String(txt||'').split('\n'), l
   if(/tudo (tranquilo|certo|joia|jóia|beleza|bem)\s*\?/i.test(ls.slice(0,2).join(' '))) v.push('"tudo tranquilo/tudo bem?" na abertura');
   if(/\b(abra[cç]os?|abs|bjs|beijos?)\b/i.test(txt)) v.push('"Abraço" na assinatura');
   if((txt.match(/(^|[\s.!?])(Bom dia|Boa tarde|Boa noite|Olá)[,!.]/g)||[]).length>1) v.push('saudação repetida');
-  if(ls.indexOf('Equipe Rei do Gado '+loja)<0) v.push('sem assinatura institucional');
-  if(/·\s*Rei do Gado/.test(txt)) v.push('assinatura pessoal');
-  nomesAtendentes().forEach(function(p){ if(nCorpo.indexOf(' '+p+' ')>=0&&(' '+rgNorm(c&&c.nome||'')+' ').indexOf(' '+p+' ')<0) v.push('nome de atendente na mensagem ('+cap1(p.toLowerCase())+')'); });
+  if(c&&ls.indexOf(assinaturaDe(c))<0) v.push('sem a assinatura (atendente · Equipe Rei do Gado + loja)');
+  if(/\bcestas?\b/i.test(txt)) v.push('cita "cesta" (soa robô)');
   if(/\{[a-z_]+\}/i.test(txt)) v.push('campo sem preencher');
   if(c&&!blocoCombina(ls.slice(1).join(' '),c)) v.push('gíria para cliente '+(lingua(c).tom==='formal'?'formal':'mulher'));
-  if(s&&(tipo==='relacionamento'||tipo==='recompra')&&s.grupo&&!/^reativar_inativo|sem_cesta/.test(s.situacao||'')&&n.indexOf(' CESTA ')<0) v.push('produto solto, sem a cesta');
   return v; }
 /* conserta o que a verificação pegar (proteção extra para textos escritos à mão) */
-function corrigirMsg(txt,c){ var loja=tituloProd(c.loja||''), ass='Equipe Rei do Gado '+loja, at=nomesAtendentes(), nc=' '+rgNorm(c.nome||'')+' ';
+/* assinatura: nome de quem atende + equipe da loja (nunca "Abraço") */
+function assinaturaDe(c){ var at=atendenteDe(c.loja); return (at?at+' · ':'')+'Equipe Rei do Gado '+tituloProd(c.loja||''); }
+function corrigirMsg(txt,c){ var ass=assinaturaDe(c), at=[], nc=' '+rgNorm(c.nome||'')+' ';
   var temAt=function(frase){ var n=' '+rgNorm(frase)+' '; return at.some(function(p){ return nc.indexOf(' '+p+' ')<0&&n.indexOf(' '+p+' ')>=0; }); };
   var ls=String(txt).split('\n').filter(function(l){ var t=l.trim(); if(!t) return false; if(t===ass) return true; return !(t.length<60&&RE_LINHA_ASS.test(t)); })
     .map(function(l,i){ var x=l.replace(RE_ABRACO,''); if(i>0&&temAt(x)) at.forEach(function(p){ if(nc.indexOf(' '+p+' ')>=0) return; x=x.replace(new RegExp('(^|[^A-Za-zÀ-ú])((?:[AaOo] )?)'+p.split('').map(function(ch){ return '['+ch+ch.toLowerCase()+({A:'ÁÂÃáâã',E:'ÉÊéê',I:'Íí',O:'ÓÔÕóôõ',U:'Úú',C:'Çç'}[ch]||'')+']'; }).join('')+'(?![A-Za-zÀ-ú])','g'),function(m,a,b){ return a+(b&&b.charAt(0)===b.charAt(0).toUpperCase()||/(^|[.!?]\s*)$/.test(a)?'A equipe':'a equipe'); }); }); return x.replace(/ {2,}/g,' ').trim(); }).filter(Boolean);
@@ -2447,7 +2454,7 @@ function comporMsg(c,o){ var B=bib4(), L=lingua(c), at=atendenteDe(c.loja), loja
   if(o.ofertaSemana&&B.oferta) partes.push('Nesta semana: '+B.oferta+'.');
   if(o.salvar) partes.push(fill(pick(B.salvar_numero,'f')));
   if(o.cta!==false&&!/\?\s*$/.test(partes[partes.length-1])) partes.push(fill(pick(o.cta==='neutro'?B.ctas_neutro:B.ctas,'c')));
-  partes.push('Equipe Rei do Gado '+loja);
+  partes.push(assinaturaDe(c));
   if(B.sair) partes.push(SAIR4[hashN(seed+'|sair')%SAIR4.length]);
   var txt=corrigirMsg(personalizar(partes.join('\n'),c,at),c);
   return {txt:txt,vb:vb.join('|'),atendente:at}; }
@@ -2486,7 +2493,7 @@ function sugFoco(c,prod,modo){ if(modo==='reconq') return sgReconq(c); if(!prod)
 /* ---------- campanhas e segmentos (texto escrito pela loja) ---------- */
 var RE_TEXTO_FEEDBACK=/aconteceu|n[aã]o agradou|me conta|conta pra gente|conte para a gente|queria saber de voc|queremos entender|queria entender|sentimos (a sua )?falta|senti sua falta/i;
 function varsTextoLoja(c,base,extra){ var A=astro(c), its=base.itens||[];
-  return Object.assign({fav:listaPT(its.map(function(x){return x.nome;}))||'os seus produtos de sempre',itens:listaPT(its.map(function(x){return x.nome;})),cesta:base.grupo?base.grupo.cesta:'cesta',
+  return Object.assign({fav:listaPT(its.map(function(x){return x.nome;}))||'os seus produtos de sempre',itens:listaPT(its.map(function(x){return x.nome;})),cesta:'pedido de sempre',
     corte:A.cortes&&A.cortes[0]?String(A.cortes[0]).toLowerCase():'',dia:A.diaFav!=null?DSEM[A.diaFav]:'fim de semana',comp:base.comp?base.comp.nome:'',tempo:tempoHumano(c.recencia),quem:'',atendente:'a equipe'},extra||{}); }
 function sgTextoLoja(c,textos,chave,o){ var ts=String(textos||'').split(/\n\s*---\s*\n/).map(function(x){ return x.trim(); }).filter(Boolean); if(!ts.length) ts=['[escreva a mensagem]'];
   var usados={}; contatosDe(c).slice(0,8).forEach(function(r){ if(r.vh) usados[r.vh]=1; });
@@ -2567,7 +2574,7 @@ function auditarMensagens(lim){ lim=lim||100000; var m=S.model, out={total:0,por
   kits().forEach(function(k){ publicoKit(k,{pub:'todos'}).filter(function(c){ return foneWa(c.celular); }).slice(0,lim).forEach(function(c){ check('kit',c,sgKit(c,k)); }); });
   return out; }
 function blocoQualidadeMsg(){ var r=S.audMsg;
-  return '<section class="card"><header><h3>✅ Verificação das mensagens</h3></header><p class="nota">Gera a mensagem de <b>todos</b> os clientes em todas as telas (sugestões, recompra, campanhas, segmentos, reconquista e kits) e confere: saudação sem "Oi… tudo tranquilo?", assinatura institucional, sem "Abraço", sem nome de atendente, sem campo vazio e sem produto solto fora da cesta.</p>'+
+  return '<section class="card"><header><h3>✅ Verificação das mensagens</h3></header><p class="nota">Gera a mensagem de <b>todos</b> os clientes em todas as telas (sugestões, recompra, campanhas, segmentos, reconquista e kits) e confere: saudação sem "Oi… tudo tranquilo?", assinatura com o atendente e a equipe da loja, sem "Abraço", sem a palavra "cesta", sem gíria para mulheres e clientes formais e sem campo vazio.</p>'+
     '<div class="filtros"><button class="btn sec" id="audMsg">Verificar todas as mensagens</button></div>'+
     (r?'<div class="ex-kpis sm">'+kc2('Mensagens verificadas',num(r.total),Object.keys(r.porTipo).map(function(k){ return k+': '+num(r.porTipo[k]); }).join(' · '))+kc2('Dentro das regras',num(r.ok),pct0(r.total?r.ok/r.total:1),r.ok===r.total?'ok':'')+kc2('Com problema',num(r.total-r.ok),Object.keys(r.viol).map(function(k){ return k+': '+r.viol[k]; }).join(' · ')||'nenhum',r.ok===r.total?'ok':'')+'</div>'+
       (r.exemplos.length?'<div class="tw"><table class="tbl"><thead><tr><th>Tela</th><th>Cliente</th><th>Problema</th><th>Mensagem</th></tr></thead><tbody>'+r.exemplos.map(function(x){ return '<tr><td>'+esc(x.tipo)+'</td><td>'+esc(x.cli)+'</td><td>'+esc(x.v)+'</td><td><small>'+esc(x.msg)+'</small></td></tr>'; }).join('')+'</tbody></table></div>':''):'')+'</section>'; }
@@ -2575,14 +2582,14 @@ function blocoQualidadeMsg(){ var r=S.audMsg;
 /* ---------- editor dos textos (com validação: linha fora das regras não é salva) ---------- */
 function abrirBiblioteca(){ var B=bib4();
   var area=function(k){ var r=BIB4_ROT[k]||[k,'']; return '<label class="bibl"><b>'+r[0]+'</b><small>'+esc(r[1])+'</small><textarea data-bib="'+k+'" rows="'+Math.min(8,Math.max(2,B[k].length+1))+'">'+esc(B[k].join('\n'))+'</textarea></label>'; };
-  $('#modal .modal-c').innerHTML='<div class="modal-h"><div><h2>Textos das mensagens</h2><div class="sub">Uma variação por linha. A saudação e a assinatura institucional ("Equipe Rei do Gado + loja") entram sozinhas em todas as mensagens. Linhas com "Oi", "tudo tranquilo?", "Abraço" ou nome de atendente são recusadas.</div></div><button class="x" id="fechar">✕</button></div>'+
-    '<p class="nota">Campos: {nome} {saud} (Bom dia/Boa tarde/Boa noite) {loja} {cesta} (ex.: cesta de churrasco) {itens} (os itens da cesta dele) {ciclo} {tempo} {vinculo} · no complemento: {base_comp} {comp}</p>'+
+  $('#modal .modal-c').innerHTML='<div class="modal-h"><div><h2>Textos das mensagens</h2><div class="sub">Uma variação por linha. A saudação e a assinatura (atendente · Equipe Rei do Gado + loja) entram sozinhas em todas as mensagens. Linhas com "Oi", "tudo tranquilo?", "Abraço" ou a palavra "cesta" são recusadas.</div></div><button class="x" id="fechar">✕</button></div>'+
+    '<p class="nota">Campos: {nome} {saud} (Bom dia/Boa tarde/Boa noite) {loja} {itens} (os produtos que ele mais compra) {ciclo} {tempo} {vinculo} · no complemento: {base_comp} {comp}</p>'+
     '<label class="bibl"><b>Oferta / ação da semana (opcional)</b><small>Ex.: "pão de alho de brinde nas compras acima de R$ 150". Vazio = sem oferta. Só coloque o que a loja vai cumprir.</small><input id="bibOferta" value="'+esc(B.oferta)+'"></label>'+
     Object.keys(BIB4_ROT).map(area).join('')+
     '<label class="chk"><input type="checkbox" id="bibSair" '+(B.sair?'checked':'')+'> incluir a linha de "responda SAIR" no fim (recomendado)</label>'+
     '<div class="filtros" style="margin-top:12px"><button class="btn" id="salvarBib">Salvar textos</button><button class="btn sec" id="padraoBib">Voltar ao padrão</button></div>';
   $('#modal').classList.add('on'); }
-function linhaProibida(t){ return /^\s*(oi+|e a[ií]|fala|opa)\b/i.test(t)||/tudo (tranquilo|certo|joia|beleza|bem)\s*\?/i.test(t)||/\b(abra[cç]os?|abs|bjs|beijos?)\b/i.test(t)||/\{atendente\}|\{quem\}/.test(t)||nomesAtendentes().some(function(p){ return (' '+rgNorm(t)+' ').indexOf(' '+p+' ')>=0; }); }
+function linhaProibida(t){ return /^\s*(oi+|e a[ií]|fala|opa)\b/i.test(t)||/tudo (tranquilo|certo|joia|beleza|bem)\s*\?/i.test(t)||/\b(abra[cç]os?|abs|bjs|beijos?)\b/i.test(t)||/\{quem\}|\{cesta\}|\bcestas?\b/i.test(t); }
 async function salvarBiblioteca(padrao){ var b={}, recus=[];
   if(!padrao){ document.querySelectorAll('textarea[data-bib]').forEach(function(t){ b[t.dataset.bib]=t.value.split('\n').map(function(x){return x.trim();}).filter(function(x){ if(!x) return false; if(linhaProibida(x)){ recus.push(x); return false; } return true; }); }); b.oferta=$('#bibOferta').value.trim(); b.sair=$('#bibSair').checked; }
   S.cfg.biblioteca4=b; await salvarCfg('biblioteca4',b); limparSugestoes(); S.crmSujo=true;
