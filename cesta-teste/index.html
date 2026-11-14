@@ -174,8 +174,48 @@ body.teste .cv{height:calc(100vh - 82px)}
 .cv-vazio{display:grid;place-items:center;color:var(--mut);padding:30px;font-size:13px}
 .lk{cursor:pointer}.lk:hover{text-decoration:underline}
 @media(max-width:1200px){.cv{grid-template-columns:280px minmax(0,1fr)}.cv-r{display:none}}
+
+/* ===== v3.23b: lateral com nomes, recolhível; lojas no centro; telas gerenciais ===== */
+:root{--side:88px}
+.side .tabs button{width:76px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:14px}
+.side .tabs button svg{width:25px;height:25px}.side .tabs button em{font-style:normal;font-size:11px;font-weight:600;letter-spacing:.01em}
+.side .tabs button::after{display:none}.side .bdg{top:5px;right:12px}
+body.semside .side{display:none}body.semside .app{margin-left:0}
+header.top{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;padding:10px 20px}
+.top .tl{display:flex;align-items:center;gap:10px;min-width:0}.top .tr{display:flex;align-items:center;gap:12px;justify-content:flex-end}.top .tr .per{margin:0}
+.side-tg{display:grid;place-items:center;flex:none}.side-tg svg{width:18px;height:18px;fill:none;stroke:#57534e;stroke-width:2;stroke-linecap:round}
+.top .lojabar{justify-self:center;gap:6px;padding:4px;border-radius:14px}
+.top .lojab{display:flex;align-items:center;gap:9px;padding:8px 16px;border-radius:11px}
+.top .lojab .lsvg{width:24px;height:24px;fill:none;stroke:#8a8580;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+.top .lojab b{font-size:14.5px}.top .lojab small{display:block!important;font-size:11px;color:#a1a1aa;line-height:1.1}
+.top .lojab.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}.top .lojab.on .lsvg{stroke:var(--cor,var(--red))}.top .lojab.on b{color:var(--cor,var(--ink))}
+@media(max-width:1250px){.top .lojab small{display:none!important}.top .lojab{padding:7px 11px}}
+.busca{max-width:none}
+/* telas gerenciais */
+.ghead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:stretch;margin-bottom:12px}@media(max-width:1300px){.ghead{grid-template-columns:1fr}}
+.kbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kc{text-align:left;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 14px;cursor:pointer;font:inherit;color:var(--ink);transition:box-shadow .12s,border-color .12s}
+.kc:hover{border-color:#d6d3cf}.kc.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.kc span{display:block;font-size:12px;color:var(--mut);font-weight:600}.kc b{display:block;font-size:24px;line-height:1.15;margin:3px 0 1px;letter-spacing:-.02em}.kc small{font-size:11.5px;color:#a1a1aa}
+.kc.ok b{color:#1f6b3a}.kc.warn b{color:#b45309}.kc.risk b{color:#9b1c1c}
+.metas2{display:flex;gap:10px}.mt{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;min-width:170px;display:flex;flex-direction:column;gap:7px}
+.mt-h{display:flex;justify-content:space-between;gap:10px;font-size:13px}.mt-h span{color:var(--mut);font-variant-numeric:tabular-nums}.mt .bar{height:6px;background:#f1f0ee;border-radius:9px;overflow:hidden}.mt .bar i{display:block;height:100%;background:#22a35a;border-radius:9px}
+.mt .ok{font-size:12px;color:#1f6b3a;font-weight:600}.mt .btn{align-self:flex-start}
+.tbar{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;margin-bottom:8px}
+.tb-l{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}.tb-r{display:flex;gap:6px;align-items:center;flex:none}
+.tbar select,.tbar input{height:34px;padding:5px 10px;font-size:13px;border-color:#ecebe8;background:#fafaf9;border-radius:9px}.tbar select:hover,.tbar input:hover{border-color:#d6d3cf}
+.tsearch input{width:260px;background:#f4f4f3}.rng{display:flex;gap:4px}.rng input{width:82px}
+.tb-r .cnt{font-size:12px;color:var(--mut);font-weight:600;margin-right:4px}.tb-r .ico{width:34px;height:34px}
+.selbar{background:#fff!important;border:1px solid var(--line)!important;border-radius:12px!important;font-size:13px;padding:6px 10px!important}.selbar.tem{border-color:#f0d58c!important;background:#fffbea!important}
+.semuaz{font-size:12px;color:#b45309}
+
+.tbar select{max-width:190px}
+main > .filtros, main > div > .filtros:first-child{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px}
+main .filtros select,main .filtros input{height:34px;padding:5px 10px;font-size:13px;border-color:#ecebe8;background:#fafaf9;border-radius:9px}
+main .filtros select{max-width:220px}
+main > .info, main > div > .info{font-size:12.5px}
 </style></head><body>
-<aside class="side"><div class="logo">RG</div><nav class="tabs"><button data-aba="hoje" data-g="hoje" data-tip="Hoje" aria-label="Hoje"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span class="bdg"></span></button><button data-aba="conversas" data-g="conversas" data-tip="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5A8.5 8.5 0 1 1 21 11.5z"/></svg><span class="bdg"></span></button><button data-aba="clientes" data-g="clientes" data-tip="Clientes" aria-label="Clientes"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6a6.5 6.5 0 0 1 3 5.9"/></svg><span class="bdg"></span></button><button data-aba="sugestoes" data-g="campanhas" data-tip="Campanhas" aria-label="Campanhas"><svg viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5V4.5L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 8.5a5 5 0 0 1 0 7"/></svg><span class="bdg"></span></button><button data-aba="produtos" data-g="produtos" data-tip="Produtos" aria-label="Produtos"><svg viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg><span class="bdg"></span></button><button data-aba="painel" data-g="painel" data-tip="Painel" aria-label="Painel"><svg viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M2 20.5h20"/></svg><span class="bdg"></span></button></nav><nav class="tabs fim"><button data-aba="importacoes" data-g="ajustes" data-tip="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M17 6h3"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg><span class="bdg"></span></button></nav></aside><div class="app"><header class="top"><div id="lojabar" class="lojabar"></div><div class="busca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="buscaG" placeholder="Buscar cliente, código ou celular" autocomplete="off"><div id="buscaR"></div></div><span class="per" id="periodo"></span><button id="syncst" class="syncst off">○ Nuvem</button></header><div id="subnav"></div><main id="main">Carregando…</main></div>
+<aside class="side"><div class="logo">RG</div><nav class="tabs"><button data-aba="hoje" data-g="hoje" data-tip="Hoje" aria-label="Hoje"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><em>Hoje</em><span class="bdg"></span></button><button data-aba="conversas" data-g="conversas" data-tip="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5A8.5 8.5 0 1 1 21 11.5z"/></svg><em>Conversas</em><span class="bdg"></span></button><button data-aba="clientes" data-g="clientes" data-tip="Clientes" aria-label="Clientes"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6a6.5 6.5 0 0 1 3 5.9"/></svg><em>Clientes</em><span class="bdg"></span></button><button data-aba="sugestoes" data-g="campanhas" data-tip="Campanhas" aria-label="Campanhas"><svg viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5V4.5L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 8.5a5 5 0 0 1 0 7"/></svg><em>Campanhas</em><span class="bdg"></span></button><button data-aba="produtos" data-g="produtos" data-tip="Produtos" aria-label="Produtos"><svg viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg><em>Produtos</em><span class="bdg"></span></button><button data-aba="painel" data-g="painel" data-tip="Painel" aria-label="Painel"><svg viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M2 20.5h20"/></svg><em>Painel</em><span class="bdg"></span></button></nav><nav class="tabs fim"><button data-aba="importacoes" data-g="ajustes" data-tip="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M17 6h3"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg><em>Ajustes</em><span class="bdg"></span></button></nav></aside><div class="app"><header class="top"><div class="tl"><button id="sideTg" class="ico side-tg" title="Mostrar/esconder menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="busca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="buscaG" placeholder="Buscar cliente, código ou celular" autocomplete="off"><div id="buscaR"></div></div></div><div id="lojabar" class="lojabar"></div><div class="tr"><span class="per" id="periodo"></span><button id="syncst" class="syncst off">○ Nuvem</button></div></header><div id="subnav"></div><main id="main">Carregando…</main></div>
 <div id="modal"><div class="modal-c"></div></div><div id="toast" class="toast"></div>
 <script>/**
  * @licstart The following is the entire license notice for the
@@ -1038,7 +1078,7 @@ function sgLista(c,id,cfg){ var at=atendenteDe(c.loja), h=new Date().getHours(),
 function telaListas(){ var ids=Object.keys(CRM.seg).filter(function(id){return CRM.seg[id];}).sort(function(a,b){ return (CRM.seg[a].nome||'').localeCompare(CRM.seg[b].nome||''); }), at=S.listaAt&&CRM.seg[S.listaAt]?S.listaAt:ids[0];
   var esq='<div class="listas"><h3>🏷 Listas</h3>'+ids.map(function(id){ var s=CRM.seg[id], n=Object.keys(s.c||{}).length; return '<div class="lista-it'+(id===at?' on':'')+'" data-lista="'+id+'"><span class="bol" style="background:'+esc(s.cor||'#888')+'"></span><b>'+esc(s.nome)+'</b><small>'+n+'</small></div>'; }).join('')+
     '<div class="lembnovo" style="margin-top:10px"><input id="lsNome" placeholder="Nova lista (ex.: Churrasqueiros de sábado, Clientes do condomínio, Aniversário em dezembro)"><button class="btn mini" id="lsCriar">Criar</button></div>'+
-    '<p class="nota">Monte listas do seu jeito: pela ficha do cliente (🏷), pela aba Clientes ("Pôr os filtrados numa lista") ou buscando aqui. Depois mande uma campanha só para ela.</p></div>';
+    '</div>';
   if(!at) return '<div class="listasgrid">'+esq+'<div><div class="vazio">Crie a primeira lista ao lado.</div></div></div>';
   S.listaAt=at; var s=CRM.seg[at], ms=membros(at).filter(function(c){ return !S.loja||c.loja===S.loja; }).sort(function(a,b){ return a.nome.localeCompare(b.nome); }), cf=(S.campLista&&S.campLista[at])||{texto:CAMP_PADRAO,promo:false,img:''};
   var ctx='lista:'+at, ex=ms.filter(function(c){ return foneWa(c.celular); })[0], fn=function(c){ return sgLista(c,at,cf); };
@@ -1380,7 +1420,7 @@ function telaReconquista(){ var f=S.rq||(S.rq={faixa:'',ord:'total',q:''}), cfg=
   var ex=l[0], sgx=ex?sgReconq(ex):null, ok=function(c){ return elegivel(c,true)&&!jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ); };
   var A=aprendizado(), ag=function(sit){ var o={n:0,fech:0,comp:0,uaz:0,resp:0}; Object.keys(A.var).forEach(function(k){ var v=A.var[k]; if(v.sit===sit){ o.n+=v.n; o.fech+=v.fech; o.comp+=v.comp; o.uaz+=v.uaz; o.resp+=v.resp; } }); return o; };
   var ai=ag('reconquista_incentivo'), af=ag('reconquista_feedback'), pct=function(a,b){ return b?Math.round(a/b*100)+'%':'—'; };
-  return '<p class="info">Clientes há <b>mais de 90 dias</b> sem comprar. Campanha exclusiva, com uma condição especial para eles voltarem. É promoção: <b>não espera a regra da semana</b>, só respeita quem pediu SAIR e não manda a reconquista de novo para o mesmo cliente em '+DIAS_REPETE_RECONQ+' dias. Esses clientes saem das Sugestões e ficam só aqui.</p>'+
+  return ''+
     '<div class="campanha"><div class="camp-prev">'+(sgx?'<pre>'+esc(sgx.mensagem)+'</pre><small class="nota">'+btnRegen(ex)+' Prévia para '+esc(ex.nome)+' · abordagem '+(sgx.abordagem==='incentivo'?'incentivo direto':'feedback sincero')+'</small>':'<div class="vazio">Ninguém nesse filtro.</div>')+'</div>'+
       '<div class="camp-cfg"><label class="bibl"><b>Oferta para quem voltar</b><small>Seja específico e cumpra o que prometer. Ex.: "10% de desconto em qualquer compra", "picanha a R$ 79,90 o kg", "pão de alho de presente".</small><input id="rqOferta" value="'+esc(cfg.oferta)+'" placeholder="Ex.: 10% de desconto em qualquer compra"></label>'+
         '<div class="sgrid"><label class="bibl"><b>Válido até</b><input type="date" id="rqValidade" value="'+esc(cfg.validade)+'"></label><label class="bibl"><b>Abordagem</b><select id="rqAbord">'+[['auto','Automática (testa as duas e usa mais a que funciona)'],['incentivo','Só incentivo direto'],['feedback','Só feedback sincero + oferta']].map(function(o){ return '<option value="'+o[0]+'"'+(cfg.abordagem===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></label></div>'+
@@ -1564,7 +1604,7 @@ function sgKit0(c,k){ var ls=legendasKit(k), i=(hashN(c.chave+'|'+k.id+'|'+hoje(
   return {mensagem:txt,situacao:'kit',variante:'kit:'+k.id+':'+i,ofertas:[],novidades:[],atendente:at,kit:k.id,midia:{type:'image',file:kitImg(k.id)},produtos:[k.nome]}; }
 function telaKits(){ var ks=kits(), kc=S.kc||{};
   setTimeout(buscarImagensKits,50);
-  var h='<p class="info">Cadastre os kits prontos (churrasco, dia a dia…) com a foto e dispare campanhas pelo WhatsApp da loja. Cada cliente recebe a <b>foto do kit</b> com uma legenda pessoal (nome dele, atendente e loja). As regras de envio valem aqui também: quem recebeu mensagem nos últimos dias fica de fora.</p>'+
+  var h=''+
     '<div class="filtros"><button class="btn" id="novoKit">＋ Novo kit</button></div>';
   h+='<div class="kits">'+(ks.length?ks.map(function(k){ var img=kitImg(k.id);
     return '<div class="kitc'+(kc.kit===k.id?' on':'')+'">'+(img?'<img src="'+img+'" alt="">':'<div class="semimg">sem foto</div>')+'<div class="kitb"><b>'+esc(k.nome)+'</b><span class="tag">'+esc(KIT_TIPOS[k.tipo]||'Outro')+'</span>'+(k.promo!==false?'<span class="pill promo">promoção</span>':'')+(k.preco?' <b class="preco">'+esc(k.preco)+'</b>':'')+
@@ -1737,10 +1777,10 @@ function chkSel(ctx,c,prod,modo){ var s=selCtx(ctx), it=s.itens[c.chave], on=!!(
     ' title="'+(ok?'Marcar para enviar':optout(c)?'Pediu SAIR — não recebe mensagens':(soPromo(c)&&!pr)?'Só promoções — entra apenas em campanha de promoção':!foneWa(c.celular)?'Sem celular':'Já recebeu mensagem — liberado em '+dBR(e.liberaEm)+' ('+e.espera.motivo+')')+'">'; }
 function elegivel(c,promo){ if(promo) return !!foneWa(c.celular)&&!optout(c); return !!foneWa(c.celular)&&!optout(c)&&!soPromo(c)&&!estadoContato(c).bloqueado; }
 function barraSel(ctx,total){ selCtx(ctx); var n=selN();
-  return '<div class="selbar" data-ctxbar="'+esc(ctx)+'"><b><span class="seln">'+n+'</span> marcado(s)</b>'+chipAtendentes()+
+  return '<div class="selbar'+(n?' tem':'')+'" data-ctxbar="'+esc(ctx)+'"><b><span class="seln">'+n+'</span> marcado(s)</b>'+chipAtendentes()+
     '<button class="btn sec mini" data-selall="'+esc(ctx)+'" title="Marca os clientes liberados e com celular desta lista">☑ Marcar todos liberados'+(total!=null?' ('+num(total)+')':'')+'</button>'+
     '<button class="btn sec mini" data-selnone="'+esc(ctx)+'">Limpar</button>'+
-    (uazAtivo()?'<button class="btn wa mini" data-selenviar="'+esc(ctx)+'">📤 Enviar para os marcados (Uazapi)</button>':'<span class="nota" style="margin:0">Para enviar em lote, configure a Uazapi na aba Importar e configurar.</span>')+'</div>'; }
+    (uazAtivo()?'<button class="btn wa mini" data-selenviar="'+esc(ctx)+'">📤 Enviar para os marcados</button>':'<span class="semuaz" title="Configure a Uazapi em Ajustes para enviar em lote">⚠ WhatsApp não configurado neste computador</span>')+'</div>'; }
 function atualizarBarraSel(){ document.querySelectorAll('.selbar .seln').forEach(function(x){ x.textContent=selN(); }); }
 /* lista completa (filtrada) de cada tela, para "Marcar todos" */
 function itensCtx(ctx){
@@ -2026,7 +2066,8 @@ function setLoja(l){ S.loja=l||''; S.filtro.loja=S.sug.loja=S.rec.loja=S.pn.loja
 function barraLojas(){ var m=S.model; if(!m) return '';
   var cont={}; m.lista.forEach(function(c){ cont[c.loja]=(cont[c.loja]||0)+1; });
   var lojas=LOJAS_ENVIO.filter(function(l){ return cont[l]; });
-  var b=function(l,rot,ico,cor){ var on=(S.loja||'')===l; return '<button class="lojab'+(on?' on':'')+'" data-loja="'+esc(l)+'" style="--cor:'+cor+'"><span class="lico">'+ico+'</span><span><b>'+esc(rot)+'</b><small>'+num(l?cont[l]||0:m.lista.length)+' clientes</small></span></button>'; };
+  var IC='<svg viewBox="0 0 24 24" class="lsvg"><path d="M3 9.5 4.5 4h15L21 9.5"/><path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/></svg>', IT='<svg viewBox="0 0 24 24" class="lsvg"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+  var b=function(l,rot,ico,cor){ var on=(S.loja||'')===l; return '<button class="lojab'+(on?' on':'')+'" data-loja="'+esc(l)+'" style="--cor:'+cor+'">'+(l?IC:IT)+'<span><b>'+esc(rot)+'</b><small>'+num(l?cont[l]||0:m.lista.length)+' clientes</small></span></button>'; };
   return '<span class="lojat">Loja:</span>'+b('','Todas as lojas','🏬','#555')+lojas.map(function(l){ return b(l,tituloProd(l),'🏪',COR_LOJA_BAR[l]||'#777'); }).join('')+
     (S.loja?'<span class="lojanota">Todas as abas mostram só a loja <b>'+esc(tituloProd(S.loja))+'</b></span>':''); }
 /* navegação: ícones na lateral = grupos; dentro do grupo, subabas no topo */
@@ -2038,7 +2079,7 @@ function buscaGlobal(q){ var r=document.getElementById('buscaR'); if(!r) return;
   var l=S.model.lista.filter(function(c){ return rgNorm(c.nome).indexOf(q)>=0||(c.codigo&&String(c.codigo).indexOf(q)>=0)||(dq.length>=4&&String(c.celular||'').replace(/\D/g,'').indexOf(dq)>=0); }).sort(function(a,b){ return b.total-a.total; }).slice(0,8);
   r.innerHTML=l.length?l.map(function(c,i){ return '<div class="br'+(i?'':' sel')+'" data-cli="'+esc(c.chave)+'"><span><b>'+esc(c.nome)+'</b> <small>'+esc(tituloProd(c.loja))+' · '+esc(c.perfil)+'</small></span><small>'+(c.recencia===0?'hoje':c.recencia+'d')+' · '+brl(c.total)+'</small></div>'; }).join(''):'<div class="br"><small>Nada encontrado</small></div>'; r.className='on'; }
 function render(){
-  var m=S.model; if(!m&&S.aba!=='importacoes') S.aba='importacoes';
+  var m=S.model; try{ document.body.classList.toggle('semside',localStorage.getItem('cesta_side')==='0'); }catch(e){} if(!m&&S.aba!=='importacoes') S.aba='importacoes';
   var gAt=grupoDe(S.aba); document.querySelectorAll('.tabs button').forEach(function(b){ b.classList.toggle('on',b.dataset.g===gAt); b.disabled=!m&&b.dataset.g!=='ajustes'; });
   var sn=document.getElementById('subnav'); if(sn) sn.innerHTML=m?subnav():''; document.body.classList.toggle('teste',!!window.AMB_TESTE); document.body.dataset.aba=S.aba;
   atualizarAbasCRM(); if(m) badge('conversas',nConversasNovas());
@@ -2122,20 +2163,35 @@ function filtrarSug(){ var f=S.sug,q=rgNorm(f.q);
     if(f.cont){ var bl=estadoContato(c).bloqueado; if(f.cont==='liberados'&&bl) return false; if(f.cont==='bloqueados'&&!bl) return false; }
     if(f.status==='ativos'&&c.status==='Inativo') return false; if(f.status&&f.status!=='ativos'&&c.status!==f.status) return false;
     if(f.loja&&c.loja!==f.loja) return false; if(f.cod==='com'&&!c.codigo) return false; if(f.cod==='sem'&&c.codigo) return false;
-    if(f.linha&&c.linhaPrincipal!==f.linha) return false; if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false; if(f.dmin&&c.recencia<+f.dmin) return false; if(f.dmax&&c.recencia>+f.dmax) return false; return true; })
+    if(f.atr&&!c.atrasado) return false; if(f.linha&&c.linhaPrincipal!==f.linha) return false; if(q&&(c.nomeKeysArr.join(' ')+' '+c.codigo).indexOf(q)<0) return false; if(f.dmin&&c.recencia<+f.dmin) return false; if(f.dmax&&c.recencia>+f.dmax) return false; return true; })
     .sort(function(a,b){ var o=S.sug.ord||''; if(o==='dias_desc') return b.recencia-a.recencia||b.total-a.total; if(o==='dias_asc') return a.recencia-b.recencia||b.total-a.total; if(o==='total') return b.total-a.total; if(o==='ultima_desc') return a.recencia-b.recencia;
       return (estadoContato(a).bloqueado?1:0)-(estadoContato(b).bloqueado?1:0) || (b.atrasado?1:0)-(a.atrasado?1:0) || b.total-a.total; }); }
+ function kpiCard(rot,val,sub,attr,on,cls){ return '<button class="kc'+(on?' on':'')+(cls?' '+cls:'')+'" '+(attr||'')+'><span>'+rot+'</span><b>'+val+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</button>'; }
+ function metasCompactas(){ var lojas=S.loja?[S.loja]:LOJAS_ENVIO.filter(function(l){ return S.model.lista.some(function(c){return c.loja===l;}); });
+  return '<div class="metas2">'+lojas.map(function(l){ var f=enviadasHoje(l), m=metaDia(l), falta=Math.max(0,m-f), p=Math.min(100,Math.round(f/m*100));
+    return '<div class="mt"><div class="mt-h"><b>'+esc(tituloProd(l))+'</b><span>'+f+' / '+m+'</span></div><div class="bar"><i style="width:'+p+'%"></i></div>'+(falta?'<button class="btn mini" data-fila="'+esc(l)+'" title="Marca os clientes prioritários de hoje">⚡ Fila de hoje · '+falta+'</button>':'<span class="ok">✔ meta batida</span>')+'</div>'; }).join('')+'</div>'; }
  function telaSugestoes(){ var f=S.sug,l=filtrarSug();
-  return painelMeta()+'<p class="info">Para cada cliente: os produtos que ele já compra (prioridade para o que está na hora de recomprar) + uma novidade da linha que ele mais compra, escolhida por afinidade ("quem compra X também leva Y"). Funcionários e uso interno ficam fora.</p>'+
-    '<div class="filtros"><input id="sq" placeholder="Buscar cliente ou código…" value="'+esc(f.q)+'">'+
-    sel('sstatus','Todos os status',[['ativos','Ativos + em risco'],['Ativo','Só ativos'],['Em risco','Só em risco'],['Inativo','Só inativos de 61 a 90 dias']],f.status)+
-    sel('slinha','Todas as linhas',LINHAS,f.linha)+sel('scod','Código: todos',[['com','Com código'],['sem','Sem código']],f.cod)+
-    sel('scont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam (bloqueados)'],['optout','Pediram para não receber (SAIR)'],['promo','Só promoções']],f.cont)+
-    sel('ssit','Todas as situações',Object.keys(SITUACOES).filter(function(k){return k!=='kit'&&k.indexOf('reconquista')<0&&k!=='reativar_inativo';}).map(function(k){return [k,SITUACOES[k].nome];}),f.sit)+
-    '<select id="sord">'+[['','Ordem: prioridade (recompra atrasada, maior gasto)'],['dias_desc','Ordem: mais dias sem comprar'],['dias_asc','Ordem: menos dias sem comprar'],['total','Ordem: maior gasto']].map(function(o){return '<option value="'+o[0]+'"'+((f.ord||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'+
-    '<input id="sdmin" type="number" min="0" placeholder="dias sem comprar: de" value="'+esc(f.dmin||'')+'" style="width:150px"><input id="sdmax" type="number" min="0" placeholder="até" value="'+esc(f.dmax||'')+'" style="width:80px">'+'<button class="btn" id="expSug">⬇ CSV</button><button class="btn sec" id="editMsg">✎ Mensagens</button><button class="btn sec" id="editRegras">⚙ Regras de envio</button></div>'+barraSel('sug',l.filter(elegivel).length)+
-    (function(){ var R=regras(), tot=S.model.lista.filter(function(c){return estadoContato(c).bloqueado;}).length, hj=(S.contatos||[]).filter(function(r){return !r.excluido&&r.dia===hoje();}).length;
-      return '<div class="info">'+num(l.length)+' cliente(s) na lista · <b>'+num(hj)+' mensagem(ns) hoje</b> · '+num(tot)+' cliente(s) bloqueado(s) por ter recebido nos últimos '+R.diasCliente+' dias. Clique no cliente para ver a mensagem completa.</div>'; })()+
+  var keep={cont:f.cont,status:f.status,atr:f.atr}; f.cont='';f.status='ativos';f.atr=''; var base=filtrarSug(); f.cont=keep.cont;f.status=keep.status;f.atr=keep.atr;
+  var lib=0,atr=0,ris=0,blq=0,pot=0; base.forEach(function(c){ var e=estadoContato(c); if(e.bloqueado) blq++; else { lib++; pot+=c.ticketMedio||0; } if(c.atrasado) atr++; if(c.status==='Em risco') ris++; });
+  var hj=(S.contatos||[]).filter(function(r){return !r.excluido&&r.dia===hoje()&&(!S.loja||(r.envioLoja||r.lojaCli)===S.loja);}).length;
+  var todos=!f.cont&&(!f.status||f.status==='ativos')&&!f.atr;
+  return '<div class="ghead"><div class="kbar">'+
+      kpiCard('Clientes',num(base.length),'até 90 dias','data-skpi="todos"',todos)+
+      kpiCard('Liberados',num(lib),'potencial '+brl(pot),'data-skpi="liberados"',f.cont==='liberados','ok')+
+      kpiCard('Recompra atrasada',num(atr),'na hora de repor','data-skpi="atr"',!!f.atr,'warn')+
+      kpiCard('Em risco',num(ris),'31 a 60 dias','data-skpi="risco"',f.status==='Em risco','risk')+
+      kpiCard('Já receberam',num(blq),'aguardando '+regras().diasCliente+' dias','data-skpi="bloq"',f.cont==='bloqueados')+
+      kpiCard('Enviadas hoje',num(hj),'','data-ir="painel"',false)+
+    '</div>'+metasCompactas()+'</div>'+
+    '<div class="tbar"><div class="tb-l"><div class="tsearch"><input id="sq" placeholder="Buscar cliente ou código" value="'+esc(f.q)+'"></div>'+
+    sel('slinha','Linha',LINHAS,f.linha)+
+    sel('ssit','Situação',Object.keys(SITUACOES).filter(function(k){return k!=='kit'&&k.indexOf('reconquista')<0&&k!=='reativar_inativo'&&k!=='lista';}).map(function(k){return [k,SITUACOES[k].nome];}),f.sit)+
+    sel('sstatus','Status',[['ativos','Ativos + em risco'],['Ativo','Só ativos'],['Em risco','Só em risco'],['Inativo','61 a 90 dias']],f.status)+
+    sel('scont','Mensagem',[['liberados','Liberados'],['bloqueados','Já receberam'],['optout','Pediram SAIR'],['promo','Só promoções']],f.cont)+
+    '<span class="rng"><input id="sdmin" type="number" min="0" placeholder="dias de" value="'+esc(f.dmin||'')+'"><input id="sdmax" type="number" min="0" placeholder="até" value="'+esc(f.dmax||'')+'"></span>'+
+    '<select id="sord">'+[['','Prioridade'],['dias_desc','Mais dias sem comprar'],['dias_asc','Menos dias sem comprar'],['total','Maior gasto']].map(function(o){return '<option value="'+o[0]+'"'+((f.ord||'')===o[0]?' selected':'')+'>↕ '+o[1]+'</option>';}).join('')+'</select>'+
+    '</div><div class="tb-r"><span class="cnt">'+num(l.length)+'</span><button class="ico" id="expSug" title="Baixar CSV">⬇</button><button class="ico" id="editMsg" title="Mensagens">✎</button><button class="ico" id="editRegras" title="Regras de envio">⚙</button></div></div>'+
+    barraSel('sug',l.filter(elegivel).length)+
     '<div class="tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cód.</th><th>Cliente</th><th class="r">Sem comprar</th><th>Última compra</th><th>Mensagem</th><th>Última mensagem</th><th>Oferecer (cesta)</th><th>Novidade da linha</th><th></th></tr></thead><tbody>'+
     l.slice(0,S.limite).map(function(c){ var s=sugestoes(c), e=estadoContato(c); return '<tr class="click'+(e.bloqueado?' bloq':'')+'" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel('sug',c)+'</td><td>'+codInput(c)+'</td><td><b>'+esc(c.nome)+'</b><small class="cod">'+esc(lojaTxtCurto(c))+' · '+st(c.status)+' '+esc(c.status)+(c.atrasado?' · <span class="warn">recompra atrasada</span>':'')+' · '+esc(c.linhaPrincipal)+'</small></td>'+
       '<td class="r">'+seloDias(c.recencia)+'</td><td class="ultc"><b>'+dBR(c.ultimaCompra)+'</b><small class="cod">'+esc(diaSemanaCurto(c.ultimaCompra))+' · '+c.nCompras+' compra(s)</small></td>'+
@@ -2159,7 +2215,7 @@ function filtrarRecompra(){ var r=S.rec,q=rgNorm(r.q),pq=rgNorm(r.produto), o=r.
   return l.sort(function(a,b){ var p=val(a),q2=val(b); return (typeof p==='string'?p.localeCompare(q2):p-q2)*o.dir || b.atraso-a.atraso; }); }
 function telaRecompra(){ var r=S.rec,l=filtrarRecompra(), o=r.ord||{campo:'atraso',dir:-1};
   var thr=function(c,rot,cl){ return '<th class="ord'+(cl?' '+cl:'')+(o.campo===c?' on':'')+'" data-rord="'+c+'" title="Clique para ordenar">'+rot+(o.campo===c?(o.dir<0?' ▼':' ▲'):'')+'</th>'; };
-  return '<p class="info">Clientes que compram sempre os mesmos produtos e <b>já passaram da hora de repor</b> (passaram '+FATOR_ATRASO.toLocaleString('pt-BR')+'× do intervalo de sempre). Uma linha por cliente, com todos os produtos atrasados; a mensagem fala do mais atrasado. Quem está há mais de 90 dias sem comprar fica na aba <b>Reconquista</b>.</p>'+
+  return ''+
     '<div class="filtros"><input id="rq" placeholder="Buscar cliente…" value="'+esc(r.q)+'"><input id="rprod" list="dlprod" placeholder="Produto…" value="'+esc(r.produto)+'">'+dlProdutos()+
     sel('rcont','Mensagens: todos',[['liberados','Liberados para mensagem'],['bloqueados','Já receberam'],['marcados','Só os marcados']],r.cont)+'<button class="btn" id="expRec">⬇ CSV</button></div>'+
     '<div class="filtros"><span class="nota" style="margin:0">Dias sem comprar:</span><input id="rdmin" type="number" min="0" placeholder="de" value="'+esc(r.dmin)+'" style="width:80px"><input id="rdmax" type="number" min="0" placeholder="até" value="'+esc(r.dmax)+'" style="width:80px">'+
@@ -2179,7 +2235,7 @@ function telaProdutos(){ var m=S.model,q=rgNorm(S.prodQ),o=S.prodOrdem;
   var maxV=l.reduce(function(a,p){return Math.max(a,p.valor);},1), tot=l.reduce(function(a,p){return a+p.valor;},0);
   var thp=function(c,r,cl){ return th(c,r,cl,o).replace('data-ord','data-pord'); };
   return '<div class="filtros"><input id="pq" placeholder="Buscar produto, código ou linha…" value="'+esc(S.prodQ)+'">'+'</div>'+
-    '<div class="info">'+l.length+' produto(s)'+(S.prodLoja?' vendidos na loja <b>'+esc(tituloProd(S.prodLoja))+'</b>':'')+' · '+brl(tot)+'. A <b>linha</b> define as sugestões — ajuste quando a automática estiver errada (fica salvo). Clique no nome para ver quem compra.</div>'+
+    '<div class="info">'+l.length+' produto(s)'+(S.prodLoja?' vendidos na loja <b>'+esc(tituloProd(S.prodLoja))+'</b>':'')+' · '+brl(tot)+'</div>'+
     '<div class="tw"><table class="tbl"><thead><tr><th>Cód.</th>'+thp('produto','Produto')+thp('linha','Linha')+thp('qtd','Qtd','r')+thp('valor','Valor','r')+'<th></th>'+thp('precoMediano','Preço mediano','r')+thp('nClientes','Clientes','r')+'<th>Última venda</th></tr></thead><tbody>'+
     l.map(function(p){ return '<tr><td><small>'+esc(p.cod)+'</small></td><td class="click" data-prod="'+esc(p.chave)+'"><b>'+esc(p.produto)+'</b> <button class="btn sec mini rgl" data-nomeprod="'+esc(p.chave)+'" data-lista="1" title="Travar o nome deste produto na cesta, mesmo que o sistema mude o nome">'+((S.cfg.nomesProd||{})[p.cod]?'🔒':'✏')+'</button>'+((S.cfg.nomesProd||{})[p.cod]?'<small class="cod">nome travado · no relatório: '+esc(p.nomeRel)+'</small>':'')+(p.ativo?'':' <span class="pill late" title="Sem venda há mais de '+DIAS_PRODUTO_ATIVO+' dias'+(S.prodLoja?' nesta loja':'')+'">parado</span>')+'</td>'+
       '<td><select class="linsel'+(p.linhaAuto?'':' man')+'" data-linha="'+esc(p.chave)+'">'+LINHAS.map(function(x){return '<option'+(x===p.linha?' selected':'')+'>'+x+'</option>';}).join('')+'</select></td>'+
@@ -2331,6 +2387,7 @@ function bind(){
   document.addEventListener('click',async function(e){ var t=e.target,b;
     if((b=t.closest('[data-loja]'))&&b.classList.contains('lojab')){ setLoja(b.dataset.loja); render(); if($('#modal').classList.contains('on')&&S.pm&&S.pm.chave&&document.querySelector('#modal [data-ctxbar^="prod:"]')) abrirProduto(S.pm.chave); return; }
     if((b=t.closest('.tabs button'))&&!b.disabled){ var gg=b.dataset.g; S.aba=(S.ultAba&&S.ultAba[gg])||b.dataset.aba; S.limite=200; window.scrollTo(0,0); render(); return; }
+    if(t.closest('#sideTg')){ var on=document.body.classList.toggle('semside'); try{ localStorage.setItem('cesta_side',on?'0':'1'); }catch(e){} return; }
     if((b=t.closest('#subnav [data-sub]'))){ S.aba=b.dataset.sub; S.limite=200; window.scrollTo(0,0); render(); return; }
     if(t.closest('#buscaR [data-cli]')){ var bq=$('#buscaG'); bq.value=''; buscaGlobal(''); }
     if(!t.closest('.busca')) buscaGlobal('');
@@ -2348,6 +2405,7 @@ function bind(){
     if((b=t.closest('[data-movefunc]'))){ var c=S.model.clientes[b.dataset.movefunc]; if(confirm('Mover "'+c.nome+'" para Funcionários? Sai da análise e das sugestões.')) definirTipo(c.nomeKeysArr,'func'); return; }
     if((b=t.closest('[data-ehcliente]'))){ definirTipo([b.dataset.ehcliente],'cliente'); return; }
     if((b=t.closest('[data-expprod]'))){ exportClientesDoProduto(b.dataset.expprod); return; }
+    if((b=t.closest('[data-skpi]'))){ var fk=S.sug, kk=b.dataset.skpi; fk.cont='';fk.atr='';fk.status='ativos'; if(kk==='liberados') fk.cont='liberados'; else if(kk==='atr') fk.atr='1'; else if(kk==='risco') fk.status='Em risco'; else if(kk==='bloq') fk.cont='bloqueados'; S.limite=200; render(); return; }
     if((b=t.closest('[data-ir]'))){ S.aba=b.dataset.ir; render(); return; }
     if((b=t.closest('[data-alertalista]'))){ var ga=(alertas().filter(function(a){ return a.grupo&&(b.dataset.alertalista==='vip'?a.ic==='⭐':a.ic==='🆕'); })[0]||{}).grupo||[]; var nmA=prompt('Nome da lista para estes '+ga.length+' clientes (se já existir, eles entram nela):',b.dataset.alertalista==='vip'?'VIPs sumindo '+dBR(hoje()):'Boas-vindas '+dBR(hoje())); if(!nmA) return;
       var idA=Object.keys(CRM.seg).filter(function(x){ return CRM.seg[x]&&rgNorm(CRM.seg[x].nome)===rgNorm(nmA); })[0]||await novaLista(nmA); var na=await porNaLista(idA,ga); S.listaAt=idA; S.aba='listas'; render(); toast(na+' cliente(s) na lista '+nmA+'.','ok'); return; }
@@ -2489,7 +2547,7 @@ function bind(){
     if(t.id==='kpub'||t.id==='kstatus'||t.id==='kdmin'||t.id==='kdmax'){ var kl=$('#kleg'); if(kl) S.kc.legendas=kl.value; S.kc[{kpub:'pub',kstatus:'status',kdmin:'dmin',kdmax:'dmax'}[t.id]]=t.value; render(); return; }
     if(t.id==='kleg'){ S.kc.legendas=t.value; return; }
     if(t.id==='rqfaixa'||t.id==='rqord'||t.id==='rqmin'||t.id==='rqq'){ S.rq=S.rq||{}; S.rq[{rqfaixa:'faixa',rqord:'ord',rqmin:'min',rqq:'q'}[t.id]]=t.value; S.limite=200; render(); return; }
-    if(t.id==='cvq'){ S.cv=S.cv||{}; S.cv.q=t.value; render(); return; }
+    if(t.id==='cvq') return;
     if(t.id==='rcont'){ S.rec.cont=t.value; S.limite=200; render(); return; }
     if(t.id==='rdmin'||t.id==='rdmax'||t.id==='rde'||t.id==='rate'){ S.rec[{rdmin:'dmin',rdmax:'dmax',rde:'de',rate:'ate'}[t.id]]=t.value; S.limite=200; render(); return; }
     if(t.id==='pmdmin'||t.id==='pmdmax'||t.id==='pmord'||t.id==='pmstatus'){ S.pm[{pmdmin:'dmin',pmdmax:'dmax',pmord:'ord',pmstatus:'status'}[t.id]]=t.value; abrirProduto(S.pm.chave); return; }
