@@ -1430,7 +1430,8 @@ function blocoInteligencia(){ var tc=trCfg();
   return '<h2 class="secao">Inteligência das conversas</h2><section class="card"><div class="filtros"><button class="btn" id="apRodar">🧠 Aprender com todas as conversas</button><label class="chk"><input type="checkbox" id="apAudio"> transcrever também os áudios</label><span class="nota" id="apStatus" style="margin:0"></span></div>'+
     '<div class="filtros"><label class="chk"><input type="checkbox" id="trAuto"'+(tc.auto?' checked':'')+'> transcrever automaticamente os áudios novos dos clientes neste computador</label>'+
     '<select id="trModelo"><option value="preciso"'+((tc.modelo||'preciso')==='preciso'?' selected':'')+'>Transcrição precisa (modelo ~250 MB)</option><option value="rapido"'+(tc.modelo==='rapido'?' selected':'')+'>Transcrição rápida (modelo ~80 MB)</option></select>'+
-    '<button class="btn sec mini" id="trCarregar">Preparar transcrição</button><span class="nota" id="trStatus" style="margin:0">'+esc(TR.status||'')+'</span></div></section>'; }
+    '<button class="btn sec mini" id="trCarregar">Preparar transcrição</button><span class="nota" id="trStatus" style="margin:0">'+esc(TR.status||'')+'</span></div>'+
+    '<div class="filtros"><label class="btn sec mini">🎤 Testar com um arquivo de áudio<input type="file" id="trArquivo" accept="audio/*,.ogg,.opus,.m4a,.mp3,.wav" hidden></label><span class="nota" id="trTeste" style="margin:0">'+esc(S.trTeste||'')+'</span></div></section>'; }
 
 /* =================== FASE 1: perfil Astro, segmentos por regras e campanhas com métricas =================== */
 /* ---- perfil Astro (calculado das compras) ---- */
@@ -2759,7 +2760,7 @@ function telaFuncs(){ var m=S.model;
 
 function telaConferencia(){ return '<h2 class="secao">Qualidade dos dados</h2>'+telaQualidade()+'<h2 class="secao">Funcionários e uso interno</h2>'+telaFuncs(); }
 function blocoVarredura(){ if(!uazLojasLeitura().length) return ''; return '<h2 class="secao">WhatsApp das lojas</h2><div class="filtros varr"><span>Números lidos: '+linhaNumeros()+'</span></div><div class="filtros varr">Trazer conversas do celular desde <input type="date" id="varrDesde" value="'+hoje().slice(0,8)+'01"><button class="btn" id="varrer">Trazer para a cesta</button><span class="nota" id="varrInfo" style="margin:0">'+esc(S.varrInfo||'')+'</span></div>'; }
-function telaConfigurar(){ return blocoVarredura()+(uazLojasLeitura().length?blocoInteligencia():'')+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
+function telaConfigurar(){ return blocoVarredura()+blocoInteligencia()+(window.AMB_TESTE?'<div class="aviso" style="margin-bottom:12px"><b>Ambiente de teste.</b> Envios simulados; dados separados das lojas. <button class="btn mini" id="copiarProd">⟳ Copiar dados atuais das lojas</button></div>':'')+telaImportacoes()+(S.model?'<h2 class="secao">Exportar dados (CSV / JSON)</h2>'+telaExportar():''); }
 function telaQualidade(){ var m=S.model;
   var h='';
   h+='<h3>Vendas sem cliente identificado</h3><p class="nota">"Cliente padrão para vendas": <b>'+brl(m.anon.valor)+'</b> em '+num(m.anon.docs)+' cupons ('+pct(m.anon.valor/m.somaValor)+' do faturamento). Acompanhe por loja na aba <b>Cadastro</b>.</p>';
@@ -3069,6 +3070,9 @@ function bind(){
       if(v===auto[t.dataset.tf]) delete o[t.dataset.tf]; else o[t.dataset.tf]=v; if(Object.keys(o).length) cfx.prod[chx]=o; else delete cfx.prod[chx]; await salvarTax(cfx); render(); toast('Dicionário atualizado: '+S.model.produtos[chx].produto,'ok'); return; }
     if(t.id==='diccat'){ S.dic=S.dic||{}; S.dic.cat=t.value; render(); return; }
     if(t.dataset&&t.dataset.lg){ var cl=S.model.clientes[t.dataset.c], o2={}; o2[t.dataset.lg]=t.value; await linguaGravar(histK(cl),o2); delete cl._sug; delete cl._sugF; delete cl._lg; if(t.closest('#modal')) abrirCliente(cl.chave); else render(); toast('Linguagem de '+primeiroNome(cl.nome)+' ajustada.','ok'); return; }
+    if(t.id==='trArquivo'&&t.files&&t.files[0]){ var fA=t.files[0], elT=document.getElementById('trTeste'), t0=Date.now(); var mostra=function(x){ S.trTeste=x; if(elT) elT.textContent=x; };
+      try{ mostra('Preparando…'); var motorA=await motorTranscricao(); mostra('Transcrevendo '+fA.name+'…'); var auA=await pcm16k(await fA.arrayBuffer()); var t1=Date.now(); var outA=await motorA(auA.pcm,{language:'portuguese',task:'transcribe',chunk_length_s:30,stride_length_s:5});
+        mostra('🎤 "'+String(outA.text||'').trim()+'" — áudio de '+Math.round(auA.dur)+'s transcrito em '+Math.round((Date.now()-t1)/1000)+'s'); }catch(errA){ mostra('Erro: '+errA.message); } return; }
     if(t.id==='trAuto'){ trSalvarCfg({auto:t.checked}); toast(t.checked?'Áudios novos serão transcritos neste computador.':'Transcrição automática desligada.','ok'); return; }
     if(t.id==='trModelo'){ trSalvarCfg({modelo:t.value}); TR.pipe=null; TR.carregando=null; return; }
     if(t.id==='cvq') return;
