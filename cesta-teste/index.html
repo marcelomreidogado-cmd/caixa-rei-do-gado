@@ -1242,12 +1242,13 @@ function taxAuto(nome){ var n=' '+rgNorm(nome)+' ', t={categoria:'',especie:'',i
   if(has(/ (HB|HAMB) |HAMBURGUER|FRANGO HAMB/)&&!has(/ PAO |BACON PARA/)) t.categoria='HAMBURGUER';
   else if(has(/PAO BRIOCHE|PAO AUSTRALIANO/)) t.categoria='PAO_HB';
   else if(has(/HEINEKEN|CORONA|STELLA|QUILMES|AMSTEL|BLUE MOON|LAGUNITAS|CHOPP|CERVEJA|BUDWEISER|SPATEN|BRAHMA|\bLONG NECK\b/)) t.categoria='CERVEJA';
+  else if(has(/VODKA|SPIRIT|LICOR|WHISK|CACHACA|\bGIN\b/)) t.categoria='DESTILADO';
   else if(has(/\bCOCA\b|GUARANA|FANTA|SPRITE|PEPSI|H2OH|\bSCHW\b|REFRIG/)) t.categoria='REFRIGERANTE';
   else if(has(/\bAGUA\b/)) t.categoria='AGUA'; else if(has(/MALBEC|CABERNET|MERLOT|VINHO|TT750|TINTO|ESPUMANTE/)) t.categoria='VINHO'; else if(has(/LICOR|VODKA|WHISK|CACHACA|GIN\b/)) t.categoria='DESTILADO';
   else if(has(/CARVAO/)) t.categoria='CARVAO'; else if(has(/^ (FSC )?(FACA|JOGO|KIT |ESPETO|GRELHA|ESCOVA|ESPATULA|CHAIRA)/)) t.categoria='ACESSORIOS';
   else if(has(/MAIONESE|MOLHO|BARBECUE|KETCHUP|MOSTARDA|DIJONESE|SWEET CHILLI|SRIRACHA|GELEIA|GELELIA|CEBOLA CARAMELIZADA|FUMACA|CHIMICHURRI|TEMPERO/)&&!has(/COSTELA SUINA/)) t.categoria='MOLHOS';
   else if(has(/PAO DE ALHO|PAO DE GORGONZOLA/)) t.categoria='PAO_ALHO'; else if(has(/GELATO/)) t.categoria='SOBREMESA';
-  else if(has(/^ (LING|LINGUICA|NABRASA)/)&&!has(/PANCETA|COSTELA SUINA/)) t.categoria='LINGUICA';
+  else if(has(/^ (LING|LINGUICA|NABRASA) /)&&!has(/PANCETA|COSTELA SUINA/)) t.categoria='LINGUICA';
   else if(has(/QUEIJO|CHEDDAR|MUSSARELA/)) t.categoria='QUEIJO'; else if(has(/BATATA|FAROFA|PALMITO|SALAME/)) t.categoria='ACOMP'; else t.categoria='CARNE';
   if(t.categoria==='CARNE'&&!t.especie) t.especie='BOVINO';
   if(/^(CARNE|HAMBURGUER|LINGUICA|QUEIJO|PAO_ALHO)$/.test(t.categoria)){ var nn=t.categoria==='HAMBURGUER'?n.replace(/ (HB|HAMB) /,' '):n; for(var i=0;i<TX_CORTES.length;i++) if(TX_CORTES[i][1].test(nn)){ t.item=TX_CORTES[i][0]; break; } }
