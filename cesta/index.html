@@ -1676,7 +1676,7 @@ async function enviarMarcados(ctx){ var s=selCtx(ctx), its=s.itens, m=S.model;
   if(ctx.indexOf('prod:')===0) reabrirModalCtx(ctx); else render(); }
 function reabrirModalCtx(ctx){ if(ctx.indexOf('prod:')===0&&$('#modal').classList.contains('on')) abrirProduto(ctx.slice(5)); }
 function colMsg(c,sg){ var e=estadoContato(c), linha=(sg.mensagem||'').split('\n')[1]||'';
-  return '<td class="msgcol">'+tagSit(sg.situacao)+' '+btnRegen(c)+(e.bloqueado?' <span class="pill late" title="Já recebeu em '+esc(txtUltimo(e))+'">recebeu '+dBR(e.ultimo.dia).slice(0,5)+'</span>':'')+(optout(c)?' <span class="pill late">SAIR</span>':'')+
+  return '<td class="msgcol">'+tagSit(sg.situacao)+' '+btnRegen(c)+(e.bloqueado?(e.comprouRecente?' <span class="pill late" title="Comprou em '+dBR(e.comprouRecente)+'; mensagem livre em '+dBR(e.liberaEm)+'">comprou '+dBR(e.comprouRecente).slice(0,5)+'</span>':e.ultimo?' <span class="pill late" title="Já recebeu em '+esc(txtUltimo(e))+'">recebeu '+dBR(e.ultimo.dia).slice(0,5)+'</span>':''):'')+(optout(c)?' <span class="pill late">SAIR</span>':'')+
     '<small class="prev" title="'+esc(sg.mensagem)+'">'+esc(linha.length>110?linha.slice(0,108)+'…':linha)+'</small></td>'; }
 function acoesMsg(c,prod,modo){ return '<td class="acoes">'+btnEnviar(c,prod,modo)+'</td>'; }
 /* clientes de um produto, com filtros da ficha */
