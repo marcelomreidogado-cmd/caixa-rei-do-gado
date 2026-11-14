@@ -2285,7 +2285,14 @@ function cap1(t){ t=String(t||''); return t.charAt(0).toUpperCase()+t.slice(1); 
 function cestaPerfil(c){ if(c._cp&&c._cpM===S.model) return c._cp; var m=S.model;
   var it=c.cestaArr.map(function(e){ return {e:e,w:afinidade(e.produto)}; }), sc={};
   it.forEach(function(x){ Object.keys(x.w).forEach(function(p){ sc[p]=(sc[p]||0)+x.e.valor*x.w[p]; }); });
-  var G={}; it.forEach(function(x){ var best=null, bv=-1; Object.keys(x.w).forEach(function(p){ var v=x.w[p]*(sc[p]||0)+x.w[p]*1e-6; if(v>bv){ bv=v; best=p; } }); (G[best]=G[best]||[]).push(x.e); });
+  /* âncoras: perfis em que ele compra algo típico (peso ≥ 0,8: pão brioche, hambúrguer, picanha, patinho…).
+     Item ambíguo (bacon, batata, molho, muçarela fatiada) vai para o perfil ancorado com que MAIS combina;
+     ex.: quem compra pão brioche, bacon e batata tem cesta de hambúrguer, mesmo gastando mais no dia a dia. */
+  var anc={}, tot=0; Object.keys(sc).forEach(function(p){ tot+=sc[p]; }); it.forEach(function(x){ Object.keys(x.w).forEach(function(p){ if(x.w[p]>=0.8) anc[p]=1; }); });
+  var G={}; it.forEach(function(x){ var ps=Object.keys(x.w), cand=ps.filter(function(p){ return anc[p]; }), best=null, bv=-1;
+    if(cand.length) cand.forEach(function(p){ var v=x.w[p]+0.001*((sc[p]||0)/(tot||1)); if(v>bv){ bv=v; best=p; } });
+    else ps.forEach(function(p){ var v=x.w[p]*(sc[p]||0)+x.w[p]*1e-6; if(v>bv){ bv=v; best=p; } });
+    (G[best]=G[best]||[]).push(x.e); });
   var grupos=Object.keys(G).map(function(p){ var es=G[p].slice().sort(function(a,b){ return b.valor-a.valor; }), ds={}, val=0;
     es.forEach(function(e){ val+=e.valor; (e.datasArr||[]).forEach(function(d){ ds[d]=1; }); }); var dl=Object.keys(ds).sort(), ult=dl[dl.length-1]||'';
     var ciclo=dl.length>=2?dias(dl[0],ult)/(dl.length-1):null, dSem=ult?dias(ult,m.refData):null;
@@ -2298,7 +2305,7 @@ function grupoDoProduto(cp,chave){ return cp.grupos.filter(function(g){ return g
 function grupoPrincipal(c,cp){ var gs=cp.grupos.filter(function(g){ return PERFIS_MSG[g.perfil]&&g.ativos.length; });
   if(!gs.length) gs=cp.grupos.filter(function(g){ return g.perfil==='BB'&&g.ativos.length; }); if(!gs.length) return null;
   var due=gs.filter(function(g){ return g.hora; }); if(due.length) return due[0];
-  var dow=new Date().getDay(), ch=gs.filter(function(g){ return g.perfil==='CH'&&g.pct>=0.2; })[0]; if(dow>=4&&dow<=6&&ch) return ch;
+  var dow=new Date().getDay(), fds=gs.filter(function(g){ return (g.perfil==='CH'||g.perfil==='HB')&&g.pct>=0.2; })[0]; if(dow>=4&&dow<=6&&fds) return fds; // fim de semana: churrasco ou hambúrguer, o que ele mais compra
   return gs[0]; }
 /* itens da cesta que a mensagem cita (o conjunto, nunca um item solto): foco primeiro, sem repetir o mesmo nome */
 var RANK_CAT={CARNE:0,HAMBURGUER:0,LINGUICA:1,PAO_HB:1,QUEIJO:2,PAO_ALHO:2,ACOMP:2,MOLHOS:3,SOBREMESA:3,CERVEJA:4,REFRIGERANTE:4,AGUA:4,VINHO:4,DESTILADO:4,CARVAO:5,ACESSORIOS:5,OUTROS:5};
@@ -2351,6 +2358,8 @@ var BIB4={
     'Que bom ter você com a gente! Como foi a sua {cesta}? Quando quiser, preparamos {itens} de novo.'],
   fimdesemana:['O fim de semana está chegando. Quer que a gente já deixe a sua {cesta} pronta: {itens}?',
     'Vai ter churrasco no fim de semana? Podemos deixar a sua {cesta} separada: {itens}.'],
+  fimdesemana_hb:['O fim de semana está chegando. Que tal um hambúrguer em casa? A sua {cesta} pode ficar pronta: {itens}.',
+    'Para o fim de semana, a gente deixa a sua {cesta} separada: {itens}. Quer que a gente prepare?'],
   padrao:['A sua {cesta} de sempre está disponível hoje: {itens}. Quer que a gente separe para você?',
     'Passando para lembrar da sua {cesta}: {itens}, com a qualidade de sempre. Podemos preparar para você?',
     'Se quiser deixar tudo resolvido, a gente monta a sua {cesta}: {itens}. É só confirmar.'],
@@ -2368,7 +2377,7 @@ var BIB4={
 var SAIR4=['Se preferir não receber mais mensagens, é só responder SAIR.','Caso não queira mais receber nossas mensagens, responda SAIR.'];
 var BIB4_ROT={saud_f:['Saudação — clientes mulheres','Proximidade com respeito. Nunca "Oi, tudo tranquilo?"'],saud_m:['Saudação — clientes homens','Calorosa e profissional'],saud_n:['Saudação — nome neutro ou casal','Sem palavras de gênero'],
   saud_formal:['Saudação — clientes formais','Para quem escreve "bom dia", "por gentileza" (sem exclamação)'],primeiro:['Primeira mensagem','Para quem nunca recebeu: diz que é o WhatsApp da loja'],salvar_numero:['Salvar o número','Só para quem está há mais de 90 dias sem comprar'],
-  recompra:['Hora de repor a cesta','{cesta} {itens} {ciclo}'],vip:['VIP (10% que mais gastam)','{cesta} {itens}'],novo:['Cliente novo (até 2 compras)','{cesta} {itens}'],fimdesemana:['Fim de semana (qui/sex/sáb) — cesta de churrasco','{cesta} {itens}'],
+  recompra:['Hora de repor a cesta','{cesta} {itens} {ciclo}'],vip:['VIP (10% que mais gastam)','{cesta} {itens}'],novo:['Cliente novo (até 2 compras)','{cesta} {itens}'],fimdesemana:['Fim de semana (qui/sex/sáb) — cesta de churrasco','{cesta} {itens}'],fimdesemana_hb:['Fim de semana (qui/sex/sáb) — cesta de hambúrguer','{cesta} {itens}'],
   padrao:['Dia comum','{cesta} {itens}'],reativar_risco:['31 a 60 dias sem comprar','{tempo} {cesta} {itens}'],reativar_foco:['Mais de 60 dias, a partir de um produto (Recompra / ficha)','{tempo} {cesta} {itens}'],
   reativar_inativo:['Mais de 60 dias — só vínculo, sem produto','{vinculo} {tempo}'],sem_cesta:['Cliente sem cesta ativa','Sem produto'],complemento:['Complemento','{base_comp} = o que ele compra · {comp} = o que costuma vir junto'],ctas:['Chamadas para responder','Usadas quando o texto não termina em pergunta'],ctas_neutro:['Chamadas sem produto','Reconquista: convida a responder sem falar em separar pedido']};
 function bib4(){ var b=S.cfg.biblioteca4||{}, o={}; Object.keys(BIB4).forEach(function(k){ var v=b[k]; o[k]=(v==null||(Array.isArray(v)&&!v.length))?BIB4[k]:v; }); return o; }
@@ -2456,12 +2465,12 @@ function situacaoV4(c,g,foco,modo){ var d=c.recencia, dow=new Date().getDay();
   if(modo==='recompra'||g.hora||(fe&&fe.atrasado)) return 'recompra';
   if(c.nCompras<=2&&c.primeiraCompra&&dias(c.primeiraCompra,S.model.refData)<=45) return 'novo';
   if(c.perfil==='VIP') return 'vip';
-  if(dow>=4&&dow<=6&&g.perfil==='CH') return 'fimdesemana';
+  if(dow>=4&&dow<=6&&(g.perfil==='CH'||g.perfil==='HB')) return 'fimdesemana';
   return 'padrao'; }
 function montarSug(c,foco,modo){ var cp=cestaPerfil(c), g=foco?(grupoDoProduto(cp,foco)||grupoPrincipal(c,cp)):grupoPrincipal(c,cp);
   var its=itensMsg(g,foco), comp=complementoDe(c,g,its), sit=situacaoV4(c,g,foco,modo), B=bib4(), seed=c.chave+'|'+hoje()+'|'+((S.regen&&S.regen[c.chave])||0)+'|'+(foco||'');
   if(!its.length&&!/^reativar_inativo|sem_cesta/.test(sit)) sit=c.recencia>60?'reativar_inativo':'sem_cesta';
-  var corpo=escolherCorpo(c,sit,B[sit]||B.padrao,seed), semProduto=/^(reativar_inativo|sem_cesta)$/.test(sit);
+  var corpo=escolherCorpo(c,sit,(sit==='fimdesemana'&&g&&g.perfil==='HB'?B.fimdesemana_hb:B[sit])||B.padrao,seed), semProduto=/^(reativar_inativo|sem_cesta)$/.test(sit);
   var vars={cesta:g?g.cesta:'cesta',itens:listaPT(its.map(function(x){ return x.nome; })),ciclo:g&&g.ciclo?Math.round(g.ciclo):'',tempo:tempoHumano(c.recencia),vinculo:vinculoDe(c,seed)};
   var r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed,comp:semProduto||sit==='reativar_foco'?null:comp,salvar:c.recencia>90,ofertaSemana:!semProduto,cta:semProduto?false:true});
   var mot=function(x){ var e=x.e; return g&&g.hora?('cesta '+PERFIS[g.perfil].nome.toLowerCase()+': repõe a cada '+Math.round(g.ciclo)+' dias, última há '+g.diasSem):(e.vezes>1?('comprou '+e.vezes+' vezes · '+pct0(e.pct)+' do gasto'):('comprou em '+dBR(e.ultima))); };
