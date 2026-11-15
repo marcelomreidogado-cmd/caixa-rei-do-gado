@@ -393,6 +393,11 @@ body{font-variant-numeric:tabular-nums}
   /* Conversas: lista e conversa um embaixo do outro (o painel da conversa saía cortado) */
   .cv{grid-template-columns:minmax(0,1fr)!important}
   .cv>*{min-width:0}
+  /* Tabelas: nome do cliente e do produto com largura mínima (antes quebravam em 3-4 linhas); a tabela desliza */
+  .tbl:has(td input[type=checkbox]) td:nth-child(3){min-width:190px}
+  .tbl:has(td select) td:nth-child(2){min-width:180px}
+  /* Indicadores do Hoje: selo de variação (▲/▼) não cobre mais o título */
+  .ek .dl{position:static!important;display:inline-block;margin:0 0 4px}
 }
 </style>
 </head><body>
