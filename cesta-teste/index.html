@@ -2537,9 +2537,9 @@ function violacoesMsg(txt,c,tipo,s){ var v=[], ls=String(txt||'').split('\n'), l
   if(/tudo (tranquilo|certo|joia|jóia|beleza)\s*\?/i.test(ls.slice(0,2).join(' '))) v.push('"tudo tranquilo?" na abertura');
   if(/\b(abra[cç]os?|abs|bjs|beijos?)\b/i.test(txt)) v.push('"Abraço" na assinatura');
   if((txt.match(/(^|[\s.!?])(Bom dia|Boa tarde|Boa noite|Olá)[,!.]/g)||[]).length>1) v.push('saudação repetida');
-  if(c&&ls.indexOf(assinaturaDe(c))<0) v.push('sem a assinatura (atendente · Equipe Rei do Gado + loja)');
+  if(c&&ls.indexOf(assinaturaDe(c))<0) v.push('sem a assinatura (atendente · Rei do Gado + loja)');
   if(/\bcestas?\b/i.test(txt)) v.push('cita "cesta" (soa robô)');
-  if(ls.filter(function(l){ return !/\bSAIR\b/.test(l); }).join('\n').length>230) v.push('mensagem longa (mais de 230 caracteres)');
+  if(ls.filter(function(l){ return !/\bSAIR\b/.test(l); }).join('\n').length>LIMITE_MSG) v.push('mensagem longa (mais de '+LIMITE_MSG+' caracteres)');
   if(/\{[a-z_]+\}/i.test(txt)) v.push('campo sem preencher');
   if(c&&!blocoCombina(ls.slice(1).join(' '),c)) v.push('gíria para cliente '+(lingua(c).tom==='formal'?'formal':'mulher'));
   return v; }
@@ -2570,6 +2570,7 @@ function escolherCorpo(c,sit,lista,seed,bonus){ var vis=vistoRegen(c), usados={}
      uma pergunta (18% × 7%), emoji (20% × 13%), nome de quem atende. SAIR só na 1ª mensagem.
    • medir: 10% de grupo de controle nos envios em lote.
    ===================================================================== */
+var LIMITE_MSG=200; /* tamanho máximo da mensagem, sem a linha do SAIR */
 var MEIA_VIDA=60, LIMITE_AUTO=30;
 var BIB5={
   recompra:['{Seu_p1} já deve estar acabando, né? Posso separar pra você?','Recebemos {p} hoje e me lembrei de você. Posso separar?','Chegou {p} hoje e me lembrei de você. Quer que eu separe?'],
@@ -2616,12 +2617,15 @@ function comporMsg(c,o){ var B=bib4(), L=lingua(c), at=atendenteDe(c.loja), loja
   var corpo=fill(o.corpo||''), partes=[(saud+' '+corpo).trim(),assinaturaDe(c)];
   if(B.sair&&primeiraMensagem(c)) partes.push(typeof B.sair==='string'?B.sair:BIB5.sair);
   return {txt:corrigirMsg(personalizar(partes.join('\n'),c,at),c),vb:'',atendente:at}; }
+function tamMsg(txt){ return String(txt||'').split('\n').filter(function(l){ return !/\bSAIR\b/.test(l); }).join('\n').length; }
 function montarSug(c,foco,modo){ var o=ofertaHoje(c,foco), sit=situacaoV5(c,o,foco,modo), B=bib4(), seed=c.chave+'|'+hoje()+'|'+((S.regen&&S.regen[c.chave])||0)+'|'+(foco||'');
   var apr=aprendidasPara(sit), bon={}, base=(B[sit]||B.padrao).slice(); apr.forEach(function(x){ if(base.indexOf(x.t)<0){ base.push(x.t); bon[x.t]=1+6*x.score; } });
   var corpo=escolherCorpo(c,sit,base,seed,bon), aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null, p1=o.itens[0], fm=p1?fem(p1.produto)||fem(p1.nome.toUpperCase()):false;
   var vars={p:listaPT(o.itens.map(function(x){ return x.nome; })),p1:p1?p1.nome:'',Seu_p1:p1?(fm?'Sua ':'Seu ')+p1.nome:'',seu_p1:p1?(fm?'sua ':'seu ')+p1.nome:'',o_p1:p1?(fm?'a ':'o ')+p1.nome:'',do_p1:p1?(fm?'da ':'do ')+p1.nome:'',tempo:tempoHumano(c.recencia)};
   var r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed});
-  if(o.itens.length>1&&!o.escolhaEquipe&&r.txt.split('\n').slice(0,2).join('\n').length>200){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
+  if(o.itens.length>1&&!o.escolhaEquipe&&tamMsg(r.txt)>LIMITE_MSG){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
+  if(tamMsg(r.txt)>LIMITE_MSG){ var curtos=base.filter(function(t){ return t&&t!==corpo.t&&blocoCombina(t,c); }).sort(function(a,b){ return a.length-b.length; });
+    for(var ci=0;ci<curtos.length;ci++){ var r2=comporMsg(c,{corpo:curtos[ci],vars:vars,seed:seed}); if(tamMsg(r2.txt)<=LIMITE_MSG){ r=r2; corpo={t:curtos[ci],i:base.indexOf(curtos[ci])}; aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null; break; } } }
   var soManual=c.recencia>LIMITE_AUTO, comp=o.grupo?complementoDe(c,o.grupo,o.itens):null;
   if(/_p1\}/.test(corpo.t)&&o.itens.length>1&&!o.escolhaEquipe){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
   return {aprendida:aprX,cliChave:c.chave,mensagem:r.txt,situacao:sit,variante:'v5:'+sit+':'+(aprX?'eq'+aprX.h:corpo.i),vh:sit+'|'+hashN(corpo.t),vtxt:corpo.t,vb:'',atendente:r.atendente,foco:foco||'',soManual:soManual,
@@ -2725,7 +2729,7 @@ function auditarMensagens(lim){ lim=lim||100000; var m=S.model, out={total:0,por
   kits().forEach(function(k){ publicoKit(k,{pub:'todos'}).filter(function(c){ return foneWa(c.celular); }).slice(0,lim).forEach(function(c){ check('kit',c,sgKit(c,k)); }); });
   return out; }
 function blocoQualidadeMsg(){ var r=S.audMsg;
-  return '<section class="card"><header><h3>✅ Verificação das mensagens</h3></header><p class="nota">Gera a mensagem de <b>todos</b> os clientes em todas as telas (sugestões, recompra, campanhas, segmentos, reconquista e kits) e confere: saudação sem "Oi… tudo tranquilo?", assinatura com o atendente e a equipe da loja, sem "Abraço", sem a palavra "cesta", sem gíria para mulheres e clientes formais e sem campo vazio.</p>'+
+  return '<section class="card"><header><h3>✅ Verificação das mensagens</h3></header><p class="nota">Gera a mensagem de <b>todos</b> os clientes em todas as telas (sugestões, recompra, campanhas, segmentos, reconquista e kits) e confere: saudação sem "Oi… tudo tranquilo?", assinatura com o atendente e a loja, até '+LIMITE_MSG+' caracteres (sem a linha do SAIR), sem "Abraço", sem a palavra "cesta", sem gíria para mulheres e clientes formais e sem campo vazio.</p>'+
     '<div class="filtros"><button class="btn sec" id="audMsg">Verificar todas as mensagens</button></div>'+
     (r?'<div class="ex-kpis sm">'+kc2('Mensagens verificadas',num(r.total),Object.keys(r.porTipo).map(function(k){ return k+': '+num(r.porTipo[k]); }).join(' · '))+kc2('Dentro das regras',num(r.ok),pct0(r.total?r.ok/r.total:1),r.ok===r.total?'ok':'')+kc2('Com problema',num(r.total-r.ok),Object.keys(r.viol).map(function(k){ return k+': '+r.viol[k]; }).join(' · ')||'nenhum',r.ok===r.total?'ok':'')+'</div>'+
       (r.exemplos.length?'<div class="tw"><table class="tbl"><thead><tr><th>Tela</th><th>Cliente</th><th>Problema</th><th>Mensagem</th></tr></thead><tbody>'+r.exemplos.map(function(x){ return '<tr><td>'+esc(x.tipo)+'</td><td>'+esc(x.cli)+'</td><td>'+esc(x.v)+'</td><td><small>'+esc(x.msg)+'</small></td></tr>'; }).join('')+'</tbody></table></div>':''):'')+'</section>'; }
