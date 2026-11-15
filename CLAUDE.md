@@ -14,7 +14,7 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 ## Arquitetura
 - Sem build. Firebase compat 10.12.5 (auth + **Realtime Database**), Chart.js 4.4.0.
 - Firebase projeto `motoboy-ddefa` (o mesmo do RH e do Compras). Caixa grava em `caixa/…`; a cesta grava em `cesta_rei_do_gado/…` via REST (sem SDK).
-- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: o botão "Desligar o CRM antigo de vez" (Ajustes) os arquiva em `arquivo_crm_antigo/AAAA-MM-DD` e só depois os apaga.
+- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa `versao:'4.1'` em `computadores`.
 - Nós da cesta: `imports_meta`, `imports_linhas`, `imports_cli`, `vinculos`, `config` (inclui `regrasContato`, `metaDiaria`, `metaCadastro` e `mesclas`), `contatos`, `contatos_ult`, `hist`, `seg`, `camp`, `lemb`, `kit_img`, `computadores`, `rev`. O teste usa `cesta_rei_do_gado/teste/…`.
 - Única fonte de dados: PDF "Relatório de Produtos Vendidos por Cliente/Vendedor" (Alterdata), importado pelas lojas. Extrato de Produtos e Curva ABC não são mais usados.
 - WhatsApp pela Uazapi (uma instância e um token por loja, `localStorage['cesta_uazapi']`). No teste, os envios são simulados.
