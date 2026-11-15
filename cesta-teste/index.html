@@ -2539,7 +2539,7 @@ function violacoesMsg(txt,c,tipo,s){ var v=[], ls=String(txt||'').split('\n'), l
   if((txt.match(/(^|[\s.!?])(Bom dia|Boa tarde|Boa noite|Olá)[,!.]/g)||[]).length>1) v.push('saudação repetida');
   if(c&&ls.indexOf(assinaturaDe(c))<0) v.push('sem a assinatura (atendente · Rei do Gado + loja)');
   if(/\bcestas?\b/i.test(txt)) v.push('cita "cesta" (soa robô)');
-  if(ls.filter(function(l){ return !/\bSAIR\b/.test(l); }).join('\n').length>LIMITE_MSG) v.push('mensagem longa (mais de '+LIMITE_MSG+' caracteres)');
+  if(!/^(kit|campanha|segmento)$/.test(tipo||'')&&tamMsg(txt)>LIMITE_MSG) v.push('mensagem longa (mais de '+LIMITE_MSG+' caracteres)');
   if(/\{[a-z_]+\}/i.test(txt)) v.push('campo sem preencher');
   if(c&&!blocoCombina(ls.slice(1).join(' '),c)) v.push('gíria para cliente '+(lingua(c).tom==='formal'?'formal':'mulher'));
   return v; }
@@ -2729,7 +2729,7 @@ function auditarMensagens(lim){ lim=lim||100000; var m=S.model, out={total:0,por
   kits().forEach(function(k){ publicoKit(k,{pub:'todos'}).filter(function(c){ return foneWa(c.celular); }).slice(0,lim).forEach(function(c){ check('kit',c,sgKit(c,k)); }); });
   return out; }
 function blocoQualidadeMsg(){ var r=S.audMsg;
-  return '<section class="card"><header><h3>✅ Verificação das mensagens</h3></header><p class="nota">Gera a mensagem de <b>todos</b> os clientes em todas as telas (sugestões, recompra, campanhas, segmentos, reconquista e kits) e confere: saudação sem "Oi… tudo tranquilo?", assinatura com o atendente e a loja, até '+LIMITE_MSG+' caracteres (sem a linha do SAIR), sem "Abraço", sem a palavra "cesta", sem gíria para mulheres e clientes formais e sem campo vazio.</p>'+
+  return '<section class="card"><header><h3>✅ Verificação das mensagens</h3></header><p class="nota">Gera a mensagem de <b>todos</b> os clientes em todas as telas (sugestões, recompra, campanhas, segmentos, reconquista e kits) e confere: saudação sem "Oi… tudo tranquilo?", assinatura com o atendente e a loja, até '+LIMITE_MSG+' caracteres nas mensagens automáticas (sem a linha do SAIR; kits e campanhas têm o texto da loja), sem "Abraço", sem a palavra "cesta", sem gíria para mulheres e clientes formais e sem campo vazio.</p>'+
     '<div class="filtros"><button class="btn sec" id="audMsg">Verificar todas as mensagens</button></div>'+
     (r?'<div class="ex-kpis sm">'+kc2('Mensagens verificadas',num(r.total),Object.keys(r.porTipo).map(function(k){ return k+': '+num(r.porTipo[k]); }).join(' · '))+kc2('Dentro das regras',num(r.ok),pct0(r.total?r.ok/r.total:1),r.ok===r.total?'ok':'')+kc2('Com problema',num(r.total-r.ok),Object.keys(r.viol).map(function(k){ return k+': '+r.viol[k]; }).join(' · ')||'nenhum',r.ok===r.total?'ok':'')+'</div>'+
       (r.exemplos.length?'<div class="tw"><table class="tbl"><thead><tr><th>Tela</th><th>Cliente</th><th>Problema</th><th>Mensagem</th></tr></thead><tbody>'+r.exemplos.map(function(x){ return '<tr><td>'+esc(x.tipo)+'</td><td>'+esc(x.cli)+'</td><td>'+esc(x.v)+'</td><td><small>'+esc(x.msg)+'</small></td></tr>'; }).join('')+'</tbody></table></div>':''):'')+'</section>'; }
