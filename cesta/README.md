@@ -1,20 +1,18 @@
-# Cesta de Produtos por Cliente — Rei do Gado
+# Cesta Rei do Gado — CRM principal
 
-Link: https://marcelomreidogado-cmd.github.io/caixa-rei-do-gado/cesta/
+Produção: https://marcelomreidogado-cmd.github.io/caixa-rei-do-gado/cesta/
+Teste: https://marcelomreidogado-cmd.github.io/caixa-rei-do-gado/cesta-teste/
+Ficha de um cliente: `.../cesta/?cliente={CODIGO}`
 
-Ferramenta de cesta de produtos por cliente para o CRM:
-- Importa o PDF "Extrato de Produtos - Com Saldo e Resumo por Operação" (Alterdata).
-- Importa a planilha "Clientes Curva ABC" (.xls) do Alterdata para vincular código do cliente e celular automaticamente.
-- Mostra clientes, sugestões de oferta, recompra, produtos, painel de cadastro por loja e funcionários.
-- Sincroniza códigos CRM, configurações e relatórios no Firebase Realtime Database
-  (projeto motoboy-ddefa, pasta `cesta_rei_do_gado`), via REST, sem SDK.
+A Cesta é o sistema principal de clientes, mensagens, campanhas, promoções e kits do Rei do Gado Casa de Carnes (lojas Coronel, Correas e Bingen). O CRM antigo, feito no ChatGPT, foi desligado: a cesta não envia nem lê nada dele.
 
-Arquivo único (`index.html`), com o leitor de PDF (pdf.js 3.11) e o leitor de planilhas (SheetJS 0.18.5) embutidos. Não tem build:
-para atualizar, basta substituir o `index.html` e o GitHub Pages publica sozinho.
+## O que faz
+- Importa o PDF **"Relatório de Produtos Vendidos por Cliente/Vendedor"** do Alterdata (única fonte). A importação é feita pelas lojas.
+- Monta o histórico de compras de cada cliente, o perfil (churrasco, dia a dia, hambúrguer) e o que oferecer.
+- Envia as mensagens pelo WhatsApp de cada loja (Uazapi), com trava contra repetição, SAIR e grupo de controle.
+- Telas: Hoje, Conversas, Clientes, Campanhas (Segmentos, Sugestões, Recompra, Reconquista, Kits), Produtos, Painel e Ajustes.
 
-## Integração com o CRM
-A cesta publica uma ficha por cliente (pelo código do Alterdata) no Firebase, e o CRM só precisa ler:
-- Ficha do cliente: `https://motoboy-ddefa-default-rtdb.firebaseio.com/cesta_rei_do_gado/crm/{CODIGO}.json`
-- Procurar código pelo WhatsApp (55+DDD+número): `.../cesta_rei_do_gado/crm_tel/{NUMERO}.json`
-- Data da última atualização: `.../cesta_rei_do_gado/crm_meta.json`
-- Abrir a cesta completa do cliente: `https://marcelomreidogado-cmd.github.io/caixa-rei-do-gado/cesta/?cliente={CODIGO}`
+## Como é feito
+Arquivo único (`index.html`), sem build. O leitor de PDF (pdf.js 3.11) e o de planilhas (SheetJS 0.18.5) vão embutidos. Os dados ficam no navegador (IndexedDB) e na nuvem (Firebase Realtime Database, projeto `motoboy-ddefa`, pasta `cesta_rei_do_gado`), acessada por REST, sem SDK.
+
+Toda mudança entra primeiro em `/cesta-teste/` e só depois é promovida para `/cesta/`. Antes de promover, em Ajustes → "Verificar todas as mensagens", o resultado tem de ser 100%.
