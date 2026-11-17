@@ -32,3 +32,22 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 - Editar → `node --check` no script extraído → testar em `cesta-teste/` → promover → commit em português.
 - Nunca apagar dados do Realtime Database sem backup. Não mexer em regras de segurança/login sem perguntar.
 - Usuário (Marcelo) trabalha em português do Brasil, no Mac, e prefere soluções simples, sem terminal.
+
+## Padrão visual (obrigatório em toda mudança)
+Polimento visual feito em 15/11/2026. Para não regredir (o Compras piorou em 16–17/11 por isso):
+- **Não colocar estilo solto (`style="..."`) em linhas de tabela, listas ou cartões.** Criar ou reutilizar classes no bloco de CSS do projeto (indicado abaixo). Estilo inline só para valores dinâmicos (cor de loja, largura de barra).
+- **Tabelas compactas:** cada linha de produto/cliente/lançamento cabe em ~2 linhas de texto. Controles extras (marcações, botões) ficam pequenos e na mesma linha; detalhes vão para um modal ou para a dica (`title`).
+- **Nada passa da largura da tela**, exceto tabelas largas dentro de um contêiner que desliza (com a coluna de nome fixa à esquerda no celular).
+- **Celular primeiro:** conferir em 390 px e em 1440 px. No celular: navegação numa faixa/barra única, filtros e chips em faixa que desliza, indicadores em 2 colunas, textos sem cortar no meio da palavra.
+- **Números** com algarismos alinhados (`font-variant-numeric: tabular-nums`), sem fonte monoespaçada; valores com sinal não quebram linha.
+- Reaproveitar as cores, raios, botões e chips que o sistema já usa — não criar um estilo novo para cada tela.
+
+### Conferência antes de publicar
+1. Abrir o sistema com **dados fictícios** e **sem acesso ao banco real** (veja "Como testar o visual" abaixo).
+2. Fotografar as telas alteradas em 390 px e 1440 px (Playwright já instalado no ambiente; Chromium em `/opt/pw-browsers`).
+3. Medir que `document.documentElement.scrollWidth` não passa da largura da janela em todas as abas.
+4. Mostrar ao Marcelo as fotos de **antes e depois** na resposta e dizer o que não foi testado.
+
+### Onde fica o visual / como testar o visual
+- **Caixa** (`index.html`): CSS no fim do `<style>` ("POLIMENTO VISUAL (nov/2026)"); no celular o menu é barra inferior. Teste com `window.firebase` falso (auth + `database().ref().get()`) devolvendo `caixa/{loja}/{id}` fictícios.
+- **Cesta**: CSS no bloco `<style id="cesta-polimento-v1">` (antes de `</head>`). Mudar **primeiro em `cesta-teste/`**, conferir, e só então copiar o mesmo bloco para `cesta/` (as duas devem diferir só nas linhas do ambiente de teste). Teste: bloquear **toda** a rede (`context.route(/^https?:/, r => r.abort())`, para não enviar nada) e gravar um import fictício no IndexedDB `teste_cesta_rei_do_gado_v2` (store `imports`; linha = `[data, loja, cupom, cliente, codProd, descrição, qtd, preço, valor, op, codCliente]`), depois recarregar.
