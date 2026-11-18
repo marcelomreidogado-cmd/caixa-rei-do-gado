@@ -396,6 +396,9 @@ body{font-variant-numeric:tabular-nums}
 #uazAlerta{position:sticky;top:0;z-index:40;background:#b91c1c;color:#fff;padding:9px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:14px;max-width:100%;box-sizing:border-box}#uazAlerta small{opacity:.85}#uazAlerta .btn{background:#fff;color:#b91c1c;border-color:#fff}.uzqr{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:8px 0}.uzqr img{width:min(240px,70vw);height:auto;aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:#fff}.uzqr ol{margin:0;padding-left:18px;line-height:1.7}.uzpc{font-size:30px;font-weight:800;letter-spacing:.12em;background:#f6f3ef;border-radius:12px;padding:14px 18px}
 body:has(#modal.on) #uazAlerta{display:none}
 @media (max-width:600px){#uazAlerta{font-size:13px;padding:8px 12px;gap:8px}.uzpc{font-size:24px}#uzFone{width:100%!important}}
+/* fila de envio por loja (v4.3) */
+.fljs{display:flex;flex-direction:column;gap:8px}.flj{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.flj small{color:var(--mut)}.flmsg{display:block;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.flac{white-space:nowrap}.flac .btn{margin-left:4px}@media (max-width:600px){.flmsg{max-width:200px}}
+@media (max-width:600px){#subnav{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;scrollbar-width:none}#subnav::-webkit-scrollbar{display:none}#subnav button{flex:0 0 auto;min-width:78px}}
 </style>
 </head><body>
 <aside class="side"><div class="logo">RG</div><nav class="tabs"><button data-aba="hoje" data-g="hoje" data-tip="Hoje" aria-label="Hoje"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><em>Hoje</em><span class="bdg"></span></button><button data-aba="conversas" data-g="conversas" data-tip="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5A8.5 8.5 0 1 1 21 11.5z"/></svg><em>Conversas</em><span class="bdg"></span></button><button data-aba="clientes" data-g="clientes" data-tip="Clientes" aria-label="Clientes"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6a6.5 6.5 0 0 1 3 5.9"/></svg><em>Clientes</em><span class="bdg"></span></button><button data-aba="campanhas" data-g="campanhas" data-tip="Campanhas" aria-label="Campanhas"><svg viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5V4.5L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 8.5a5 5 0 0 1 0 7"/></svg><em>Campanhas</em><span class="bdg"></span></button><button data-aba="produtos" data-g="produtos" data-tip="Produtos" aria-label="Produtos"><svg viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg><em>Produtos</em><span class="bdg"></span></button><button data-aba="painel" data-g="painel" data-tip="Painel" aria-label="Painel"><svg viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M2 20.5h20"/></svg><em>Painel</em><span class="bdg"></span></button></nav><nav class="tabs fim"><button data-aba="importacoes" data-g="ajustes" data-tip="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M17 6h3"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg><em>Ajustes</em><span class="bdg"></span></button></nav></aside><div class="app"><header class="top"><div class="tl"><button id="sideTg" class="ico side-tg" title="Mostrar/esconder menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="busca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="buscaG" placeholder="Buscar cliente, código ou celular" autocomplete="off"><div id="buscaR"></div></div></div><div id="lojabar" class="lojabar"></div><div class="tr"><span class="per" id="periodo"></span><button id="syncst" class="syncst off">○ Nuvem</button></div></header><div id="subnav"></div><main id="main">Carregando…</main></div>
@@ -817,7 +820,7 @@ async function salvarLinha(chaveProd,linha){
 /* ---------- SINCRONIZAÇÃO NA NUVEM (Firebase Realtime Database via REST — sem SDK, funciona em file://) ---------- */
 var RAIZ_PROD='cesta_rei_do_gado', RAIZ_TESTE='cesta_rei_do_gado/teste';
 var SYNC_PADRAO={url:'https://motoboy-ddefa-default-rtdb.firebaseio.com',raiz:window.AMB_TESTE?RAIZ_TESTE:RAIZ_PROD,token:'',computador:'',ativo:true};
-var CFG_SYNC={mesclas:1,mesclasNao:1,linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,biblioteca4:1,biblioteca5:1,aprendidas:1,nomesProd:1,taxonomia:1,atendentes:1,kits:1,reconquista:1,metaDiaria:1}, CHUNK=8000, POLL_MS=30000;
+var CFG_SYNC={filaPausa:1,mesclas:1,mesclasNao:1,linhas:1,msg:1,metaCadastro:1,abc:1,abcInfo:1,regrasContato:1,biblioteca:1,biblioteca4:1,biblioteca5:1,aprendidas:1,nomesProd:1,taxonomia:1,atendentes:1,kits:1,reconquista:1,metaDiaria:1}, CHUNK=8000, POLL_MS=30000;
 var SY={estado:'off',msg:'',ultima:null,ocupado:false,timer:null,revNuvem:null,renderPendente:false};
 function lerSync(){ try{ S.sync=Object.assign({},SYNC_PADRAO,JSON.parse(localStorage.getItem('cesta_sync')||'{}')); }catch(e){ S.sync=Object.assign({},SYNC_PADRAO); } if(window.AMB_TESTE&&/motoboy-ddefa/.test(S.sync.url)) S.sync.raiz=RAIZ_TESTE; }
 function gravarSync(){ try{ localStorage.setItem('cesta_sync',JSON.stringify(S.sync)); }catch(e){} }
@@ -864,7 +867,7 @@ async function enviarPendentes(){
   for(var q=0;q<cs.length;q++){ var cq=cs[q]; await fb('PUT','config/'+cq.k,{v:JSON.stringify(cq.v),em:cq.em||new Date().toISOString(),por:S.sync.computador||''}); cq.pendente=false; await dbTx('config',function(st){ st.put(cq); }); mudou=true; }
   var ct=(await dbAll('contatos')).filter(function(r){return r.pendente;});
   if(ct.length){ var pc={}, pu={}; ct.forEach(function(r){ var x=Object.assign({},r); delete x.pendente; pc[r.id]=x; if(!r.excluido) (r.chaves||[]).forEach(function(k){ if(!pu[k]||pu[k].em<r.em) pu[k]={em:r.em,por:r.por||'',canal:r.canal||'cesta'}; }); });
-    await fb('PATCH','contatos',pc); if(Object.keys(pu).length) await fb('PATCH','contatos_ult',pu);
+    await fb('PATCH','contatos',pc); var _ids=Object.keys(pc); for(var _i=0;_i<_ids.length;_i+=40) await avisarMudanca({t:'contatos',ids:_ids.slice(_i,_i+40)}); if(Object.keys(pu).length) await fb('PATCH','contatos_ult',pu);
     await dbTx('contatos',function(st){ ct.forEach(function(r){ r.pendente=false; st.put(r); }); }); mudou=true; }
   if(mudou) await marcarRev();
   return mudou; }
@@ -1092,7 +1095,7 @@ function histAdd(c,msgs){ if(!c||!msgs||!msgs.length) return 0; var K=histK(c), 
   if(!Object.keys(f).length) delete HI.fila[K];
   if(n){ salvarFilaHist(); clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,1500); } return n; }
 async function enviarHist(){ if(!syncAtivo()||HI.enviando) return; HI.enviando=true;
-  try{ var ks=Object.keys(HI.fila); for(var i=0;i<ks.length;i++){ var K=ks[i], f=HI.fila[K]; if(f&&Object.keys(f).length) await fb('PATCH','hist/'+K,f); delete HI.fila[K]; salvarFilaHist(); } }
+  try{ var ks=Object.keys(HI.fila); for(var i=0;i<ks.length;i++){ var K=ks[i], f=HI.fila[K]; if(f&&Object.keys(f).length){ await fb('PATCH','hist/'+K,f); avisarMudanca({t:'hist',K:K}); } delete HI.fila[K]; salvarFilaHist(); } }
   catch(e){ clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,60000); } finally{ HI.enviando=false; } }
 async function carregarHist(c,forcar){ var K=histK(c); if(HI.ok[K]&&!forcar) return HI.cache[K]||{};
   if(syncAtivo()){ try{ var d=await fb('GET','hist/'+K)||{}, alt=histKs(c); for(var i=0;i<alt.length;i++){ var da=await fb('GET','hist/'+alt[i]); if(da) d=Object.assign({},da,d); } HI.cache[K]=Object.assign({},d,HI.cache[K]||{}); HI.ok[K]=1; }catch(e){} } return HI.cache[K]||{}; }
@@ -1797,11 +1800,11 @@ async function uazStatus(inst){ var j=await uazReq(inst,'GET','/instance/status'
   var ok=st==='connected'||st==='open'||(j.status&&j.status.connected===true)||ii.connected===true;
   var stx=(j.status&&typeof j.status==='object')?j.status:{};
   return {ok:ok,status:st||'?',nome:ii.profileName||ii.name||'',numero:(ii.owner||ii.wid||'').toString().replace(/\D/g,''),motivo:ii.lastDisconnectReason||j.lastDisconnectReason||'',ultQueda:ii.lastDisconnect||j.lastDisconnect||'',logado:stx.loggedIn,bruto:j}; }
-async function uazEnviarMidia(inst,numero,midia,legenda){ if(!midia||!midia.file) throw new Error('Kit sem foto.'); if(window.AMB_TESTE&&!window.AMB_TESTE_ENVIO) return simEnvio(numero,legenda);
+async function uazEnviarMidia(inst,numero,midia,legenda){ if(inst&&travado(inst.loja)) throw new Error('WhatsApp da loja '+tituloProd(inst.loja)+' desconectado — envio travado até voltar.'); if(!midia||!midia.file) throw new Error('Kit sem foto.'); if(window.AMB_TESTE&&!window.AMB_TESTE_ENVIO) return simEnvio(numero,legenda);
   var j=await uazReq(inst,'POST','/send/media',{number:numero,type:midia.type||'image',file:midia.file,text:legenda||'',delay:1500,track_source:'cesta-rei-do-gado'});
   return {chatid:j.chatid||j.wa_chatid||(j.key&&j.key.remoteJid)||'',msgid:j.messageid||j.id||(j.key&&j.key.id)||''}; }
 function simEnvio(numero,texto){ S.simulados=(S.simulados||0)+1; console.log('[TESTE] envio simulado para',numero,texto); return Promise.resolve({chatid:numero+'@s.whatsapp.net',msgid:'TESTE_'+Date.now().toString(36)}); }
-async function uazEnviar(inst,numero,texto){ if(window.AMB_TESTE&&!window.AMB_TESTE_ENVIO) return simEnvio(numero,texto); var j=await uazReq(inst,'POST','/send/text',{number:numero,text:texto,delay:1500,linkPreview:false,track_source:'cesta-rei-do-gado'});
+async function uazEnviar(inst,numero,texto){ if(inst&&travado(inst.loja)) throw new Error('WhatsApp da loja '+tituloProd(inst.loja)+' desconectado — envio travado até voltar.'); if(window.AMB_TESTE&&!window.AMB_TESTE_ENVIO) return simEnvio(numero,texto); var j=await uazReq(inst,'POST','/send/text',{number:numero,text:texto,delay:1500,linkPreview:false,track_source:'cesta-rei-do-gado'});
   return {chatid:j.chatid||j.wa_chatid||(j.key&&j.key.remoteJid)||(j.message&&j.message.chatid)||'',msgid:j.messageid||j.id||(j.key&&j.key.id)||(j.message&&j.message.messageid)||''}; }
 function semLojaMsg(c){ return c.nome+' é cliente da loja '+tituloProd(c.loja||'?')+', e o número dessa loja não está configurado neste computador. Configure na aba Importar e configurar → WhatsApp pela Uazapi, ou envie pelo computador da loja '+tituloProd(c.loja||'?')+'.'; }
 /* envio de 1 cliente pela Uazapi da loja dele: confere regras, envia, registra */
@@ -1812,29 +1815,6 @@ async function enviarUazapi(c,msg,sg){ var w=foneWa(c.celular); if(!w){ toast(c.
   var rs; try{ toast('Enviando para '+c.nome+' pelo número da '+tituloProd(inst.loja)+'…'); rs=await uazEnviar(inst,w,msg); }catch(e){ toast('Não enviou: '+e.message,'erro'); return false; }
   await registrarContato(c,'uazapi',msg,null,sg,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid,semTrava:sg&&sg.semTrava,campanha:sg&&sg.campanha,abordagem:sg&&sg.abordagem,produtos:sg&&sg.campanha?sg.produtos:null}); return true; }
 /* envio em lote: cada cliente sai pelo número da loja dele; intervalo aleatório entre mensagens */
-async function loteUazapi(lista,fnSug){ fnSug=fnSug||sugestoes;
-  var cfg=uazCfg(), max=Math.max(1,parseInt(cfg.loteMax)||30), iMin=Math.max(5,parseInt(cfg.intMin)||20), iMax=Math.max(iMin,parseInt(cfg.intMax)||45);
-  var base=lista.filter(function(c){ var g=fnSug(c); if(g.semTrava&&g.campanha&&jaRecebeuCampanha(c,g.campanha,g.campanhaDias||1)) return false; return elegivel(c,!!g.promo); });
-  var foraLoja=base.filter(function(c){ return !uazPara(c); }), alvo=base.filter(function(c){ return !!uazPara(c); }).slice(0,max);
-  if(!alvo.length){ toast(foraLoja.length?('Nenhum cliente dessa lista é das lojas configuradas neste computador ('+(uazLojas().map(tituloProd).join(', ')||'nenhuma')+'). '+foraLoja.length+' cliente(s) são de outra loja e devem ser enviados pelo computador/número da loja deles.'):'Ninguém liberado com celular nessa lista.','erro'); return; }
-  var porLoja={}; alvo.forEach(function(c){ porLoja[c.loja]=(porLoja[c.loja]||0)+1; });
-  var lojas=Object.keys(porLoja), pend=lojas.filter(atendPendente); if(pend.length){ abrirAtendentes('Escolha quem está enviando pela loja '+pend.map(tituloProd).join(' e ')+' neste computador — o nome vai na mensagem.'); return; }
-  for(var q=0;q<lojas.length;q++){ try{ var stt=await uazStatus(uazInst(lojas[q])); if(!stt.ok){ toast('O WhatsApp da loja '+tituloProd(lojas[q])+' não está conectado (status: '+stt.status+'). Conecte o celular no painel da Uazapi.','erro'); return; } }catch(e){ toast(e.message,'erro'); return; } }
-  var min=Math.round(alvo.length*(iMin+iMax)/2/60);
-  if(!confirm('Enviar '+(alvo[0]&&fnSug(alvo[0]).midia?'a foto do kit com a legenda':'a mensagem sugerida')+' para '+alvo.length+' cliente(s) pelo WhatsApp da Uazapi?\n\n'+lojas.map(function(l){return '• '+porLoja[l]+' pelo número da loja '+tituloProd(l)+(atendenteDe(l)?' (assinando: '+atendenteDe(l)+')':'');}).join('\n')+
-    (foraLoja.length?'\n\n'+foraLoja.length+' cliente(s) de outras lojas ficam de fora (o número da loja deles não está neste computador).':'')+
-    '\n\nUma mensagem a cada '+iMin+'–'+iMax+' segundos (cerca de '+(min||1)+' min). Deixe esta página aberta até terminar.'+(fnSug(alvo[0]).semTrava?'\nCampanha de promoção: vai também para quem já recebeu mensagem esta semana.':'\nClientes que já receberam ficam de fora.'))) return;
-  UZ.lote={total:alvo.length,feitos:0,ok:0,pulados:0,erros:0,parar:false,log:[]}; painelLote();
-  for(var i=0;i<alvo.length;i++){ if(UZ.lote.parar) break; var c=alvo[i], inst=uazPara(c);
-    var sgL=fnSug(c), e=estadoContato(c); if(!sgL.semTrava&&e.bloqueado){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — já recebeu'); UZ.lote.feitos++; painelLote(); continue; }
-    var rm=sgL.semTrava?null:await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<regras().diasCliente){ UZ.lote.pulados++; UZ.lote.log.unshift('⏭ '+c.nome+' — outro computador acabou de enviar'); UZ.lote.feitos++; painelLote(); continue; }
-    var msg=sgL.mensagem;
-    try{ var rs=sgL.midia?await uazEnviarMidia(inst,foneWa(c.celular),sgL.midia,msg):await uazEnviar(inst,foneWa(c.celular),msg); await registrarContato(c,sgL.midia?'uazapi-kit':'uazapi-lote',msg,null,sgL,{envioLoja:inst.loja,chatid:rs.chatid,msgid:rs.msgid,kit:sgL.kit,produtos:sgL.produtos,semTrava:sgL.semTrava,campanha:sgL.campanha,abordagem:sgL.abordagem}); UZ.lote.ok++; UZ.lote.log.unshift('✔ '+c.nome+' · '+foneFmt(c.celular)+' · '+tituloProd(inst.loja)); }
-    catch(err){ UZ.lote.erros++; UZ.lote.log.unshift('✖ '+c.nome+' — '+err.message); if(/Token|conexão|conectado/i.test(err.message)){ UZ.lote.parar=true; UZ.lote.log.unshift('⛔ Envio interrompido: '+err.message); } }
-    UZ.lote.feitos++; painelLote();
-    if(i<alvo.length-1&&!UZ.lote.parar){ var esp=(iMin+Math.random()*(iMax-iMin))*1000; UZ.lote.proxima=Date.now()+esp; painelLote();
-      while(Date.now()<UZ.lote.proxima&&!UZ.lote.parar){ await new Promise(function(r){setTimeout(r,500);}); painelLote(true); } } }
-  UZ.lote.fim=true; painelLote(); render(); toast('Envio concluído: '+UZ.lote.ok+' enviada(s), '+UZ.lote.pulados+' pulada(s), '+UZ.lote.erros+' erro(s).',UZ.lote.erros?'erro':'ok'); }
 function painelLote(soRelogio){ var L=UZ.lote, el=document.getElementById('lotebox'); if(!L) return;
   if(!el){ el=document.createElement('div'); el.id='lotebox'; el.className='lotebox'; document.body.appendChild(el); }
   var resta=L.proxima&&!L.fim?Math.max(0,Math.round((L.proxima-Date.now())/1000)):0;
@@ -2108,7 +2088,7 @@ function vigiarConexao(out){ Object.keys(out).forEach(function(l){ var x=out[l];
     RT.estado[l]=x.ok?'ok':'caiu';
     if(!x.ok&&antes!=='caiu'){ RT.quedas[l]={em:new Date().toISOString(),motivo:rede?'sem internet neste computador ou servidor da Uazapi fora':motivoQueda(x.motivo)||x.erro||'',status:x.status||'',logado:x.logado,rede:rede};
       RT.hist.unshift({loja:l,em:RT.quedas[l].em,motivo:RT.quedas[l].motivo||x.status||'',ultUaz:x.ultQueda||''}); RT.hist=RT.hist.slice(0,15); }
-    if(x.ok&&antes==='caiu'){ var q=RT.quedas[l]; if(q&&RT.hist[0]&&RT.hist[0].loja===l) RT.hist[0].voltou=new Date().toISOString(); delete RT.quedas[l]; toast('WhatsApp da loja '+tituloProd(l)+' voltou a conectar.','ok'); }
+    if(x.ok&&antes==='caiu'){ var q=RT.quedas[l]; if(q&&RT.hist[0]&&RT.hist[0].loja===l) RT.hist[0].voltou=new Date().toISOString(); delete RT.quedas[l]; toast('WhatsApp da loja '+tituloProd(l)+' voltou a conectar.','ok'); if(uazInst(l)) setTimeout(function(){ processarFila(l); },3000); }
     if(!x.ok&&!rede&&x.logado!==false) tentarReset(l); });
   pintarAlertaUaz(); }
 function pintarAlertaUaz(){ var ls=Object.keys(RT.quedas), el=document.getElementById('uazAlerta');
@@ -2136,6 +2116,127 @@ async function abrirReconectar(l){ var inst=uazLeitura(l); if(!inst) return;
     var a=document.getElementById('uzAguarda'); if(a&&RT.qr===l) a.textContent='O QR code expirou. Clique em "Novo QR code".'; };
   RT.qrGerar=gerar; await gerar(''); }
 
+/* ---------- AO VIVO ENTRE COMPUTADORES (canal do Firebase) ----------
+   Cada computador grava em "eventos" o que mudou (conversa de um cliente, registros de mensagem, fila de uma loja).
+   Os outros ouvem esse canal e buscam só aquilo, na hora — sem baixar tudo de novo. */
+var AV={es:null,desde:null,meu:null,vistos:{},tick:0,rTmr:null,pend:false};
+function chaveTempo(){ return Date.now().toString(36).padStart(9,'0')+Math.random().toString(36).slice(2,6); }
+function idAba(){ return AV.meu||(AV.meu=String(S.sync.computador||'pc').replace(/[.#$\[\]\/\s]/g,'_').slice(0,40)+'_'+Math.random().toString(36).slice(2,7)); }
+async function avisarMudanca(ev){ if(!syncAtivo()) return; var k=chaveTempo(); AV.vistos[k]=1; try{ await fb('PUT','eventos/'+k,Object.assign({pc:idAba(),em:new Date().toISOString()},ev)); }catch(e){} }
+function avAoVivo(){ return !!(AV.es&&AV.es.readyState===1); }
+function avLigar(){ if(!syncAtivo()||typeof EventSource==='undefined') return; if(AV.es&&AV.es.readyState!==2) return; if(!AV.desde) AV.desde=chaveTempo();
+  var es; try{ es=new EventSource(fbUrl('eventos','orderBy=%22%24key%22&startAt=%22'+AV.desde+'%22')); }catch(e){ return; } AV.es=es;
+  var on=function(ev){ var d; try{ d=JSON.parse(ev.data); }catch(e){ return; } if(!d) return; var its=[];
+    if(d.path==='/'){ if(d.data&&typeof d.data==='object') Object.keys(d.data).forEach(function(k){ its.push([k,d.data[k]]); }); }
+    else { var p=d.path.split('/').filter(Boolean); if(p.length===1&&d.data&&typeof d.data==='object') its.push([p[0],d.data]); }
+    its.sort(function(a,b){ return a[0]<b[0]?-1:1; }).forEach(function(x){ if(AV.vistos[x[0]]) return; AV.vistos[x[0]]=1; if(x[0]>AV.desde) AV.desde=x[0]; try{ tratarEvento(x[1]); }catch(e){} }); };
+  es.addEventListener('put',on); es.addEventListener('patch',on);
+  es.onerror=function(){ if(es.readyState===2){ AV.es=null; setTimeout(avLigar,20000); } }; }
+function avRender(){ clearTimeout(AV.rTmr); AV.rTmr=setTimeout(function(){ var a=document.activeElement;
+    if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest&&a.closest('main,#modal')){ AV.pend=true; return; }
+    AV.pend=false; if(['conversas','fila','hoje','painel'].indexOf(S.aba)>=0||$('#modal').classList.contains('on')) render(); },700); }
+document.addEventListener('focusout',function(){ if(AV.pend) setTimeout(avRender,300); });
+async function tratarEvento(e){ if(!e||e.pc===idAba()) return;
+  if(e.t==='hist'&&e.K){ var c=clientePorK(e.K); if(c){ await carregarHist(c,true); delete c._lg; avRender(); } }
+  else if(e.t==='contatos'&&e.ids){ for(var i=0;i<e.ids.length;i++) await puxarContato(e.ids[i]); indexarContatos(); limparSugestoes(); avRender(); }
+  else if(e.t==='fila'&&e.loja){ if(uazInst(e.loja)) setTimeout(function(){ processarFila(e.loja); },400); if(S.aba==='fila'){ await carregarFila(); avRender(); } } }
+async function puxarContato(id){ var r=await fb('GET','contatos/'+id); if(!r) return; var l=(S.contatos||[]).filter(function(x){ return x.id===id; })[0]; if(l&&l.pendente) return;
+  var rec=Object.assign({},r,{id:id,pendente:false,chaves:r.chaves||[],produtos:r.produtos||[]}); await dbTx('contatos',function(st){ st.put(rec); });
+  var ix=(S.contatos||[]).indexOf(l); if(ix>=0) S.contatos[ix]=rec; else (S.contatos=S.contatos||[]).push(rec); }
+async function limparEventos(){ var mk='cesta_ev_limpo'; if(localStorage.getItem(mk)===hoje()||!syncAtivo()) return; localStorage.setItem(mk,hoje());
+  var ate=(Date.now()-2*864e5).toString(36).padStart(9,'0'); try{ var v=await fb('GET','eventos',undefined,'orderBy=%22%24key%22&endAt=%22'+ate+'%22&limitToFirst=2000')||{}, p={}; Object.keys(v).forEach(function(k){ p[k]=null; }); if(Object.keys(p).length) await fb('PATCH','eventos',p); }catch(e){} }
+
+/* ---------- MOTOR DE ENVIO: fila por loja ----------
+   Qualquer computador prepara: as mensagens entram em fila/{LOJA}. Só o computador que tem o WhatsApp da loja (envio ligado) envia,
+   pelo número da própria loja, no ritmo configurado. WhatsApp desconectado = a fila para e continua sozinha quando voltar.
+   Nada é enviado duas vezes: cada mensagem é "pega" por um computador só e, em dúvida, fica para conferir (não reenvia às cegas). */
+var FM={rodando:{},fila:{},feita:{},carregadaEm:0,FILA_MAX:500,VALIDADE_H:24};
+function filaPausada(l){ return !!((S.cfg.filaPausa||{})[l]); }
+function motorDaLoja(l){ var cs=S.computadores||{}, best=null; Object.keys(cs).forEach(function(k){ var x=cs[k], n=x&&x.numeros&&x.numeros[l]; if(n&&n.cfg&&n.envia&&(!best||x.em>best.em)) best=Object.assign({id:k},x); }); return best; }
+function motorTxt(l){ if(uazInst(l)) return 'este computador envia'; var m=motorDaLoja(l); if(!m) return 'nenhum computador com o WhatsApp da loja abriu a cesta ainda'; var min=Math.round((Date.now()-Date.parse(m.em))/60000); return min<=6?'computador "'+(m.nome||m.id)+'" está aberto e envia':'o computador da loja está fechado (visto há '+(min<120?min+' min':Math.round(min/60)+' h')+') — sai quando ele abrir'; }
+function travado(l){ return RT.estado[l]==='caiu'; }
+function sgLeve(sg){ var o={}; Object.keys(sg||{}).forEach(function(k){ var v=sg[k]; if(k==='midia'||typeof v==='function') return; o[k]=v; }); try{ return JSON.parse(JSON.stringify(o)); }catch(e){ return {}; } }
+async function carregarFila(){ if(!syncAtivo()) return; try{ FM.fila=await fb('GET','fila')||{}; var d=hoje(), f={}; for(var i=0;i<LOJAS_ENVIO.length;i++){ f[LOJAS_ENVIO[i]]=await fb('GET','fila_feita/'+LOJAS_ENVIO[i]+'/'+d)||{}; } FM.feita=f; FM.carregadaEm=Date.now(); }catch(e){} }
+function pendentesDe(chave){ var n=0; Object.keys(FM.fila||{}).forEach(function(l){ Object.keys(FM.fila[l]||{}).forEach(function(id){ var it=FM.fila[l][id]; if(it&&it.chave===chave&&(it.st==='aguardando'||it.st==='enviando')) n++; }); }); return n; }
+/* entrada do motor: substitui o envio direto. Gera a mensagem aqui (com a assinatura da loja) e põe na fila da loja de cada cliente. */
+async function loteUazapi(lista,fnSug){ fnSug=fnSug||sugestoes;
+  if(!syncAtivo()){ toast('A fila de envio precisa da nuvem ligada.','erro'); return; }
+  await carregarFila();
+  var base=lista.filter(function(c){ var g=fnSug(c); if(g.semTrava&&g.campanha&&jaRecebeuCampanha(c,g.campanha,g.campanhaDias||1)) return false; if(pendentesDe(c.chave)) return false; return elegivel(c,!!g.promo); });
+  if(!base.length){ toast('Ninguém liberado com celular nessa lista (ou já estão na fila).','erro'); return; }
+  var alvo=base.slice(0,FM.FILA_MAX), porLoja={}; alvo.forEach(function(c){ porLoja[c.loja]=(porLoja[c.loja]||0)+1; });
+  var lojas=Object.keys(porLoja), pend=lojas.filter(atendPendente); if(pend.length){ abrirAtendentes('Escolha quem assina pela loja '+pend.map(tituloProd).join(' e ')+' — o nome vai na mensagem.'); return; }
+  var g0=fnSug(alvo[0]);
+  if(!confirm('Colocar '+alvo.length+' mensagem(ns) na fila de envio?\n\n'+lojas.map(function(l){ return '• '+porLoja[l]+' pelo WhatsApp da loja '+tituloProd(l)+(atendenteDe(l)?' (assinando: '+atendenteDe(l)+')':'')+'\n   '+motorTxt(l)+(travado(l)?' · WhatsApp DESCONECTADO: espera voltar':''); }).join('\n')+
+    '\n\nCada loja envia pelo próprio número, no ritmo seguro dela. Se o WhatsApp da loja cair, a fila para e continua sozinha quando voltar. Pode fechar esta tela.'+(g0.semTrava?'\nCampanha de promoção: vai também para quem já recebeu mensagem esta semana.':''))) return;
+  var agora=new Date().toISOString(), por={};
+  alvo.forEach(function(c){ var sg=fnSug(c), id=chaveTempo(), it={st:'aguardando',chave:c.chave,nome:c.nome,numero:foneWa(c.celular),msg:sg.mensagem,tipo:sg.midia?'uazapi-kit':'uazapi-lote',kit:sg.midia?(sg.kit||''):'',
+      sg:sgLeve(sg),extra:{kit:sg.kit||'',produtos:sg.produtos||[],semTrava:!!sg.semTrava,campanha:sg.campanha||'',abordagem:sg.abordagem||''},criado:agora,por:S.sync.computador||''};
+    (por[c.loja]=por[c.loja]||{})[id]=it; });
+  for(var i=0;i<lojas.length;i++){ await fb('PATCH','fila/'+lojas[i],por[lojas[i]]); await avisarMudanca({t:'fila',loja:lojas[i]}); }
+  FM.enfileirados={}; alvo.forEach(function(c){ FM.enfileirados[c.chave]=1; });
+  toast(alvo.length+' mensagem(ns) na fila: '+lojas.map(function(l){ return porLoja[l]+' '+tituloProd(l); }).join(', ')+'. Acompanhe em Campanhas → Fila.','ok');
+  lojas.forEach(function(l){ if(uazInst(l)) processarFila(l); }); await carregarFila(); }
+async function filaPegar(l,id){ var path='fila/'+l+'/'+id, u=fbUrl(path), r, et, v;
+  try{ r=await fetch(u,{headers:{'X-Firebase-ETag':'true'},cache:'no-store'}); et=r.headers.get('ETag'); v=await r.json(); }catch(e){ return null; }
+  if(!v||v.st!=='aguardando') return null; var nv=Object.assign({},v,{st:'enviando',envio:{pc:idAba(),em:new Date().toISOString()}});
+  if(et){ try{ var r2=await fetch(u,{method:'PUT',headers:{'if-match':et,'Content-Type':'application/json'},body:JSON.stringify(nv)}); return r2.ok?nv:null; }catch(e){ return null; } }
+  try{ await fb('PATCH',path,{st:'enviando',envio:nv.envio}); await new Promise(function(r3){ setTimeout(r3,1200); }); var ch=await fb('GET',path); return ch&&ch.envio&&ch.envio.pc===idAba()?nv:null; }catch(e){ return null; } }
+async function filaConcluir(l,id,it,st,info,res){ var fim=Object.assign({},it,{st:st,fim:new Date().toISOString(),info:info||'',res:res||null}); delete fim.sg;
+  try{ await fb('PATCH','fila_feita/'+l+'/'+hoje(),(function(){ var o={}; o[id]=fim; return o; })()); await fb('DELETE','fila/'+l+'/'+id); }catch(e){} }
+async function filaVoltar(l,id,info){ try{ await fb('PATCH','fila/'+l+'/'+id,{st:'aguardando',envio:null,aviso:info||''}); }catch(e){} }
+async function processarFila(l){ var inst=uazInst(l); if(!inst||FM.rodando[l]||!syncAtivo()||!S.model) return; FM.rodando[l]=true;
+  var cfg=uazCfg(), iMin=Math.max(5,parseInt(cfg.intMin)||20), iMax=Math.max(iMin,parseInt(cfg.intMax)||45), feitos=0;
+  try{ for(var volta=0;volta<FM.FILA_MAX;volta++){
+      if(filaPausada(l)||travado(l)) break;
+      var q=await fb('GET','fila/'+l)||{}, ids=Object.keys(q).filter(function(k){ return q[k]&&(q[k].st==='aguardando'||q[k].st==='enviando'); }).sort();
+      var agoraMs=Date.now(), id=null;
+      for(var a=0;a<ids.length;a++){ var x=q[ids[a]];
+        if(x.st==='enviando'){ if(agoraMs-Date.parse((x.envio&&x.envio.em)||x.criado)>10*60e3) await filaConcluir(l,ids[a],x,'verificar','o envio foi interrompido no meio (computador fechado?) — confira no WhatsApp antes de reenviar'); continue; }
+        if(agoraMs-Date.parse(x.criado)>FM.VALIDADE_H*3600e3){ await filaConcluir(l,ids[a],x,'expirado','ficou mais de '+FM.VALIDADE_H+' h na fila sem sair'); continue; }
+        id=ids[a]; break; }
+      if(!id) break;
+      var st0; try{ st0=await uazStatus(inst); }catch(e){ st0={ok:false,status:e.message}; } if(!st0.ok){ RT.estado[l]='caiu'; try{ vigiarConexao((function(){ var o={}; o[l]={cfg:true,envia:true,ok:false,status:st0.status,motivo:st0.motivo,logado:st0.logado}; return o; })()); }catch(e){} break; }
+      var it=await filaPegar(l,id); if(!it) continue;
+      var c=S.model.clientes[it.chave];
+      if(!c){ await filaConcluir(l,id,it,'pulado','cliente não está na base deste computador'); continue; }
+      var sg0=it.sg||{}, sg=Object.assign({},sugestoes(c),sg0); ['ofertas','novidades','produtos','itens'].forEach(function(k){ sg[k]=Array.isArray(sg0[k])?sg0[k]:[]; }); if(it.kit){ var fk=kitImg(it.kit); if(!fk){ await filaConcluir(l,id,it,'falhou','o kit está sem foto neste computador'); continue; } sg.midia={type:'image',file:fk}; }
+      if(optout(c)){ await filaConcluir(l,id,it,'pulado','cliente pediu SAIR'); continue; }
+      if(!sg.semTrava&&(estadoContato(c).bloqueado||soPromo(c))){ await filaConcluir(l,id,it,'pulado','já recebeu mensagem na janela de 7 dias'); continue; }
+      var rm=sg.semTrava?null:await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<regras().diasCliente){ await filaConcluir(l,id,it,'pulado','outro computador acabou de enviar'); continue; }
+      try{ var rs=sg.midia?await uazEnviarMidia(inst,it.numero,sg.midia,it.msg):await uazEnviar(inst,it.numero,it.msg);
+        await registrarContato(c,it.tipo,it.msg,null,sg,Object.assign({},it.extra||{},{envioLoja:l,chatid:rs.chatid,msgid:rs.msgid,fila:id,preparadoPor:it.por||''}));
+        await filaConcluir(l,id,it,'enviado','',{msgid:rs.msgid||'',chatid:rs.chatid||''}); feitos++; }
+      catch(err){ var m=err.message||'';
+        if(/Sem conexão|disconnect|desconect|travado|429/i.test(m)){ await filaVoltar(l,id,m); if(!/429/.test(m)) RT.estado[l]='caiu'; break; }
+        if(/Token/i.test(m)){ await filaVoltar(l,id,m); toast(m,'erro'); break; }
+        if(/respondeu 4\d\d/.test(m)) await filaConcluir(l,id,it,'falhou',m); else await filaConcluir(l,id,it,'verificar',m+' — confira no WhatsApp antes de reenviar'); }
+      await avisarMudanca({t:'fila',loja:l});
+      var fimEsp=Date.now()+(iMin+Math.random()*(iMax-iMin))*1000; while(Date.now()<fimEsp&&!filaPausada(l)&&!travado(l)) await new Promise(function(r4){ setTimeout(r4,500); }); } }
+  finally{ FM.rodando[l]=false; if(feitos&&S.aba==='fila'){ await carregarFila(); avRender(); } } }
+async function filaAcao(acao,l,id){ var path='fila/'+l+'/'+id;
+  if(acao==='cancelar'){ var it=(FM.fila[l]||{})[id]; if(it&&it.st==='aguardando') await filaConcluir(l,id,it,'cancelado','cancelado na cesta'); }
+  else if(acao==='reenviar'||acao==='jafoi'){ var f=(FM.feita[l]||{})[id]; if(!f) return; if(acao==='reenviar'){ var o={}; o[id]=Object.assign({},f,{st:'aguardando',criado:new Date().toISOString(),fim:null,info:'',res:null}); await fb('PATCH','fila/'+l,o); }
+    var p={}; p[id]=Object.assign({},f,{st:acao==='jafoi'?'enviado':'reenviado',info:acao==='jafoi'?'marcado como enviado na cesta':'voltou para a fila'}); await fb('PATCH','fila_feita/'+l+'/'+hoje(),p); }
+  else if(acao==='pausar'||acao==='retomar'){ var P=Object.assign({},S.cfg.filaPausa||{}); if(acao==='pausar') P[l]=true; else delete P[l]; S.cfg.filaPausa=P; await salvarCfg('filaPausa',P); }
+  await avisarMudanca({t:'fila',loja:l}); if(acao!=='pausar'&&uazInst(l)) processarFila(l); await carregarFila(); render(); }
+var ST_FILA={aguardando:'Aguardando',enviando:'Enviando',enviado:'Enviada',pulado:'Pulada',falhou:'Falhou',verificar:'Conferir',cancelado:'Cancelada',expirado:'Expirada',reenviado:'Voltou para a fila'};
+function telaFila(){ if(!FM.carregadaEm||Date.now()-FM.carregadaEm>20000){ carregarFila().then(function(){ if(S.aba==='fila') render(); }); }
+  var kf=kfiltro('fila'), rows=[];
+  LOJAS_ENVIO.forEach(function(l){ if(S.loja&&S.loja!==l) return; Object.keys(FM.fila[l]||{}).forEach(function(id){ rows.push({l:l,id:id,x:FM.fila[l][id],pend:true}); }); Object.keys(FM.feita[l]||{}).forEach(function(id){ rows.push({l:l,id:id,x:FM.feita[l][id],pend:false}); }); });
+  var n=function(f){ return rows.filter(f).length; }, ag=n(function(r){ return r.x.st==='aguardando'||r.x.st==='enviando'; }), en=n(function(r){ return r.x.st==='enviado'; }), cf=n(function(r){ return r.x.st==='verificar'||r.x.st==='falhou'; }), pu=n(function(r){ return r.x.st==='pulado'||r.x.st==='expirado'||r.x.st==='cancelado'; });
+  var vis=rows.filter(function(r){ var s=r.x.st; return !kf||(kf==='ag'&&(s==='aguardando'||s==='enviando'))||(kf==='en'&&s==='enviado')||(kf==='cf'&&(s==='verificar'||s==='falhou'))||(kf==='pu'&&(s==='pulado'||s==='expirado'||s==='cancelado')); }).sort(function(a,b){ return a.id<b.id?1:-1; });
+  var lojasH=LOJAS_ENVIO.filter(function(l){ return !S.loja||S.loja===l; }).map(function(l){ var a=Object.keys(FM.fila[l]||{}).length, est=travado(l)?'<span class="pill late">WhatsApp desconectado · fila parada</span>':filaPausada(l)?'<span class="pill late">pausada</span>':'<span class="pill okp">'+(FM.rodando[l]?'enviando agora':'pronta')+'</span>';
+    return '<div class="flj"><b>'+esc(tituloProd(l))+'</b> '+est+' <small>'+num(a)+' na fila · '+esc(motorTxt(l))+'</small>'+(filaPausada(l)?'<button class="btn sec mini" data-fila="retomar|'+l+'|">Retomar</button>':'<button class="btn sec mini" data-fila="pausar|'+l+'|">Pausar</button>')+'</div>'; }).join('');
+  return cabExec('Fila de envio','Tudo que foi preparado em qualquer computador entra aqui, separado por loja. Cada loja envia pelo próprio número; se o WhatsApp cair, a fila para e continua quando voltar.',
+      kbtn('fila','','Hoje',num(rows.length),'mensagens')+kbtn('fila','ag','Na fila',num(ag),'aguardando envio','warn')+kbtn('fila','en','Enviadas',num(en),'hoje','ok')+kbtn('fila','cf','Conferir',num(cf),'falha ou dúvida')+kbtn('fila','pu','Puladas',num(pu),'regra, SAIR ou expiradas'))+
+    '<section class="card"><div class="fljs">'+lojasH+'</div></section>'+
+    '<section class="card" style="margin-top:14px"><div class="tw"><table class="tbl"><thead><tr><th>Cliente</th><th>Loja</th><th>Mensagem</th><th>Situação</th><th>Quando</th><th></th></tr></thead><tbody>'+
+    (vis.length?vis.slice(0,300).map(function(r){ var x=r.x, s=x.st, cls=s==='enviado'?'okp':(s==='verificar'||s==='falhou')?'late':'';
+      var ac=s==='aguardando'?'<button class="btn sec mini" data-fila="cancelar|'+r.l+'|'+r.id+'">Cancelar</button>':(s==='verificar'||s==='falhou')?'<button class="btn sec mini" data-fila="reenviar|'+r.l+'|'+r.id+'">Reenviar</button>'+(s==='verificar'?'<button class="btn sec mini" data-fila="jafoi|'+r.l+'|'+r.id+'">Já foi</button>':''):'';
+      return '<tr><td><b>'+esc(tituloProd(x.nome||''))+'</b><small class="cod">'+esc(foneFmt(x.numero||''))+'</small></td><td>'+esc(tituloProd(r.l))+'</td><td><small class="flmsg" title="'+esc(x.msg||'')+'">'+esc(String(x.msg||'').replace(/\s+/g,' ').slice(0,90))+'</small></td><td><span class="pill '+cls+'">'+esc(ST_FILA[s]||s)+'</span>'+(x.info||x.aviso?'<small class="cod" title="'+esc(x.info||x.aviso)+'">'+esc(String(x.info||x.aviso).slice(0,60))+'</small>':'')+'</td><td><small>'+horaCurta(x.fim||x.criado)+(x.por?' · '+esc(x.por):'')+'</small></td><td class="flac">'+ac+'</td></tr>'; }).join(''):'<tr><td colspan="6"><div class="vazio">Nada na fila hoje.</div></td></tr>')+
+    '</tbody></table></div></section>'; }
+
 /* ---------- DIAGNÓSTICO: o que cada computador está lendo/enviando (vai para a nuvem, sem token) ---------- */
 var DIAG={st:{},em:null};
 async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
@@ -2143,7 +2244,7 @@ async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
     try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
   DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
   if(syncAtivo()){ try{ var id=String(S.sync.computador||'sem nome').replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,versao:'4.2'}); }catch(e){} }
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,versao:'4.3'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
@@ -3016,7 +3117,7 @@ function barraSel(ctx,total){ selCtx(ctx); var n=selN();
   return '<div class="selbar'+(n?' tem':'')+'" data-ctxbar="'+esc(ctx)+'"><b><span class="seln">'+n+'</span> marcado(s)</b>'+chipAtendentes()+
     '<button class="btn sec mini" data-selall="'+esc(ctx)+'" title="Marca os clientes liberados e com celular desta lista">☑ Marcar todos liberados'+(total!=null?' ('+num(total)+')':'')+'</button>'+
     '<button class="btn sec mini" data-selnone="'+esc(ctx)+'">Limpar</button>'+
-    (uazAtivo()?'<button class="btn wa mini" data-selenviar="'+esc(ctx)+'">📤 Enviar para os marcados</button>':'<span class="semuaz" title="Configure a Uazapi em Ajustes para enviar em lote">⚠ WhatsApp não configurado neste computador</span>')+'</div>'; }
+    (uazAtivo()||syncAtivo()?'<button class="btn wa mini" data-selenviar="'+esc(ctx)+'" title="Vai para a fila de cada loja; cada loja envia pelo próprio número">📤 Enviar para os marcados</button>':'<span class="semuaz" title="Configure a Uazapi em Ajustes para enviar em lote">⚠ WhatsApp não configurado neste computador</span>')+'</div>'; }
 function atualizarBarraSel(){ document.querySelectorAll('.selbar .seln').forEach(function(x){ x.textContent=selN(); }); }
 /* lista completa (filtrada) de cada tela, para "Marcar todos" */
 function itensCtx(ctx){
@@ -3041,7 +3142,7 @@ async function enviarMarcados(ctx){ var s=selCtx(ctx), its=s.itens, m=S.model;
     if(fora.rasc||fora.ctl) toast('Fora do lote: '+(fora.rasc?fora.rasc+' com mais de 30 dias sem comprar (escreva à mão)':'')+(fora.rasc&&fora.ctl?' · ':'')+(fora.ctl?fora.ctl+' do grupo de controle':'')+'.','ok');
     if(!lista.length) return; await loteUazapi(lista,function(c){ var it=its[c.chave]||{}; return sugFoco(c,it.prod,it.modo); }); }
   // tira da seleção quem já recebeu; quem passou do limite do lote continua marcado para o próximo envio
-  Object.keys(its).forEach(function(k){ var c=m.clientes[k]; if(!c||estadoContato(c).bloqueado||!elegivel(c)) delete its[k]; });
+  Object.keys(its).forEach(function(k){ var c=m.clientes[k]; if(!c||estadoContato(c).bloqueado||!elegivel(c)||(FM.enfileirados&&FM.enfileirados[k])) delete its[k]; });
   if(Object.keys(its).length) toast(Object.keys(its).length+' cliente(s) continuam marcados (limite de '+(parseInt(uazCfg().loteMax)||30)+' por lote). Clique em Enviar de novo para o próximo lote.','ok');
   if(ctx.indexOf('prod:')===0) reabrirModalCtx(ctx); else render(); }
 function reabrirModalCtx(ctx){ if(ctx.indexOf('prod:')===0&&$('#modal').classList.contains('on')) abrirProduto(ctx.slice(5)); }
@@ -3235,8 +3336,8 @@ function barraLojas(){ var m=S.model; if(!m) return '';
   return '<span class="lojat">Loja:</span>'+b('','Todas as lojas','🏬','#555')+lojas.map(function(l){ return b(l,tituloProd(l),'🏪',COR_LOJA_BAR[l]||'#777'); }).join('')+
     (S.loja?'<span class="lojanota">Todas as abas mostram só a loja <b>'+esc(tituloProd(S.loja))+'</b></span>':''); }
 /* navegação: ícones na lateral = grupos; dentro do grupo, subabas no topo */
-var ICO_SUB={campanhas:'📣',listas:'🎯',sugestoes:'💡',recompra:'🔁',reconquista:'🤝',kits:'🎁',importacoes:'⚙️',dicionario:'📖',cadastro:'🗂',conferencia:'✅'};
-var GRUPOS={hoje:[['hoje','Hoje']],conversas:[['conversas','Conversas']],clientes:[['clientes','Clientes']],campanhas:[['campanhas','Campanhas'],['listas','Segmentos'],['sugestoes','Sugestões'],['recompra','Recompra'],['reconquista','Reconquista'],['kits','Kits']],produtos:[['produtos','Produtos']],painel:[['painel','Painel']],ajustes:[['importacoes','Importar e configurar'],['dicionario','Dicionário'],['cadastro','Cadastro'],['conferencia','Conferência']]};
+var ICO_SUB={fila:'📤',campanhas:'📣',listas:'🎯',sugestoes:'💡',recompra:'🔁',reconquista:'🤝',kits:'🎁',importacoes:'⚙️',dicionario:'📖',cadastro:'🗂',conferencia:'✅'};
+var GRUPOS={hoje:[['hoje','Hoje']],conversas:[['conversas','Conversas']],clientes:[['clientes','Clientes']],campanhas:[['campanhas','Campanhas'],['listas','Segmentos'],['sugestoes','Sugestões'],['recompra','Recompra'],['reconquista','Reconquista'],['kits','Kits'],['fila','Fila']],produtos:[['produtos','Produtos']],painel:[['painel','Painel']],ajustes:[['importacoes','Importar e configurar'],['dicionario','Dicionário'],['cadastro','Cadastro'],['conferencia','Conferência']]};
 function grupoDe(aba){ for(var g in GRUPOS) if(GRUPOS[g].some(function(x){return x[0]===aba;})) return g; return 'campanhas'; }
 function subnav(){ var g=grupoDe(S.aba), it=GRUPOS[g]; S.ultAba=S.ultAba||{}; S.ultAba[g]=S.aba; return it.length>1?it.map(function(x){ return '<button data-sub="'+x[0]+'" class="'+(x[0]===S.aba?'on':'')+'">'+(ICO_SUB[x[0]]?'<i>'+ICO_SUB[x[0]]+'</i>':'')+'<span>'+esc(x[1])+'</span></button>'; }).join(''):''; }
 function badge(g,n){ var b=document.querySelector('.tabs button[data-g='+g+'] .bdg'); if(b) b.textContent=n?(n>99?'99+':String(n)):''; }
@@ -3252,8 +3353,8 @@ function render(){
   $('#periodo').textContent=m?'Vendas até '+dBR(m.refData):''; $('#periodo').title=m?'Base: '+dBR(m.dataMin)+' a '+dBR(m.refData)+' · '+num(m.nLinhas)+' itens':'';
   var y=window.scrollY;
   var avB=''; if(m&&/sugestoes|recompra|reconquista|kits|listas|produtos/.test(S.aba)){ var a0=alertas()[0]; if(a0&&a0.ic==='📥') avB='<div class="'+(a0.nivel==='alto'?'erro':'aviso')+'" style="margin-bottom:10px">'+a0.ic+' <b>'+esc(a0.tit)+'.</b> '+esc(a0.txt)+' '+a0.acao+'</div>'; }
-  $('#main').innerHTML=(m&&S.aba!=='conversas'?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastroDup,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas,campanhas:telaCampanhas,dicionario:telaDicionario,analise:telaAnalise}[S.aba]||telaSugestoes)();
-  window.scrollTo(0,y); if(S.aba==='conversas') rolarChat();
+  $('#main').innerHTML=(m&&S.aba!=='conversas'?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastroDup,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas,fila:telaFila,campanhas:telaCampanhas,dicionario:telaDicionario,analise:telaAnalise}[S.aba]||telaSugestoes)();
+  window.scrollTo(0,y); if(S.aba==='conversas') rolarChat(); try{ var sbn=document.querySelector('#subnav button.on'), sw=document.getElementById('subnav'); if(sbn&&sw&&sw.scrollWidth>sw.clientWidth) sw.scrollLeft=sbn.offsetLeft-(sw.clientWidth-sbn.offsetWidth)/2; }catch(e){}
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
 function tag(p){ var c={'VIP':'vip','Frequente':'freq','Regular':'rec','Esporádico':'oca','Compra única':'oca'}[p]||''; return '<span class="tag '+c+'">'+esc(p)+'</span>'; }
@@ -3304,7 +3405,7 @@ function blocoSugestao(c){ var s=sgDoModal(c), fm=S.focoModal&&S.focoModal.cli==
     (optout(c)?'<div class="warn">🚫 Este cliente pediu para <b>não receber mensagens</b>. Envios bloqueados.</div>':'')+(soPromo(c)?'<div class="warn">🏷 Este cliente quer receber <b>só promoções</b>: ele entra apenas nas campanhas de promoção da aba Kits.</div>':'')+
     (estadoContato(c).bloqueado?'<div class="warn">⏳ Já recebeu mensagem em '+esc(txtUltimo(estadoContato(c)))+'. Próxima liberada em <b>'+dBR(estadoContato(c).liberaEm)+'</b> ('+esc(estadoContato(c).espera.motivo)+').</div>':'')+
     (fm?'<div class="dica" style="margin:8px 0">Mensagem focada em <b>'+esc(tituloProd((S.model.produtos[fm.prod]||{}).produto||''))+'</b> ('+(fm.modo==='recompra'?'aba Recompra':'ficha do produto')+'). '+(fm.modo==='produto'?'<button class="btn sec mini" data-prod="'+esc(fm.prod)+'">← Voltar ao produto</button>':'')+'</div>':'')+
-    '<h4>3 · Mensagem '+tagSit(s.situacao)+' <small class="nota">variação '+esc(s.variante||'')+'</small></h4><textarea class="msg" id="msgCli" rows="7">'+esc(s.mensagem)+'</textarea><div class="filtros"><button class="btn sec" data-regen="'+esc(c.chave)+'" title="Gera outro texto para este cliente">🔄 Outra versão</button><button class="btn sec" data-optout="'+esc(c.chave)+'">'+(optout(c)?'✅ Voltar a receber mensagens':'🚫 SAIR — bloquear')+'</button><button class="btn sec" data-regcel="'+esc(c.chave)+'" title="Para mensagens mandadas pelo celular antes da Uazapi">📅 Contato feito pelo celular</button><button class="btn sec" data-promo="'+esc(c.chave)+'">'+(soPromo(c)?'↩ Receber tudo de novo':'🏷 Só promoções')+'</button>'+(optout(c)?'':(!foneWa(c.celular)?'<span class="pill late">sem celular</span>':'<button class="btn wa'+(uazPara(c)?'':' off')+'" data-wa="'+esc(c.chave)+'">'+(uazPara(c)?'📤 Enviar pelo número da '+esc(tituloProd(c.loja))+' para '+esc(foneFmt(c.celular)):'📤 Número da '+esc(tituloProd(c.loja||''))+' não configurado neste computador')+'</button>'))+(c.codigo?'<span class="pill okp">Cód. '+esc(c.codigo)+'</span>':'<span class="pill late">sem código CRM</span>')+'</div></div>'; }
+    '<h4>3 · Mensagem '+tagSit(s.situacao)+' <small class="nota">variação '+esc(s.variante||'')+'</small></h4><textarea class="msg" id="msgCli" rows="7">'+esc(s.mensagem)+'</textarea><div class="filtros"><button class="btn sec" data-regen="'+esc(c.chave)+'" title="Gera outro texto para este cliente">🔄 Outra versão</button><button class="btn sec" data-optout="'+esc(c.chave)+'">'+(optout(c)?'✅ Voltar a receber mensagens':'🚫 SAIR — bloquear')+'</button><button class="btn sec" data-regcel="'+esc(c.chave)+'" title="Para mensagens mandadas pelo celular antes da Uazapi">📅 Contato feito pelo celular</button><button class="btn sec" data-promo="'+esc(c.chave)+'">'+(soPromo(c)?'↩ Receber tudo de novo':'🏷 Só promoções')+'</button>'+(optout(c)?'':(!foneWa(c.celular)?'<span class="pill late">sem celular</span>':'<button class="btn wa'+(uazPara(c)||syncAtivo()?'':' off')+'" data-wa="'+esc(c.chave)+'">'+(uazPara(c)?'📤 Enviar pelo número da '+esc(tituloProd(c.loja))+' para '+esc(foneFmt(c.celular)):syncAtivo()?'📤 Pôr na fila da '+esc(tituloProd(c.loja||''))+' (sai pelo número dela)':'📤 Número da '+esc(tituloProd(c.loja||''))+' não configurado neste computador')+'</button>'))+(c.codigo?'<span class="pill okp">Cód. '+esc(c.codigo)+'</span>':'<span class="pill late">sem código CRM</span>')+'</div></div>'; }
 function barrasMensais(meses,valores){ var max=0; meses.forEach(function(x){max=Math.max(max,valores[x]||0);});
   return '<div class="meses">'+meses.map(function(x){ var v=valores[x]||0; return '<div class="mes" title="'+mesBR(x)+': '+brl(v)+'"><div class="col"><i style="height:'+(max?v/max*100:0)+'%"></i></div><span>'+mesBR(x)+'</span></div>'; }).join('')+'</div>'; }
 function abrirCliente(chave){ var m=S.model,c=m.clientes[chave]; if(!c) return; var maxV=c.cestaArr.length?c.cestaArr[0].valor:1;
@@ -3594,6 +3695,7 @@ function exportCad(){ var m=S.model, lojas=lojasTodas(), rows=[]; var meses={}; 
 /* ---------- eventos ---------- */
 function bind(){
   document.addEventListener('click',async function(e){ var t=e.target,b;
+    if((b=t.closest('[data-fila]'))){ var fa=b.dataset.fila.split('|'); if(fa[0]==='cancelar'&&!confirm('Cancelar esta mensagem da fila?')) return; if(fa[0]==='reenviar'&&!confirm('Voltar esta mensagem para a fila? Confira antes no WhatsApp da loja se ela não saiu.')) return; await filaAcao(fa[0],fa[1],fa[2]); return; }
     if((b=t.closest('[data-uzrecon]'))){ abrirReconectar(b.dataset.uzrecon); return; }
     if(t.id==='uzNovoQr'&&RT.qrGerar){ RT.qr=null; setTimeout(function(){ RT.qrGerar(''); },50); return; }
     if(t.id==='uzCodigo'&&RT.qrGerar){ var fz=String(($('#uzFone')||{}).value||'').replace(/\D/g,''); if(fz.length<12){ toast('Digite o número com 55 e DDD, ex.: 5524992177114.','erro'); return; } RT.qr=null; setTimeout(function(){ RT.qrGerar(fz); },50); return; }
@@ -3606,8 +3708,8 @@ function bind(){
     if(t.id==='fechar'||t.id==='modal'){ $('#modal').classList.remove('on'); return; }
     if(t.closest('summary')||t.closest('input')||t.closest('select')||t.closest('textarea')) return;
     if((b=t.closest('[data-copiar]'))){ copiar($('#'+b.dataset.copiar).value); return; }
-    if((b=t.closest('[data-wa]'))){ var cw=S.model.clientes[b.dataset.wa], sgm=sgDoModal(cw); if(!uazPara(cw)){ toast(semLojaMsg(cw),'erro'); return; } if(await enviarUazapi(cw,$('#msgCli').value,sgm)){ abrirCliente(cw.chave); render(); toast('Mensagem registrada para '+cw.nome+'.','ok'); } return; }
-    if((b=t.closest('[data-wacli]'))){ var cw2=S.model.clientes[b.dataset.wacli], sgw=sugFoco(cw2,b.dataset.foco,b.dataset.modo); if(!uazPara(cw2)){ toast(semLojaMsg(cw2),'erro'); return; } if(await enviarUazapi(cw2,sgw.mensagem,sgw)){ render(); if(b.closest('#modal')&&b.dataset.modo==='produto') abrirProduto(b.dataset.foco); toast('Mensagem registrada para '+cw2.nome+'.','ok'); } return; }
+    if((b=t.closest('[data-wa]'))){ var cw=S.model.clientes[b.dataset.wa], sgm=sgDoModal(cw); if(!uazPara(cw)){ if(!syncAtivo()){ toast(semLojaMsg(cw),'erro'); return; } var txw=$('#msgCli').value; await loteUazapi([cw],function(){ return Object.assign({},sgm,{mensagem:txw}); }); return; } if(await enviarUazapi(cw,$('#msgCli').value,sgm)){ abrirCliente(cw.chave); render(); toast('Mensagem registrada para '+cw.nome+'.','ok'); } return; }
+    if((b=t.closest('[data-wacli]'))){ var cw2=S.model.clientes[b.dataset.wacli], sgw=sugFoco(cw2,b.dataset.foco,b.dataset.modo); if(!uazPara(cw2)){ if(!syncAtivo()){ toast(semLojaMsg(cw2),'erro'); return; } await loteUazapi([cw2],function(){ return sgw; }); return; } if(await enviarUazapi(cw2,sgw.mensagem,sgw)){ render(); if(b.closest('#modal')&&b.dataset.modo==='produto') abrirProduto(b.dataset.foco); toast('Mensagem registrada para '+cw2.nome+'.','ok'); } return; }
     if((b=t.closest('[data-enviei]'))){ var ce=S.model.clientes[b.dataset.enviei], noModal=!!b.closest('#modal'); if(await marcarEnviada(ce,noModal&&$('#msgCli')?$('#msgCli').value:sugestoes(ce).mensagem,noModal?sgDoModal(ce):sugestoes(ce))){ if(noModal) abrirCliente(ce.chave); render(); toast('Registrado: mensagem enviada para '+ce.nome+'.','ok'); } return; }
     if((b=t.closest('[data-exccont]'))){ if(confirm('Excluir este registro de mensagem?')){ var cid=b.dataset.exccont; await excluirContato(cid); var ab=$('#modal h2'); render(); var cc=S.model.lista.filter(function(x){return ab&&x.nome===ab.textContent;})[0]; if(cc) abrirCliente(cc.chave); } return; }
     if((b=t.closest('[data-usarabc]'))){ var pr=b.dataset.usarabc.split('|'); await trocarDono(pr[0],pr[1]); return; }
@@ -3837,11 +3939,11 @@ async function init(){
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!rtTodasAoVivo()||!RESP.radarEm||Date.now()-RESP.radarEm>3*60e3) radarRespostas(); },45*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
-    setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
+    setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
-    setInterval(function(){ if(document.visibilityState==='visible') sincronizar(); },POLL_MS);
+    setInterval(function(){ if(document.visibilityState==='visible'&&(!avAoVivo()||(++AV.tick)%4===0)) sincronizar(); },POLL_MS); setTimeout(avLigar,3000); setInterval(avLigar,60000); setTimeout(limparEventos,90000); setInterval(function(){ uazLojas().forEach(function(l){ processarFila(l); }); },20000); setTimeout(function(){ uazLojas().forEach(function(l){ processarFila(l); }); },12000);
     window.addEventListener('focus',function(){ agendarSync(300); });
     window.addEventListener('online',function(){ agendarSync(300); });
     window.addEventListener('beforeunload',function(e){ if(UZ.lote&&!UZ.lote.fim){ e.preventDefault(); e.returnValue=''; } });
