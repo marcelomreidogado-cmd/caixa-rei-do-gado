@@ -364,6 +364,7 @@ h2.secao{font-size:17px;border:0;margin:28px 0 10px;padding:0}
 .dpc b{display:block}.dpc small{display:block;color:var(--mut);font-size:12px}
 .ppt.cin{background:#f1f1f0;color:#57534e}
 .dpa{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#uazAlerta{position:sticky;top:0;z-index:2000;background:#b91c1c;color:#fff;padding:9px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:14px}#uazAlerta small{opacity:.85}#uazAlerta .btn{background:#fff;color:#b91c1c;border-color:#fff}.uzqr{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:8px 0}.uzqr img{width:240px;height:240px;border:1px solid var(--line);border-radius:12px;background:#fff}.uzqr ol{margin:0;padding-left:18px;line-height:1.7}.uzpc{font-size:30px;font-weight:800;letter-spacing:.12em;background:#f6f3ef;border-radius:12px;padding:14px 18px}
 </style><style id="cesta-polimento-v1">
 /* ── polimento visual (15/11/2026) ── */
 body{font-variant-numeric:tabular-nums}
@@ -1798,7 +1799,8 @@ async function uazReq(inst,method,path,body){ var r;
   return j||{}; }
 async function uazStatus(inst){ var j=await uazReq(inst,'GET','/instance/status'); var ii=j.instance||j, st=(ii.status||j.status||'').toString().toLowerCase();
   var ok=st==='connected'||st==='open'||(j.status&&j.status.connected===true)||ii.connected===true;
-  return {ok:ok,status:st||'?',nome:ii.profileName||ii.name||'',numero:(ii.owner||ii.wid||'').toString().replace(/\D/g,''),bruto:j}; }
+  var stx=(j.status&&typeof j.status==='object')?j.status:{};
+  return {ok:ok,status:st||'?',nome:ii.profileName||ii.name||'',numero:(ii.owner||ii.wid||'').toString().replace(/\D/g,''),motivo:ii.lastDisconnectReason||j.lastDisconnectReason||'',ultQueda:ii.lastDisconnect||j.lastDisconnect||'',logado:stx.loggedIn,bruto:j}; }
 async function uazEnviarMidia(inst,numero,midia,legenda){ if(!midia||!midia.file) throw new Error('Kit sem foto.'); if(window.AMB_TESTE&&!window.AMB_TESTE_ENVIO) return simEnvio(numero,legenda);
   var j=await uazReq(inst,'POST','/send/media',{number:numero,type:midia.type||'image',file:midia.file,text:legenda||'',delay:1500,track_source:'cesta-rei-do-gado'});
   return {chatid:j.chatid||j.wa_chatid||(j.key&&j.key.remoteJid)||'',msgid:j.messageid||j.id||(j.key&&j.key.id)||''}; }
@@ -2082,18 +2084,75 @@ async function radarRespostas(){ if(RESP.rodando||RESP.radar||!S.model||!uazLoja
     try{ await radarHistorico(lojas,cpl); }catch(e){}
   }catch(e){} finally{ RESP.radar=false; } }
 
+/* ---------- CONEXÃO EM TEMPO REAL COM A UAZAPI ----------
+   1) canal ao vivo (/sse): mensagens e quedas chegam na hora, sem esperar a próxima verificação;
+   2) vigia: confere o WhatsApp de cada loja a cada 2 min; se caiu, mostra o aviso no topo, registra o motivo e tenta reconectar sozinho (/instance/reset, mantém o pareamento);
+   3) se o celular desconectou o aparelho, o botão "Reconectar" mostra o QR code aqui mesmo na cesta. */
+var RT={es:{},vivo:{},erros:{},tmr:null,quedas:{},estado:{},reset:{},hist:[],qr:null};
+function rtLigar(){ if(typeof EventSource==='undefined') return; var ls=uazLojasLeitura();
+  Object.keys(RT.es).forEach(function(l){ if(ls.indexOf(l)<0){ try{ RT.es[l].close(); }catch(e){} delete RT.es[l]; } });
+  ls.forEach(function(l){ var inst=uazLeitura(l), url=uazBase(inst)+'/sse?token='+encodeURIComponent(inst.token)+'&events=messages,connection&excludeMessages=isGroupYes', at=RT.es[l];
+    if(at&&at._url===url&&at.readyState!==2) return; if(at){ try{ at.close(); }catch(e){} }
+    var es; try{ es=new EventSource(url); }catch(e){ return; } es._url=url; RT.es[l]=es;
+    var on=function(ev){ RT.vivo[l]=Date.now(); RT.erros[l]=0; var d=null; try{ d=JSON.parse(ev.data); }catch(e){}
+      var tp=String((d&&(d.EventType||d.type||d.event))||ev.type||'').toLowerCase();
+      if(/connect|disconnect|ban/.test(tp)){ setTimeout(checarNumeros,1500); return; }
+      if(/message|chat/.test(tp)){ clearTimeout(RT.tmr); RT.tmr=setTimeout(function(){ radarRespostas(); },2500); } };
+    es.onopen=function(){ RT.vivo[l]=Date.now(); RT.erros[l]=0; };
+    es.onmessage=on; ['messages','connection','message','chats'].forEach(function(n){ es.addEventListener(n,on); });
+    es.onerror=function(){ RT.erros[l]=(RT.erros[l]||0)+1; if(es.readyState===2) setTimeout(rtLigar,60000); }; }); }
+function rtAoVivo(l){ var es=RT.es[l]; return !!(es&&es.readyState===1); }
+function rtTodasAoVivo(){ var ls=uazLojasLeitura(); return ls.length>0&&ls.every(rtAoVivo); }
+function motivoQueda(m){ m=String(m||''); if(!m||/^unknown$/i.test(m)) return ''; if(/logged.?out|logout|401/i.test(m)) return 'o celular desconectou este aparelho'; if(/replaced|conflict|440/i.test(m)) return 'o número foi aberto em outro aparelho'; if(/ban/i.test(m)) return 'bloqueio temporário do WhatsApp'; if(/timeout|lost|close|408|428|503/i.test(m)) return 'o celular ficou sem internet ou fechou o WhatsApp'; return m; }
+function horaCurta(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toTimeString().slice(0,5); }catch(e){ return ''; } }
+async function tentarReset(l){ var inst=uazLeitura(l); if(!inst) return; if(RT.reset[l]&&Date.now()-RT.reset[l]<10*60e3) return; RT.reset[l]=Date.now();
+  if(window.AMB_TESTE&&!/localhost|127\.0\.0\.1/.test(uazBase(inst))) return; /* no teste não mexe na conexão real das lojas */
+  try{ await uazReq(inst,'POST','/instance/reset',{}); if(RT.quedas[l]) RT.quedas[l].tentou=new Date().toISOString(); pintarAlertaUaz(); setTimeout(checarNumeros,20000); }catch(e){ if(RT.quedas[l]) RT.quedas[l].erroReset=e.message; } }
+function vigiarConexao(out){ Object.keys(out).forEach(function(l){ var x=out[l]; if(!x||!x.cfg) return; var antes=RT.estado[l], rede=/Sem conexão com a Uazapi/.test(x.erro||'');
+    RT.estado[l]=x.ok?'ok':'caiu';
+    if(!x.ok&&antes!=='caiu'){ RT.quedas[l]={em:new Date().toISOString(),motivo:rede?'sem internet neste computador ou servidor da Uazapi fora':motivoQueda(x.motivo)||x.erro||'',status:x.status||'',logado:x.logado,rede:rede};
+      RT.hist.unshift({loja:l,em:RT.quedas[l].em,motivo:RT.quedas[l].motivo||x.status||'',ultUaz:x.ultQueda||''}); RT.hist=RT.hist.slice(0,15); }
+    if(x.ok&&antes==='caiu'){ var q=RT.quedas[l]; if(q&&RT.hist[0]&&RT.hist[0].loja===l) RT.hist[0].voltou=new Date().toISOString(); delete RT.quedas[l]; toast('WhatsApp da loja '+tituloProd(l)+' voltou a conectar.','ok'); }
+    if(!x.ok&&!rede&&x.logado!==false) tentarReset(l); });
+  pintarAlertaUaz(); }
+function pintarAlertaUaz(){ var ls=Object.keys(RT.quedas), el=document.getElementById('uazAlerta');
+  if(!ls.length){ if(el) el.remove(); return; }
+  if(!el){ el=document.createElement('div'); el.id='uazAlerta'; document.body.insertBefore(el,document.body.firstChild); }
+  el.innerHTML=ls.map(function(l){ var q=RT.quedas[l];
+    return '<span>⚠ <b>WhatsApp da loja '+esc(tituloProd(l))+' desconectado</b> desde '+horaCurta(q.em)+(q.motivo?' · '+esc(q.motivo):'')+(q.tentou?' · tentando reconectar sozinho…':'')+'</span>'+(q.rede?'':'<button class="btn mini" data-uzrecon="'+l+'">Reconectar</button>'); }).join('')+'<small>Os envios dessa loja ficam parados até voltar.</small>'; }
+async function abrirReconectar(l){ var inst=uazLeitura(l); if(!inst) return;
+  var M=$('#modal'), C=$('#modal .modal-c');
+  var pinta=function(corpo){ C.innerHTML='<div class="modal-h"><div><h2>Reconectar o WhatsApp da loja '+esc(tituloProd(l))+'</h2><div class="sub">Use o celular da loja. Nada é apagado: conversas e histórico continuam.</div></div><button class="x" id="fechar">✕</button></div>'+corpo; };
+  pinta('<p class="nota">Conferindo a conexão…</p>'); M.classList.add('on');
+  try{ var st=await uazStatus(inst); if(st.ok){ pinta('<p class="ok">✔ Já está conectado'+(st.numero?' ('+esc(st.numero)+')':'')+'.</p>'); checarNumeros(); return; } }catch(e){}
+  var gerar=async function(fone){ pinta('<p class="nota">Gerando '+(fone?'o código':'o QR code')+'…</p>');
+    var j; try{ j=await uazReq(inst,'POST','/instance/connect',fone?{phone:fone}:{}); }catch(e){ if(/409/.test(e.message)){ try{ j=await uazReq(inst,'GET','/instance/status'); }catch(_){ } } if(!j){ pinta('<div class="erro">'+esc(e.message)+'</div>'); return; } }
+    var ii=(j&&j.instance)||j||{}, qr=ii.qrcode||j.qrcode||'', pc=ii.paircode||j.paircode||'';
+    if(qr&&!/^data:/.test(qr)) qr='data:image/png;base64,'+qr;
+    pinta((qr?'<div class="uzqr"><img src="'+esc(qr)+'" alt="QR code"><ol><li>No celular da loja, abra o <b>WhatsApp</b>.</li><li>Toque em <b>⋮ (ou Configurações) → Aparelhos conectados → Conectar aparelho</b>.</li><li>Aponte a câmera para este QR code.</li></ol></div>':'')+
+      (pc?'<div class="uzqr"><div class="uzpc">'+esc(pc)+'</div><ol><li>No celular da loja: WhatsApp → <b>Aparelhos conectados → Conectar aparelho</b>.</li><li>Toque em <b>Conectar com número de telefone</b> e digite este código.</li></ol></div>':'')+
+      (!qr&&!pc?'<p class="nota">A Uazapi ainda não devolveu o QR code. Aguarde alguns segundos e clique de novo.</p>':'')+
+      '<div class="filtros" style="margin-top:10px"><span class="nota" style="margin:0">Sem câmera? Peça um código:</span><input id="uzFone" inputmode="numeric" placeholder="Número do celular da loja, ex.: 5524992177114" style="width:270px"><button class="btn sec mini" id="uzCodigo">Gerar código</button><button class="btn sec mini" id="uzNovoQr">Novo QR code</button></div>'+
+      '<p class="nota" id="uzAguarda">Aguardando o celular conectar…</p>');
+    var fim=Date.now()+150e3; RT.qr=l;
+    while(RT.qr===l&&Date.now()<fim&&M.classList.contains('on')){ await new Promise(function(r){ setTimeout(r,3000); });
+      try{ var s2=await uazStatus(inst); if(s2.ok){ RT.qr=null; pinta('<p class="ok">✔ WhatsApp da loja '+esc(tituloProd(l))+' conectado'+(s2.numero?' ('+esc(s2.numero)+')':'')+'. Pode fechar.</p>'); checarNumeros(); rtLigar(); return; } }catch(e){} }
+    var a=document.getElementById('uzAguarda'); if(a&&RT.qr===l) a.textContent='O QR code expirou. Clique em "Novo QR code".'; };
+  RT.qrGerar=gerar; await gerar(''); }
+
 /* ---------- DIAGNÓSTICO: o que cada computador está lendo/enviando (vai para a nuvem, sem token) ---------- */
 var DIAG={st:{},em:null};
 async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
   for(var i=0;i<lojas.length;i++){ var l=lojas[i], inst=uazLeitura(l); if(!inst){ out[l]={cfg:false}; continue; }
-    try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
-  DIAG.st=out; DIAG.em=new Date();
+    try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
+  DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
   if(syncAtivo()){ try{ var id=String(S.sync.computador||'sem nome').replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',versao:'4.1'}); }catch(e){} }
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,versao:'4.2'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
-    var t=!x.cfg?'<span class="pill">não configurado neste computador</span>':x.ok?'<span class="pill okp">✔ conectado'+(x.numero?' · '+esc(x.numero):'')+'</span>'+(x.envia?'':' <span class="pill late">envio desligado</span>'):'<span class="pill late">✖ '+esc(x.erro||('WhatsApp '+(x.status||'desconectado')+' — conecte no painel da Uazapi'))+'</span>';
+    var t=!x.cfg?'<span class="pill">não configurado neste computador</span>':x.ok?'<span class="pill okp">✔ conectado'+(x.numero?' · '+esc(x.numero):'')+'</span>'+(x.envia?'':' <span class="pill late">envio desligado</span>'):'<span class="pill late">✖ '+esc(x.erro||('WhatsApp '+(x.status||'desconectado')+(motivoQueda(x.motivo)?' · '+motivoQueda(x.motivo):'')))+'</span> <button class="btn mini" data-uzrecon="'+l+'">Reconectar</button>';
+    if(x.cfg&&x.ok) t+=rtAoVivo(l)?' <span class="pill okp" title="As mensagens chegam na hora">⚡ ao vivo</span>':' <span class="pill" title="Lendo a cada 45 segundos">a cada 45 s</span>';
     return '<span><b>'+esc(tituloProd(l))+':</b> '+t+'</span>'; }).join('')+'</div>'; }
 function telaComputadores(){ var cs=S.computadores||{}, ks=Object.keys(cs); if(!ks.length) return '';
   return '<h3>Computadores e números de WhatsApp</h3><div class="tw"><table class="tbl"><thead><tr><th>Computador</th><th>Visto por último</th>'+LOJAS_ENVIO.map(function(l){return '<th>'+esc(tituloProd(l))+'</th>';}).join('')+'<th>Última leitura de respostas</th></tr></thead><tbody>'+
@@ -3539,6 +3598,9 @@ function exportCad(){ var m=S.model, lojas=lojasTodas(), rows=[]; var meses={}; 
 /* ---------- eventos ---------- */
 function bind(){
   document.addEventListener('click',async function(e){ var t=e.target,b;
+    if((b=t.closest('[data-uzrecon]'))){ abrirReconectar(b.dataset.uzrecon); return; }
+    if(t.id==='uzNovoQr'&&RT.qrGerar){ RT.qr=null; setTimeout(function(){ RT.qrGerar(''); },50); return; }
+    if(t.id==='uzCodigo'&&RT.qrGerar){ var fz=String(($('#uzFone')||{}).value||'').replace(/\D/g,''); if(fz.length<12){ toast('Digite o número com 55 e DDD, ex.: 5524992177114.','erro'); return; } RT.qr=null; setTimeout(function(){ RT.qrGerar(fz); },50); return; }
     if((b=t.closest('[data-loja]'))&&b.classList.contains('lojab')){ setLoja(b.dataset.loja); render(); if($('#modal').classList.contains('on')&&S.pm&&S.pm.chave&&document.querySelector('#modal [data-ctxbar^="prod:"]')) abrirProduto(S.pm.chave); return; }
     if((b=t.closest('.tabs button'))&&!b.disabled){ var gg=b.dataset.g; S.aba=(S.ultAba&&S.ultAba[gg])||b.dataset.aba; S.limite=200; window.scrollTo(0,0); render(); return; }
     if(t.closest('#sideTg')){ var on=document.body.classList.toggle('semside'); try{ localStorage.setItem('cesta_side',on?'0':'1'); }catch(e){} return; }
@@ -3701,7 +3763,7 @@ function bind(){
     else if(id==='uzLote'){ if(UZ.lote&&!UZ.lote.fim){ toast('Já tem um envio em andamento.','erro'); return; } loteUazapi(filtrarSug()); }
     else if(id==='loteParar'){ if(UZ.lote) UZ.lote.parar=true; toast('Parando depois da mensagem atual…'); }
     else if(id==='loteFechar'){ var lb=document.getElementById('lotebox'); if(lb) lb.remove(); UZ.lote=null; }
-    else if(id==='uzSalvar'){ await salvarTestarUaz(); checarNumeros(); }
+    else if(id==='uzSalvar'){ await salvarTestarUaz(); checarNumeros(); rtLigar(); }
     else if(id==='varrer'){ t.disabled=true; t.textContent='Buscando…'; try{ await varrerCelular($('#varrDesde').value||hoje().slice(0,8)+'01'); }finally{ t.disabled=false; t.textContent='🔎 Trazer para a cesta'; } }
     else if(id==='lerResp'){ t.disabled=true; t.textContent='Lendo respostas…'; await verificarRespostas(true); render(); }
     else if(id==='salvarRegras'){ var md={}; document.querySelectorAll('[data-meta]').forEach(function(x){ md[x.dataset.meta]=Math.max(0,parseInt(x.value)||0); }); S.cfg.metaDiaria=md; await salvarCfg('metaDiaria',md);
@@ -3778,8 +3840,8 @@ async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato};
-    setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(radarRespostas,45*1000); setTimeout(radarRespostas,8000);
-    setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,5*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
+    setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!rtTodasAoVivo()||!RESP.radarEm||Date.now()-RESP.radarEm>3*60e3) radarRespostas(); },45*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
+    setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
