@@ -1199,15 +1199,29 @@ async function salvarNota(c,txt){ txt=String(txt||'').trim(); if(!txt){ toast('E
 var HR={ult:{}}; try{ HR.ult=JSON.parse(localStorage.getItem('cesta_histult')||'{}')||{}; }catch(e){}
 function porNumCli(){ var porNum=S._porNum; if(!porNum||S._porNumM!==S.model){ porNum={}; S.model.lista.forEach(function(c){ digitosVariantes(foneWa(c.celular)||'').forEach(function(x){ if(x) porNum[x]=c; }); }); S._porNum=porNum; S._porNumM=S.model; } return porNum; }
 /* mensagem que chegou pelo canal ao vivo: entra na conversa na hora, sem esperar a varredura */
-function rtMensagem(l,d){ var m=d&&(d.message||(d.data&&d.data.message)||d.msg); if(!m||!S.model) return false; var jid=String(m.chatid||m.wa_chatid||m.chatId||'');
-  if(!jid||/@g\.us$/.test(jid)||m.isGroup) return true; if(!(m.messageid||m.id)||!m.messageTimestamp) return false;
-  var porNum=porNumCli(), c=null; digitosVariantes(jid.split('@')[0]).some(function(x){ c=porNum[x]; return !!c; }); if(!c) return true;
-  var h=histDeUaz(m,l); if(!h.txt&&!h.mt) return false; RT.ultMsg=Date.now();
-  if(histAdd(c,[h])){ delete c._lg; pintarHist(c); if(trCfg().auto!==false) enfileirarAudios(c); if(S.aba==='conversas') avRender(); else if(h.de==='c') toast('💬 Nova mensagem de '+String(c.nome||'cliente').split(' ')[0]+' · '+l,'ok'); pintarVivo(); }
-  return true; }
+/* lê qualquer formato de evento da Uazapi (envelope de webhook {EventType,message,chat} ou {type,data}) */
+function rtExtrair(d){ if(!d||typeof d!=='object') return null; var dd=d.data&&typeof d.data==='object'?d.data:null;
+  var m=d.message||(dd&&(dd.message||dd))||d.msg||null; if(!m||typeof m!=='object') return null; var ch=d.chat||(dd&&dd.chat)||{}, k=m.key||{};
+  var jid=String(m.chatid||m.wa_chatid||m.chatId||k.remoteJid||ch.wa_chatid||m.from||m.sender||'');
+  if(jid&&jid.indexOf('@')<0&&/^\d{10,15}$/.test(jid.replace(/\D/g,''))) jid=jid.replace(/\D/g,'')+'@s.whatsapp.net';
+  var id=m.messageid||m.id||k.id||'', ts=m.messageTimestamp||m.timestamp||m.t||0, txt=m.text||m.body||(typeof m.content==='string'?m.content:'')||'';
+  return {jid:jid,grupo:/@g\.us$/.test(jid)||!!m.isGroup,completo:!!(id&&ts&&(txt||m.messageType||m.type)),
+    m:{chatid:jid,messageid:id,id:id,messageTimestamp:ts,fromMe:!!(m.fromMe||k.fromMe),text:txt,messageType:m.messageType||m.type||'',content:m.content,mediaType:m.mediaType}}; }
+/* mensagem que chegou pelo canal ao vivo: entra na conversa na hora, sem esperar a varredura */
+function rtMensagem(l,d){ var e=rtExtrair(d), dg=RT.diag[l]=RT.diag[l]||{n:0}; dg.n++; dg.em=new Date().toISOString(); dg.chaves=Object.keys(d||{}).slice(0,12).join(','); dg.msg=e?Object.keys(e.m).filter(function(k){ return e.m[k]; }).join(','):'';
+  if(!e||!S.model){ dg.ok='sem mensagem no evento'; return false; } if(!e.jid){ dg.ok='sem chatid'; return false; } if(e.grupo) return true;
+  var porNum=porNumCli(), c=null; digitosVariantes(e.jid.split('@')[0]).some(function(x){ c=porNum[x]; return !!c; }); RT.ultMsg=Date.now();
+  if(!c){ dg.ok='não é cliente da cesta'; return true; }
+  if(!e.completo){ dg.ok='evento curto: buscou a conversa'; rtBuscarChat(l,e.jid,c); return true; }
+  dg.ok='entrou na hora'; rtEntrar(c,[histDeUaz(e.m,l)],l); return true; }
+function rtEntrar(c,hs,l){ if(histAdd(c,hs)){ delete c._lg; pintarHist(c); if(trCfg().auto!==false) enfileirarAudios(c); var h=hs[hs.length-1]||{};
+    if(S.aba==='conversas') avRender(); else if(h.de==='c') toast('💬 Nova mensagem de '+String(c.nome||'cliente').split(' ')[0]+' · '+l,'ok'); pintarVivo(); } }
+/* evento sem o conteúdo: busca só as últimas mensagens dessa conversa (1 chamada) */
+function rtBuscarChat(l,jid,c){ RT.bc=RT.bc||{}; var k=l+'|'+jid; clearTimeout(RT.bc[k]); RT.bc[k]=setTimeout(async function(){ delete RT.bc[k]; var inst=uazLeitura(l); if(!inst) return;
+    try{ var d=await uazReq(inst,'POST','/message/find',{chatid:jid,limit:10,offset:0,sort:'-messageTimestamp'}); rtEntrar(c,(d.messages||d.data||[]).map(function(x){ return histDeUaz(x,l); }).reverse(),l); }catch(e){} },400); }
 function pintarVivo(){ var e=document.getElementById('cvVivo'); if(e) e.outerHTML=barraVivo(); }
 function barraVivo(){ var ls=uazLojasLeitura(), vivas=ls.filter(rtAoVivo), u=RT.ultMsg||(RESP.radarEm&&+RESP.radarEm)||0, ok, txt;
-  if(ls.length){ ok=vivas.length===ls.length; txt=ok?'Ao vivo com o WhatsApp'+(ls.length>1?' ('+ls.length+' lojas)':' · '+ls[0]):(vivas.length?'Ao vivo em '+vivas.join(', ')+' · as outras a cada 3 min':'Reconectando ao WhatsApp… (enquanto isso, a cada 45 s)'); }
+  if(ls.length){ ok=vivas.length===ls.length; txt=ok?'Ao vivo com o WhatsApp'+(ls.length>1?' ('+ls.length+' lojas)':' · '+ls[0]):(vivas.length?'Ao vivo em '+vivas.join(', ')+' · as outras a cada 45 s':'Reconectando ao WhatsApp… (enquanto isso, a cada 45 s)'); }
   else { ok=avAoVivo(); txt=ok?'Ao vivo com os computadores das lojas':'Atualiza a cada 30 s'; }
   return '<div class="cv-vivo'+(ok?' on':'')+'" id="cvVivo"><span class="cv-dot"></span><span class="cv-vtx">'+esc(txt)+(u?'<small> · última '+new Date(u).toTimeString().slice(0,5)+'</small>':'')+'</span><button class="btn sec mini" id="cvAtualizar" title="Busca agora as mensagens novas no WhatsApp das lojas">⟳ Atualizar agora</button></div>'; }
 async function radarHistorico(lojas,chatsPorLoja){ if(!S.model) return; var porNum=porNumCli();
@@ -2099,7 +2113,7 @@ async function radarRespostas(){ if(!S.model||!uazLojasLeitura().length) return;
    1) canal ao vivo (/sse): mensagens e quedas chegam na hora, sem esperar a próxima verificação;
    2) vigia: confere o WhatsApp de cada loja a cada 2 min; se caiu, mostra o aviso no topo, registra o motivo e tenta reconectar sozinho (/instance/reset, mantém o pareamento);
    3) se o celular desconectou o aparelho, o botão "Reconectar" mostra o QR code aqui mesmo na cesta. */
-var RT={es:{},vivo:{},erros:{},tmr:null,quedas:{},estado:{},reset:{},hist:[],qr:null};
+var RT={diag:{},es:{},vivo:{},erros:{},tmr:null,quedas:{},estado:{},reset:{},hist:[],qr:null};
 function rtLigar(){ if(typeof EventSource==='undefined') return; var ls=uazLojasLeitura();
   Object.keys(RT.es).forEach(function(l){ if(ls.indexOf(l)<0){ try{ RT.es[l].close(); }catch(e){} delete RT.es[l]; } });
   ls.forEach(function(l){ var inst=uazLeitura(l), url=uazBase(inst)+'/sse?token='+encodeURIComponent(inst.token)+'&events=messages,connection&excludeMessages=isGroupYes', at=RT.es[l];
@@ -2334,8 +2348,8 @@ async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
   for(var i=0;i<lojas.length;i++){ var l=lojas[i], inst=uazLeitura(l); if(!inst){ out[l]={cfg:false}; continue; }
     try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
   DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
-  if(syncAtivo()){ try{ var id=String(S.sync.computador||'sem nome').replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',versao:'4.6'}); }catch(e){} }
+  if(syncAtivo()){ try{ var pid=''; try{ pid=localStorage.getItem('cesta_pcid')||''; if(!pid){ pid=Math.random().toString(36).slice(2,7); localStorage.setItem('cesta_pcid',pid); } }catch(e){} var id=String(S.sync.computador||('sem nome '+(S.loja||'')+' '+pid)).replace(/[.#$\[\]\/]/g,'_').slice(0,60);
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,versao:'4.7'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
@@ -4054,7 +4068,7 @@ async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
     lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await recarregar(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
-    setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!rtTodasAoVivo()||!RESP.radarEm||Date.now()-RESP.radarEm>3*60e3) radarRespostas(); },45*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
+    setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!RESP.radarEm||Date.now()-RESP.radarEm>(S.aba==='conversas'?20e3:45e3)) radarRespostas(); },10*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
     setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
