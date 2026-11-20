@@ -622,14 +622,14 @@ var REGRAS=[
   [/GELATO/,'Sobremesas'],
   [/WAGYU/,'Wagyu'],
   [/CORDEIRO/,'Cordeiro'],
-  [/SALMAO|PEIXE/,'Peixes'],
-  [/QUEIJO|PAO DE ALHO|PAO DE GORGONZOLA|BATATA|FAROFA|PALMITO/,'Queijos e acompanhamentos'],
-  [/MAIONESE|MOSTARDA|BARBECUE|DIJONESE|KETCHUP|CHIMICHURRI|SWEET CHILLI|SRIRACHA|CEBOLA CARAMELIZADA|GELEIA|FUMACA|MOLHO/,'Molhos e temperos'],
+  [/SALMAO|^(?!GRELHA).*PEIXE/,'Peixes'],
+  [/^(?!LING\b|LINGUICA).*(QUEIJO|PAO DE ALHO|PAO DE GORGONZOLA|BATATA|FAROFA|PALMITO)/,'Queijos e acompanhamentos'],
+  [/^(MOLHO|MAIONESE|BARBECUE|KETCHUP|MOSTARDA)|^(?!.*(SUINA|SUINO|COSTELA|FRANGO)).*(MAIONESE|MOSTARDA|BARBECUE|DIJONESE|KETCHUP|CHIMICHURRI|SWEET CHILLI|SRIRACHA|CEBOLA CARAMELIZADA|GELEIA|FUMACA|MOLHO)/,'Molhos e temperos'],
   [/HEINEKEN|COCA|CERVEJA|CORONA|STELLA|AMSTEL|QUILMES|LAGUNITAS|CHOPP|AGUA|H2OH|LICOR|^VAR |VINHO|BLUE MOON/,'Bebidas'],
-  [/CARVAO|FACA|JOGO|KIT |GRELHA|ESPETO|ESPATULA|ESCOVA|CHAIRA|TABUA/,'Carvão e acessórios'],
+  [/CARVAO|FACA|JOGO|KIT |GRELHA|^ESPETO|ESPETO (DUPLO|CHURRASCO|INOX)|ESPATULA|ESCOVA|CHAIRA|TABUA/,'Carvão e acessórios'],
   [/FRANGO|FRG|SOBRECOXA|TULIPA|CORACAO|COXINHA|PEITO RECH|FILEZINHO EMPANADO|ISCA/,'Frango'],
-  [/DUROC|SUINA|SUINO|LOMBO|COPALOMBO|NABRASA|PANCETA|PORCHETTA|^LING|BACON|LINGUICA/,'Suínos e linguiças'],
-  [/PATINHO|ALCATRA|LAGARTO|ACEM|PEITO BOVINO|CONTRA DIA A DIA|BIFE DE VO|ALMONDEGA|KAFTA|LINGUA|MAMINHA GRILL/,'Bovinos dia a dia'],
+  [/DUROC|SUINA|SUINO|LOMBO|COPALOMBO|NABRASA|PANCETA|PORCHETTA|^LING\b|BACON|LINGUICA/,'Suínos e linguiças'],
+  [/PATINHO|ALCATRA|LAGARTO|ACEM|PEITO BOVINO|CONTRA DIA A DIA|CONTRA ?FILE|COXAO|MUSCULO|CARNE MOIDA|PALETA BOVINA|BIFE DE VO|ALMONDEGA|KAFTA|LINGUA|MAMINHA GRILL/,'Bovinos dia a dia'],
   [/PICANHA|CHORIZO|ANCHO|FILE DE COSTELA|BOMBOM|FRALDA|DENVER|SHOULDER|BABY BEEF|MAMINHA|CHUCK|ASSADO DE TIRAS|BANANINHA|TBONE|SHORT RIB|FLAT IRON|CUPIM|COSTELA|CONTRA GRILL|FILE MIGNON|PRIME RIB/,'Churrasco nobre']
 ];
 function linhaAuto(nome){ var n=rgNorm(nome); for(var i=0;i<REGRAS.length;i++) if(REGRAS[i][0].test(n)) return REGRAS[i][1]; return 'Outros'; }
@@ -1081,7 +1081,9 @@ function esperaCliente(c,R){ R=R||regras(); var d=R.diasCliente, mot='mínimo de
 var GENERICOS={HB:1,PAO:1,CERVEJA:1,NABRASA:1,QUEIJO:1,MAIONESE:1,BATATA:1,COCA:1,AGUA:1,GELATO:1,LING:1,KIT:1,JOGO:1,FACA:1,GELEIA:1,MOLHO:1,BOMBOM:1,ESPETO:1,GRELHA:1,FILE:1,CARVAO:1};
 /* "corte" do produto: Patinho Angus / Patinho Bife / Patinho Estrogonofe = PATINHO; HB Picanha = HB PICANHA; File Mignon = FILE MIGNON */
 function corte(nome){ var n=rgNorm(nome), w=n.split(' '), k=GENERICOS[w[0]]&&w[1]?(w[0]+' '+(w[1]==='DE'&&w[2]?w[2]:w[1])):w[0];
-  if(/SUIN/.test(n)) k+=' SUINO'; else if(/CORDEIRO/.test(n)&&k.indexOf('CORDEIRO')<0) k+=' CORDEIRO'; else if(/\bRECH\b|FRANGO/.test(n)&&k!=='FRANGO') k+=' FRANGO'; return k; }
+  if(/SUIN/.test(n)) k+=' SUINO'; else if(/CORDEIRO/.test(n)&&k.indexOf('CORDEIRO')<0) k+=' CORDEIRO'; else if(/\bRECH\b|FRANGO/.test(n)&&k!=='FRANGO') k+=' FRANGO';
+  if(k==='FRANGO'){ if(/ESTROGONOF/.test(n)) k='FRANGO ESTROGONOFE'; else if(/DESFIAD/.test(n)) k='FRANGO DESFIADO'; else if(/\bHAMB/.test(n)) k='FRANGO HB'; }
+  if(/^CONTRA ?(FILE|DIA)|^CONTRAFILE/.test(n)) k='CONTRAFILE'; else if(/^CONTRA GRILL/.test(n)) k='CONTRA GRILL'; else if(/PARA HAMBURGUER/.test(n)&&!/^HB /.test(k)) k+=' HB'; return k; }
 function hoje(){ return new Date().toLocaleDateString('sv-SE'); }
 function chavesContato(c){ var ks=[]; if(c.codigo) ks.push('C_'+c.codigo); (c.codAltArr||[]).forEach(function(a){ ks.push('C_'+a); }); c.nomeKeysArr.forEach(function(nk){ ks.push('N_'+nk); }); return ks; }
 function indexarContatos(){ var idx={}; (S.contatos||[]).forEach(function(r){ if(r.excluido) return; (r.chaves||[]).forEach(function(k){ (idx[k]=idx[k]||[]).push(r); }); }); S.contatosIdx=idx; }
@@ -1401,7 +1403,7 @@ async function copiarProducao(){ if(!window.AMB_TESTE) return; if(!confirm('Copi
    A busca em português e os segmentos usam essa classificação: "fraldinha" = os produtos que SÃO fraldinha
    bovina (Fralda Red), não o hambúrguer de fraldinha nem a fraldinha de cordeiro; "cerveja" = todas as cervejas;
    "heineken" = só Heineken. O que a regra automática errar, a loja corrige no Dicionário (fica salvo e vale para todos). */
-var TX_CORTES=[['FILE DE COSTELA',/FILE DE COSTELA/],['FILE MIGNON',/FILE MIGNON|\bMIGNON\b/],['PICANHA',/PICANHA/],['FRALDINHA',/\bFRALDA\b|FRALDINHA|\bFRALD\b/],['CONTRA FILE',/CONTRA ?FILE|CONTRA GRILL|CONTRA DIA/],['CHORIZO',/CHORIZO/],['ANCHO',/\bANCHO\b/],
+var TX_CORTES=[['FILE DE COSTELA',/FILE DE COSTELA/],['FILE MIGNON',/FILE MIGNON|\bMIGNON\b/],['PICANHA',/PICANHA/],['FRALDINHA',/\bFRALDA\b|FRALDINHA|\bFRALD\b/],['CONTRA GRILL',/CONTRA GRILL/],['CONTRA FILE',/CONTRA ?FILE|CONTRA DIA/],['CHORIZO',/CHORIZO/],['ANCHO',/\bANCHO\b/],
   ['ALCATRA',/ALCATRA/],['BOMBOM',/BOMBOM(?! DI)/],['MAMINHA',/MAMINHA/],['PATINHO',/PATINHO/],['SHORT RIB',/SHORT RIB/],['PRIME RIB',/PRIME RIB/],['COSTELA',/COSTELA|ASSADO DE TIRA/],['T-BONE',/\bT ?BONE\b/],['CUPIM',/CUPIM/],['ACEM',/\bACEM\b/],
   ['LAGARTO',/LAGARTO/],['BABY BEEF',/BABY BEEF/],['DENVER',/DENVER/],['SHOULDER',/SHOULDER/],['CHUCK EYE',/CHUCK EYE/],['BANANINHA',/BANANINHA/],['FLAT IRON',/FLAT IRON/],['KAFTA',/KAFTA/],['ALMONDEGA',/ALMONDEGA/],['BIFE DE VO',/BIFE DE VO/],
   ['CORACAO',/CORACAO/],['SOBRECOXA',/SOBRECOXA/],['COXINHA DA ASA',/COXINHA|TULIPA/],['FILEZINHO',/FILEZINHO|ISCA DE FRANGO/],['CARRE',/\bCARRE\b/],['PALETA',/PALETA/],['PERNIL',/PERNIL/],['LOMBO',/LOMBO/],['PANCETA',/PANCETA/],['PORCHETTA',/PORCHETTA/],
@@ -1442,7 +1444,7 @@ var VOC_BASE=[
   ['queijo|queijos',{categoria:'QUEIJO'}],['queijo coalho|coalho',{item:'COALHO'}],['gelato|gelatos|sobremesa|sobremesas|sorvete',{categoria:'SOBREMESA'}],['linguica|linguicas|linguicinha',{categoria:'LINGUICA'}],
   ['hamburguer|hamburgueres|burger|burgers|hb|blend|blends',{categoria:'HAMBURGUER'}],['batata|batatas|farofa|acompanhamento|acompanhamentos',{categoria:'ACOMP'}],
   ['frango|frangos|galinha|ave|aves',{especie:'FRANGO'}],['suino|suinos|suina|suinas|porco|porcos|carne de porco',{especie:'SUINO'}],['cordeiro|cordeiros|carneiro',{especie:'CORDEIRO'}],['peixe|peixes',{especie:'PEIXE'}],['bovino|bovina|bovinos|boi|carne bovina',{especie:'BOVINO'}],
-  ['costelinha',{item:'COSTELA',especie:'SUINO'}],['fraldinha|fralda|fraldinhas',{item:'FRALDINHA'}],['contra file|contrafile|contra-file',{item:'CONTRA FILE'}],['file mignon|mignon',{item:'FILE MIGNON'}],['file de costela|ancho de costela',{item:'FILE DE COSTELA'}],
+  ['costelinha',{item:'COSTELA',especie:'SUINO'}],['fraldinha|fralda|fraldinhas',{item:'FRALDINHA'}],['contra grill|contragrill|contra-grill',{item:'CONTRA GRILL'}],['contra file|contrafile|contra-file',{item:'CONTRA FILE'}],['file mignon|mignon',{item:'FILE MIGNON'}],['file de costela|ancho de costela',{item:'FILE DE COSTELA'}],
   ['coracao|coracoes|coracaozinho',{item:'CORACAO'}],['asinha|coxinha da asa|tulipa|drumete',{item:'COXINHA DA ASA'}],['carne moida|moida|moido',{item:'MOIDA'}],['bife de vo',{item:'BIFE DE VO'}],['t bone|tbone|t-bone',{item:'T-BONE'}],
   ['coca|coca cola|coca-cola',{marca:'COCA COLA'}],['blue moon',{marca:'BLUE MOON'}]];
 function vocab(){ var m=S.model; if(S._voc&&S._vocM===m&&S._vocC===JSON.stringify(S.cfg.taxonomia||{})) return S._voc; var V={}, T=taxIdx();
@@ -2388,7 +2390,7 @@ async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
     try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
   DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
   if(syncAtivo()){ try{ var pid=''; try{ pid=localStorage.getItem('cesta_pcid')||''; if(!pid){ pid=Math.random().toString(36).slice(2,7); localStorage.setItem('cesta_pcid',pid); } }catch(e){} var id=String(S.sync.computador||('sem nome '+(S.loja||'')+' '+pid)).replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,versao:'5.2'}); }catch(e){} }
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,versao:'5.3'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
@@ -2514,18 +2516,23 @@ function blocoControleLojas(){ var R=controleLojas(), ls=LOJAS_ENVIO.filter(func
 var BIB_PREP={recompra:['{chegou}! {preparo}','{chegou} e me lembrei de você. {preparo}'],padrao:['{chegou} e me lembrei de você. {preparo}','{chegou}! {preparo}'],vip:['{chegou} e pensei em você. {preparo}'],reativar_risco:['Senti sua falta! {chegou}. {preparo}']};
 var CARNE_FRESCA=['Bovinos dia a dia','Churrasco nobre','Wagyu','Frango','Suínos e linguiças','Cordeiro','Peixes'];
 function ehHamb(prod){ var n=rgNorm(prod||''); return /^HB\b|^HAMB|HAMBURGUER$/.test(n)&&!/\bPAO\b|QUEIJO|CHEDDAR|BACON|PARA HAMB/.test(n); }
-function carneFresca(p){ if(!p) return false; var nm=p.produto||p.nome||'', n=rgNorm(nm); if(ehHamb(nm)) return true; return CARNE_FRESCA.indexOf(linhaDe(p.chave,nm))>=0&&!/TEMPERAD|EMPANAD|RECH|NABRASA|DEFUMAD|CONGEL|PAO DE ALHO|\bPRONT/.test(n); }
+function carneFresca(p){ if(!p) return false; var nm=p.produto||p.nome||'', n=rgNorm(nm); if(ehHamb(nm)) return true; return CARNE_FRESCA.indexOf(linhaDe(p.chave,nm))>=0&&!/\bTEMP\b|TEMPERAD|EMPANAD|RECH|NABRASA|DEFUMAD|CONGEL|PAO DE ALHO|\bPRONT/.test(n); }
 /* "chegou" só para carne fresca e só do 1º item (a pergunta do preparo é sobre ele) */
 function chegouTxt(o,seed){ var p1=o.itens[0]; if(!carneFresca(p1)) return ''; var h=hashN(seed+'|chg');
   if(ehHamb(p1.produto||p1.nome)) return ['Acabamos de produzir nossos hambúrgueres','Hoje tem hambúrguer fresquinho saindo da nossa manipulação'][h%2];
   return ['Acabamos de receber '+p1.nome,'Chegou hoje um lote novo de '+p1.nome][h%2]; }
 function tipoPreparo(prod,chave){ var n=rgNorm(prod||''), L=linhaDe(chave||'',prod);
   if(ehHamb(prod)) return 'hb';
+  /* frango: peito, filé e bife de frango a loja manipula (bifes, cubos, tiras); estrogonofe, desfiado, temperado etc. já vêm prontos */
+  if(L==='Frango') return /ESTROGONOF|DESFIAD|EMPANAD|\bTEMP\b|TEMPERAD|RECH|HAMB|ISCA|NABRASA|MEDALH|ESPETO/.test(n)?'':/FILE|PEITO|BIFE/.test(n)?'frango':'';
   if(/BIFE|ESTROGONOF|STROGONOF|MOID|TEMPERAD|EMPANAD|RECH|MEDALH|DESFIAD|ESPETO|NABRASA|KAFTA|ISCA|CUBOS|TIRAS|FATIAD|DEFUMAD/.test(n)) return '';
   if(/FILE MIGNON|\bPECA\b|INTEIR/.test(n)) return 'peca';
-  if(L==='Frango') return /FILE|PEITO/.test(n)?'frango':'';
-  if(/ALCATRA|CONTRA ?FILE|LAGARTO/.test(n)) return 'bife';
+  if(/ALCATRA|CONTRA ?FILE|CONTRA DIA|LAGARTO/.test(n)) return 'bife';
   if(/PATINHO|ACEM|MUSCULO|COXAO|PEITO BOVINO/.test(n)||(/PALETA/.test(n)&&L==='Bovinos dia a dia')) return 'moivel'; return ''; }
+/* "a gente prepara do jeito que você gosta" só para peça de carne: nunca pão de alho, queijo, batata, molho, bebida, hambúrguer ou item já temperado/pronto */
+var RE_PREP_TXT=/(do jeito que (você|voce|vc) gosta|do seu jeito|do jeito que preferir|como gostaria dos cortes|mo[ií]d[oa] em pacotes)/i;
+function prodsDoCorte(k){ if(!S.model) return []; if(!PF.pdc||PF.pdcM!==S.model){ PF.pdc={}; PF.pdcM=S.model; Object.keys(S.model.produtos).forEach(function(ch){ var p=S.model.produtos[ch]; if(!p) return; var ck=corte(p.produto); (PF.pdc[ck]=PF.pdc[ck]||[]).push(p); }); Object.keys(PF.pdc).forEach(function(ck){ PF.pdc[ck].sort(function(a,b){ return (b.valor||0)-(a.valor||0); }); }); } return PF.pdc[k]||[]; }
+function ehCarnePrep(p){ var nm=p&&(p.produto||p.nome)||''; if(!p||!carneFresca(p)||ehHamb(nm)) return false; if(tipoPreparo(nm,p.chave)) return true; return !/KAFTA|ALMONDEGA|BIFE|DESFIAD|ISCA|COXINHA|ESPETO|ROCAMBOLE|ESTROGONOF|MOID|HAMB|BACON|CORACAO|MEDALH|^LING\b|LINGUICA|SALAME|SALMAO|PEIXE|PORCHETTA/.test(rgNorm(nm)); }
 function generoPrep(t,fm){ return fm?String(t).replace(/\bmoído\b/g,'moída').replace(/\binteiro\b/g,'inteira').replace(/\bfatiado\b/g,'fatiada').replace(/\blimpo\b/g,'limpa'):t; }
 function preparoTxt(c,p1){ if(!p1) return 'Posso separar pra você?'; var fm=fem(p1.produto)||fem(String(p1.nome||'').toUpperCase()), o_p1=(fm?'a ':'o ')+p1.nome, t=tipoPreparo(p1.produto,p1.chave), pr=t&&t!=='hb'?(perfilCliente(c).preparo||{})[corte(p1.produto)]:'';
   if(pr) return 'Separo '+o_p1+' '+generoPrep(pr,fm)+', como da última vez?';
@@ -2534,26 +2541,27 @@ function preparoTxt(c,p1){ if(!p1) return 'Posso separar pra você?'; var fm=fem
   if(t==='bife') return 'Prefere em bifes, em tiras para estrogonofe ou a peça inteira?';
   if(t==='moivel') return 'Quer '+(fm?'moída':'moído')+' em pacotes de 500 g ou em bifes, separados de 4 em 4?';
   if(t==='frango') return 'Prefere em bifes, em cubos ou em tiras? A gente prepara do seu jeito.';
-  return carneFresca(p1)?'Posso separar pra você? A gente prepara do jeito que preferir.':'Posso separar pra você?'; }
+  return ehCarnePrep(p1)?'Posso separar pra você? A gente prepara do jeito que preferir.':'Posso separar pra você?'; }
 /* aprende o preparo com o que o cliente pede e com o que a loja confirma ("separei o patinho moído em pacotes de 500 g") */
 var RE_PREP_T=/\b(MOID[OA]S?|MOER|BIFES?|CUBOS|TIRAS|MEDALH\w*|PECA INTEIRA|INTEIR[OA]|FATIAD[OA]S?|PACOTES? DE \d+ ?(?:G|GR|GRAMAS|KG)\b|DE \d+ EM \d+|SEM GORDURA|BEM LIMP[OA])/g;
 function prepFrase(n){ var out=[]; n=String(n).replace(/\b(DIA|MES|SEMANA|ANO|TEMPO|TARDE|MANHA|NOITE|MUNDO) INTEIR[OA]\b/g,' '); (String(n).match(RE_PREP_T)||[]).forEach(function(t){ var m2=t.match(/PACOTES? DE (\d+) ?(G|GR|GRAMAS|KG)/), x=/^MOI|^MOER/.test(t)?'moído':/^BIFE/.test(t)?'em bifes':/^CUBOS/.test(t)?'em cubos':/^TIRAS/.test(t)?'em tiras':/^MEDALH/.test(t)?'em medalhões':/INTEIR/.test(t)?'inteiro':/^FATIAD/.test(t)?'fatiado':m2?'em pacotes de '+m2[1]+(/KG/.test(m2[2])?' kg':' g'):/^DE \d+ EM/.test(t)?t.toLowerCase():/GORDURA|LIMP/.test(t)?'bem limpo':''; if(x&&out.indexOf(x)<0) out.push(x); });
   if(out.length>1&&out.indexOf('em bifes')>=0&&out.indexOf('moído')>=0) return ''; return out.join(' '); }
 var RE_PEDIDO=/\b(QUERO|QUERIA|PODE|PODERIA|SEPARA|SEPARE|MANDA|MANDE|ME VE|RESERVA|VOU QUERER)\b/;
 var RE_CONF_L=/\b(SEPAREI|SEPARAMOS|DEIXEI|DEIXAMOS|CORTEI|CORTAMOS|MOI|MOEMOS|EMBALEI|EMBALAMOS|FIZ|FIZEMOS|TA PRONT\w*|ESTA PRONT\w*|FICOU PRONT\w*|JA ESTA SEPARAD\w*)\b/;
-function tipoOkPrep(k){ var t=tipoPreparo(k); return !!t&&t!=='hb'; }
+function tipoOkPrep(k){ var t=tipoPreparo(k); if(!t) t=(prodsDoCorte(k).map(function(p){ return tipoPreparo(p.produto,p.chave); }).filter(Boolean)[0])||''; return !!t&&t!=='hb'; }
 function pfPreparo(c,ms,nv){ var mud=false, ultL=null; nv.prep=nv.prep||{};
   ms.slice().sort(function(a,b){ return a.em<b.em?-1:1; }).forEach(function(m){ if(!m.txt||/^\[/.test(m.txt)||m.tr===-1||(m.de!=='c'&&m.de!=='l')) return; var bruto=String(m.txt).replace(/^🎤\s*/,'');
     /* loja só ensina quando confirma o que fez ("separei o patinho moído"); mensagem automática, campanha ou pergunta não ensina */
     if(m.de==='l'&&(m.tags||/\?/.test(bruto)||!RE_CONF_L.test(rgNorm(bruto)))){ ultL=m; return; }
-    var csMsg=cortesNoTexto(bruto), partes=[];
+    var csMsg=cortesNoTexto(bruto), partes=[], noMsg={};
     (bruto.match(/[^.!?;\n]+[.!?;\n]*/g)||[]).forEach(function(fr){ var q=/\?/.test(fr), pd=RE_PEDIDO.test(rgNorm(fr)); fr.split(/\s+(?:e|mais|mas|porém)\s+|,\s*(?:e\s+)?(?=\d)/i).forEach(function(x){ partes.push({t:x,q:q,pd:pd}); }); });
     partes.forEach(function(pt){ var f=rgNorm(pt.t); if(RE_REC_PERM.test(' '+f+' ')||/\bNAO\b/.test(f)) return; if(m.de==='c'&&pt.q&&!pt.pd) return; var pr=prepFrase(f); if(!pr) return;
       var cf=cortesNoTexto(pt.t);
       if(!cf.length){ if(csMsg.length) return; /* outro corte citado na mesma mensagem: não dá para saber de qual é */
         if(m.de==='c'&&ultL&&dias(String(ultL.em).slice(0,10),String(m.em).slice(0,10))<=3){ var u=cortesNoTexto(ultL.txt).filter(tipoOkPrep)[0]; if(u) cf=[u]; } }
       cf=cf.filter(tipoOkPrep); if(cf.length!==1) return;
-      var k=cf[0], a=nv.prep[k]; if(a&&a.em>=m.em) return; nv.prep[k]={txt:pr,em:m.em}; mud=true; });
+      var k=cf[0], b1=function(x){ return String(x).split(' ').slice(0,2).join(' '); }; if(noMsg[k]===undefined) noMsg[k]=pr; else if(noMsg[k]&&b1(noMsg[k])!==b1(pr)) noMsg[k]=''; else if(noMsg[k]&&pr.length>noMsg[k].length) noMsg[k]=pr; });
+    Object.keys(noMsg).forEach(function(k){ var pr=noMsg[k], a=nv.prep[k]; if(!pr||(a&&a.em>=m.em)) return; nv.prep[k]={txt:pr,em:m.em}; mud=true; }); /* dois preparos do mesmo corte na mesma mensagem ("1 kg em cubos / 1 kg moído") = não aprende */
     if(m.de==='l') ultL=m; });
   return mud; }
 async function pfTirarPreparo(c,k){ var K=histK(c), nv=PF.d[K]=PF.d[K]||{}; nv.prep=nv.prep||{}; nv.prep[k]={off:1,em:new Date().toISOString(),por:meuPapel().nome||''}; PF.fila[K]=1; pfLimparCli(c); await pfEnviar(); }
@@ -2565,7 +2573,7 @@ function temaTexto(t){ var n=rgNorm(String(t||'')); return /\bCHURRASC\w*|\bESPE
 function temaCamp(cp){ if(!cp||campAuto(cp)) return ''; var ts=String(cp.texto||'').split(/\n\s*---\s*\n/).map(function(x){ return x.trim(); }).filter(Boolean), tm=ts.map(temaTexto); return tm.length&&tm.every(function(x){ return x&&x===tm[0]; })?tm[0]:''; }
 function produtoDoTema(chave,nome,tema){ if(!tema) return true; var L=linhaDe(chave,nome); if(principalDoTema(chave,nome,tema)) return true; return tema==='churrasco'&&/Queijos e acompanhamentos|Carvão e acessórios|Molhos e temperos|Bebidas/.test(L); }
 function principalDoTema(chave,nome,tema){ var L=linhaDe(chave,nome), n=rgNorm(nome); if(TEMA_LINHAS[tema].indexOf(L)>=0) return true;
-  return tema==='churrasco'&&L==='Frango'&&/CORACAO|SOBRECOXA|COXA|ASA|TULIPA|LING/.test(n); }
+  return tema==='churrasco'&&L==='Frango'&&/CORACAO|SOBRECOXA|COXA|COXINHA TEMP|ASA|TULIPA|LING/.test(n); }
 function itemTema(c,tema,promo){ if(!tema) return null; return (c.cestaArr||[]).filter(function(e){ return principalDoTema(e.chave,e.produto,tema)&&travaCorte(c,e.produto,{promo:!!promo}).ok; }).sort(function(a,b){ return (b.valor||0)-(a.valor||0); })[0]||null; }
 function campTemaFora(c,cp){ var tm=temaCamp(cp); if(!tm) return false; var sg0=cp.seg&&CRM.seg[cp.seg]; if(focoDasRegras(c,cp.regras||(sg0&&sg0.regras))) return false; return !itemTema(c,tm,cp.promo); }
 /* ---------- ENVIADAS: tudo o que saiu pelo WhatsApp, de qualquer tela e computador ---------- */
@@ -2603,12 +2611,12 @@ function perfilCliente(c){ var vk=pfVer(); if(c._pf&&c._pfv===vk) return c._pf; 
   comps.forEach(function(d){ var vis={}; (d.itens||[]).forEach(function(it){ var k=corte(it.produto); if(!k||vis[k]) return; vis[k]=1; var e=cortes[k]||(cortes[k]={k:k,nome:nomeNatural(it.produto),datas:{}}); e.datas[d.data]=1; }); });
   Object.keys(cortes).forEach(function(k){ var e=cortes[k], ds=Object.keys(e.datas).sort(), gaps=[]; for(var i=1;i<ds.length;i++) gaps.push(dias(ds[i-1],ds[i]));
     e.vezes=ds.length; e.ultima=ds[ds.length-1]; e.ciclo=gaps.length?Math.round(mediana(gaps)):null; e.cicloUso=Math.min(e.vezes>=3?30:21,regras().cicloMax||30,Math.max(3,e.ciclo||CICLO_PADRAO)); e.diasSem=dias(e.ultima,h); e.liberaEm=addDias(e.ultima,e.cicloUso); delete e.datas; });
-  var nc=comps.length, nv=pfNuvem(c), rec={}; Object.keys(nv.rec||{}).forEach(function(k){ var r=nv.rec[k]; if(r&&!r.off&&(!r.ate||r.ate>=h)) rec[k]=r; });
+  var nc=comps.length, nv=pfNuvem(c), rec={}, nvRec=pfAliasContra(nv.rec,cortes), nvPrep=pfAliasContra(nv.prep,cortes); Object.keys(nvRec||{}).forEach(function(k){ var r=nvRec[k]; if(r&&!r.off&&(!r.ate||r.ate>=h)) rec[k]=r; });
   var habit=Object.keys(cortes).map(function(k){ return cortes[k]; }).filter(function(e){ return e.vezes>=2; });
   var nd=(c.diasCompra&&c.diasCompra.length)||Object.keys(comps.reduce(function(a,d){ a[d.data]=1; return a; },{})).length;
   var est=!nc?'NUNCA_COMPROU':nd===1?'PRIMEIRA_COMPRA':habit.some(function(e){ return e.diasSem>=e.cicloUso*0.8; })?'RECOMPRA_CICLO':'EXPANSAO_CESTA';
   var ult=comps[0]?[].concat.apply([],comps.filter(function(d){ return d.data===comps[0].data; }).map(function(d){ return d.itens||[]; })).map(function(it){ return nomeNatural(it.produto); }).filter(function(x,i,a){ return a.indexOf(x)===i; }).slice(0,6):[];
-  var prep={}; Object.keys(nv.prep||{}).forEach(function(k){ if(nv.prep[k]&&nv.prep[k].txt) prep[k]=nv.prep[k].txt; });
+  var prep={}; Object.keys(nvPrep||{}).forEach(function(k){ if(nvPrep[k]&&nvPrep[k].txt) prep[k]=nvPrep[k].txt; });
   c._pf={preparo:prep,estagio:est,ultima_compra_data:c.ultimaCompra||(comps[0]&&comps[0].data)||'',ultima_cesta:ult,cortes:cortes,recusas:rec,preferencias:(nv.pref||[]).slice(0,6),tom:lingua(c).tom||''}; c._pfv=vk; return c._pf; }
 var ESTAGIO_TXT={NUNCA_COMPROU:'Nunca comprou',PRIMEIRA_COMPRA:'1ª compra',RECOMPRA_CICLO:'Recompra no ciclo',EXPANSAO_CESTA:'Expandir a cesta'};
 /* a trava única de produto */
@@ -2635,8 +2643,10 @@ function pfVocab(){ if(PF.voc&&PF.vocM===S.model) return PF.voc; var pats={}, QU
   Object.keys(S.model.produtos).forEach(function(k){ var p=S.model.produtos[k]; if(!p) return; var n=rgNorm(p.produto), w=n.split(' '), ck=corte(p.produto); if(!ck||PF_STOP[ck]&&!w[1]) return;
     var base=w[1]==='DE'&&w[2]?w[0]+' DE '+w[2]:(GENERICOS[w[0]]||PF_STOP[w[0]])&&w[1]?w[0]+' '+w[1]:w[0]; if(base.length<4) return; var q=n.match(QUAL), pat=base.replace(/ DE /,' (DE )?').replace(/ /g,'\\s+');
     if(q&&base.indexOf(q[1].slice(0,4))<0) pat+='\\s+(DE\\s+)?'+q[1].slice(0,4)+'\\w*'; else if(!q) pat+='(?!\\s+(DE\\s+)?(SUIN|FRANGO|CORDEIRO))';
-    pats[pat]=pats[pat]||ck; });
+    var a0=pats[pat]; if(!a0||(/ HB$/.test(a0)&&!/ HB$/.test(ck))||(/ HB$/.test(a0)===/ HB$/.test(ck)&&ck.length<a0.length)) pats[pat]=ck; });
   if(Object.keys(pats).some(function(x){ return pats[x]==='FILE MIGNON'; })) pats['MIGNON']='FILE MIGNON';
+  /* contrafilé (dia a dia) e contra grill (churrasco) são cortes diferentes */
+  Object.keys(pats).forEach(function(x){ if(/^CONTRA(?!\\s)/.test(x)&&/^CONTRA/.test(pats[x])) delete pats[x]; }); var cks=Object.keys(S.model.produtos).map(function(k){ var p=S.model.produtos[k]; return p?corte(p.produto):''; }); if(cks.indexOf('CONTRA GRILL')>=0) pats['CONTRA\\s*-?\\s*(FILE\\s+)?GRILL']='CONTRA GRILL'; if(cks.indexOf('CONTRAFILE')>=0||cks.indexOf('CONTRA GRILL')>=0) pats['CONTRA\\s*-?\\s*FILE(?!\\s+GRILL)']=cks.indexOf('CONTRAFILE')>=0?'CONTRAFILE':'CONTRA GRILL'; if(cks.indexOf('FRALDA')>=0) pats['(?<!HB\\s(DE\\s)?)FRALDINHA']='FRALDA';
   PF.voc=Object.keys(pats).sort(function(a,b){ return b.length-a.length; }).map(function(pt){ return {k:pats[pt],re:new RegExp('\\b'+pt+'\\b')}; }); PF.vocM=S.model; return PF.voc; }
 function cortesNoTexto(t){ var n=rgNorm(String(t||'')).replace(/\bLINGUICAS?\b/g,'LING').replace(/\bHAMBURGUERE?S?\b/g,'HB'), out=[]; pfVocab().forEach(function(v){ if(out.indexOf(v.k)<0&&v.re.test(n)) out.push(v.k); }); return out; }
 var RE_REC_PERM=/\b(NAO GOSTO|NAO GOSTAMOS|NAO COMO|NAO COMEMOS|NAO CURTO|ODEIO|SOU ALERGIC\w*|TENHO ALERGIA|NAO POSSO COMER)\b/, RE_REC_TEMP=/\b(NAO QUERO|NAO VOU QUERER|HOJE NAO|AGORA NAO|ESSA SEMANA NAO|ESTA SEMANA NAO|DISPENSO|NAO PRECISO|JA COMPREI|JA TENHO|AINDA TENHO|NAO OBRIGAD\w*|OBRIGAD\w* MAS NAO|NAO DESSA VEZ|FICA PARA (A )?PROXIMA|FICA PRA (A )?PROXIMA|FICA PARA OUTRA)\b/;
@@ -2655,6 +2665,10 @@ function pfExtrair(c,msgs){ if(!c||!msgs||!msgs.length) return false; var K=hist
   if(pfPreparo(c,msgs,nv)) mud=true;
   if(pref.length>6) nv.pref=pref.slice(-6);
   if(mud){ nv.atu=new Date().toISOString(); PF.fila[K]=1; pfLimparCli(c); clearTimeout(PF.tmr); PF.tmr=setTimeout(pfEnviar,1500); } return mud; }
+/* 'CONTRA' (até a v5.2) vale para contrafilé e contra grill, inclusive o ✕ da loja (vale o mais recente); "contrafilé" de quem só compra o grill vale para o grill */
+function pfAliasContra(o,cortes){ if(!o||!(o.CONTRA||o.CONTRAFILE)) return o; var r=Object.assign({},o), novo=function(a,b){ return !a||(b&&(b.em||'')>(a.em||'')); };
+  if(o.CONTRA){ ['CONTRAFILE','CONTRA GRILL'].forEach(function(k){ if(novo(r[k],o.CONTRA)) r[k]=o.CONTRA; }); delete r.CONTRA; }
+  if(r.CONTRAFILE&&cortes&&cortes['CONTRA GRILL']&&!cortes.CONTRAFILE&&novo(r['CONTRA GRILL'],r.CONTRAFILE)) r['CONTRA GRILL']=r.CONTRAFILE; return r; }
 function pfLimparCli(c){ if(!c) return; delete c._pf; delete c._oh; delete c._sug; delete c._sugF; }
 async function pfEnviar(){ if(!syncAtivo()) return; var ks=Object.keys(PF.fila); if(!ks.length) return; PF.fila={};
   for(var i=0;i<ks.length;i++){ var K=ks[i]; try{ var rem=(await fb('GET','perfil/'+K))||{}, loc=PF.d[K]||{}, r=Object.assign({},rem.rec||{});
@@ -2669,12 +2683,12 @@ async function pfPorRecusa(c,nome){ var ks=cortesNoTexto(nome); if(!ks.length) k
   ks.forEach(function(k){ nv.rec[k]={em:new Date().toISOString(),ate:'9999-12-31',tipo:'perm',txt:'marcado pela loja',por:meuPapel().nome||''}; }); PF.fila[K]=1; pfLimparCli(c); await pfEnviar(); return ks; }
 /* leitura inicial das conversas antigas para achar recusas e preferências (uma vez, retoma de onde parou) */
 async function pfMontar(){ if(!syncAtivo()||!S.model||PF.montando) return; var meta=null; try{ meta=(await fb('GET','perfil_meta'))||{}; }catch(e){ return; }
-  if(meta.v>=1) return; if(meta.lock&&Date.now()-Date.parse(meta.lock.em)<5*60e3&&meta.lock.pc!==idAba()) return;
-  try{ await fb('PATCH','perfil_meta',{lock:{pc:idAba(),em:new Date().toISOString()}}); }catch(e){ return; } PF.montando={n:0,t:0};
+  if(meta.v>=2) return; if(meta.vRun!==2) meta.curK=''; if(meta.lock&&Date.now()-Date.parse(meta.lock.em)<5*60e3&&meta.lock.pc!==idAba()) return;
+  try{ await fb('PATCH','perfil_meta',{lock:{pc:idAba(),em:new Date().toISOString()}}); await new Promise(function(r){ setTimeout(r,2500); }); var lk=await fb('GET','perfil_meta/lock'); if(!lk||lk.pc!==idAba()) return; }catch(e){ return; } if(PF.montando) return; PF.montando={n:0,t:0};
   try{ var ks=Object.keys((await fb('GET','hist',undefined,'shallow=true'))||{}).sort(), ini=meta.curK?ks.filter(function(k){ return k<=meta.curK; }).length:0; PF.montando.t=ks.length;
     for(var i=ini;i<ks.length;i+=6){ await Promise.all(ks.slice(i,i+6).map(async function(K0){ var c=clientePorK(K0); if(!c) return; try{ var H=(await fb('GET','hist/'+K0))||{}; pfExtrair(c,Object.keys(H).map(function(id){ return H[id]; })); }catch(e){} }));
-      PF.montando.n=Math.min(i+6,ks.length); if(PF.montando.n%60===0||PF.montando.n===ks.length){ await pfEnviar(); await fb('PATCH','perfil_meta',{curK:ks[PF.montando.n-1],lock:{pc:idAba(),em:new Date().toISOString()}}); } }
-    await pfEnviar(); await fb('PUT','perfil_meta',{v:1,em:new Date().toISOString(),pc:idAba(),n:ks.length}); limparSugestoes();
+      PF.montando.n=Math.min(i+6,ks.length); if(PF.montando.n%60===0||PF.montando.n===ks.length){ await pfEnviar(); await fb('PATCH','perfil_meta',{vRun:2,curK:ks[PF.montando.n-1],lock:{pc:idAba(),em:new Date().toISOString()}}); } }
+    await pfEnviar(); await fb('PUT','perfil_meta',{v:2,em:new Date().toISOString(),pc:idAba(),n:ks.length}); limparSugestoes();
   }catch(e){ console.warn('pfMontar',e); } finally{ PF.montando=null; } }
 /* resposta sugerida na conversa: lê a última mensagem do cliente (texto ou áudio transcrito) e o perfil */
 function respostaSugerida(t){ if(!t||!t.c) return ''; var c=t.c, it=linhaTempo(c).filter(function(x){ return (x.de==='c'||x.de==='l')&&(!x.loja||!t.loja||x.loja===t.loja); }), u=it[it.length-1];
@@ -3029,9 +3043,10 @@ var AFIN=[
   [/DUROC|SUIN|PANCETA|PORCHETTA|COPALOMBO|LOMBO|PERNIL/,{CH:0.6,DD:0.4}],
   [/KAFTA|ALMONDEGA/,{DD:0.6,CH:0.4}],
   [/PATINHO|\bACEM\b|MUSCULO|LAGARTO|COXAO|PEITO BOVINO|PALETA|CONTRA DIA/,{DD:1}],
-  [/ALCATRA/,{DD:0.6,CH:0.4}],
+  [/ALCATRA/,{DD:1}],
   [/FILE MIGNON/,{DD:0.5,CH:0.5}],
-  [/CONTRA GRILL|CONTRA ?FILE/,{CH:0.7,DD:0.3}],
+  [/CONTRA GRILL/,{CH:1}],
+  [/CONTRA ?FILE/,{DD:1}],
   [/COSTELA BOVINA/,{CH:0.6,DD:0.4}],
   [/FRANGO/,{DD:0.8,CH:0.2}]];
 function afinidade(nome){ var n=rgNorm(nome||''); for(var i=0;i<AFIN.length;i++) if(AFIN[i][0].test(n)) return AFIN[i][1];
@@ -3052,9 +3067,9 @@ var NAT_FIX={'PAO BRIOCHE NORMAL':'pão brioche','PAO AUSTRALIANO':'pão austral
   'SWEET CHILLI GOIABADA 230GR DECABRON':'sweet chilli de goiabada','MOLHO SWEET CHILLI DECABRON':'molho sweet chilli','GELEIA QUEENSBERRY GOUMERT PIMENTA VERMELHA':'geleia de pimenta','GELEIA QUEENSBERRY GOURMET MENTA HORTELA':'geleia de menta',
   'GELELIA QUEENSBERRY CEBOLA CARAM 310GR':'geleia de cebola caramelizada','SRIRACHA BACON 220GR DECABRON':'sriracha de bacon','FUMACA LIQUIDA DECABRON':'fumaça líquida',
   'CORACAO ESPETO TEMP':'coração no espeto','CORACAO GRANEL':'coração de frango','TULIPA TEMPERADA':'tulipa temperada','COXINHA TEMP':'coxinha da asa temperada','SOBRECOXA TEMPERADA':'sobrecoxa temperada','MEDALHAO DE SOBRECOXA':'medalhão de sobrecoxa',
-  'FRANGO BIFE':'filé de frango em bifes','FRANGO ESTROGONOFE':'frango para estrogonofe','FRANGO PEITO':'peito de frango','FRANGO DESFIADO PACOTE':'frango desfiado','FILEZINHO EMPANADO':'filezinho empanado','ISCA DE FRANGO EMPANADO':'isca de frango empanada',
+  'FRANGO BIFE':'filé de frango','FRANGO ESTROGONOFE':'frango para estrogonofe','FRANGO PEITO':'peito de frango','FRANGO DESFIADO PACOTE':'frango desfiado','FILEZINHO EMPANADO':'filezinho empanado','ISCA DE FRANGO EMPANADO':'isca de frango empanada',
   'COXINHA DE FRANGO EMPANADA':'coxinha de frango empanada','PEITO RECH C ERVAS':'peito recheado com ervas','ROCAMBOLE FRG PRESUNTO E QUEI':'rocambole de frango',
-  'CONTRA GRILL':'contrafilé','CONTRA DIA A DIA':'contrafilé','PATINHO PECA':'patinho','PATINHO ESTROGONOFE':'patinho para estrogonofe','PATINHO BIFE':'patinho em bifes','PATINHO MOIDO ANGUS':'patinho moído',
+  'CONTRA GRILL':'contra grill','CONTRA DIA A DIA':'contrafilé','PATINHO PECA':'patinho','PATINHO ESTROGONOFE':'patinho para estrogonofe','PATINHO BIFE':'patinho em bifes','PATINHO MOIDO ANGUS':'patinho moído',
   'ALCATRA PECA':'alcatra','ALCATRA BIFE':'alcatra em bifes','ALCATRA ESTROGONOF':'alcatra para estrogonofe','FILE MIGNON PECA':'filé mignon','FILE MIGNON PROMO':'filé mignon','LAGARTO RED ANGUS':'lagarto','ACEM BOVINO':'acém','PEITO BOVINO':'peito bovino','PEITO BOVINO ANGUS':'peito bovino',
   'KAFTA TEMPERADA':'kafta','ALMONDEGA TEMPERADA':'almôndega','BIFE DE VO TEMPERO':'bife de vó','FRALDA RED':'fraldinha','FRALDA RED PROMO':'fraldinha','BOMBOM RED':'bombom bovino',
   'PICANHA ESTANCIA LEVE':'picanha','PICANHA ESTANCIA PESADA':'picanha','PICANHA ANGUS':'picanha Angus','PICANHA ANGUS PESADA':'picanha Angus','PICANHA PULL GRILL':'picanha','PICANHA RANCH NOVILHA':'picanha','PICANHA BLACK':'picanha Black','PICANHA ARGENTINA ANGUS':'picanha argentina',
@@ -3162,7 +3177,14 @@ function violacoesMsg(txt,c,tipo,s){ var v=[], ls=String(txt||'').split('\n'), l
   if(/\bcestas?\b/i.test(txt)) v.push('cita "cesta" (soa robô)');
   if(!/^(kit|campanha|segmento)$/.test(tipo||'')&&tamMsg(txt)>LIMITE_MSG) v.push('mensagem longa (mais de '+LIMITE_MSG+' caracteres)');
   if(/\{[a-z_]+\}/i.test(txt)) v.push('campo sem preencher');
-  var tmV=temaTexto(ls.slice(1).join(' ')); if(tmV&&s&&(s.itens||[]).some(function(x){ return !produtoDoTema(x.chave||'',x.produto||x.nome||'',tmV); })) v.push('produto não combina com o tema ('+tmV+')');
+  var tTx=ls.slice(1).join(' ').replace(/cora[cç][aã]o no espeto/gi,' '); (s&&s.itens||[]).forEach(function(x){ if(x&&x.nome) tTx=tTx.split(x.nome).join(' '); }); var tmV=temaTexto(tTx); if(tmV&&s&&(s.itens||[]).some(function(x){ return !produtoDoTema(x.chave||'',x.produto||x.nome||'',tmV); })) v.push('produto não combina com o tema ('+tmV+')');
+  var cTxt=ls.filter(function(l){ return !/\bSAIR\b/.test(l)&&!(c&&l===assinaturaDe(c)); }).join(' '), lc=cTxt.toLowerCase(), noTx=(s&&s.itens||[]).filter(function(x){ return x&&x.nome&&lc.indexOf(String(x.nome).toLowerCase())>=0; }), prd=noTx.length?noTx.map(function(x){ return {chave:x.chave||x.cod||'',produto:x.produto||x.nome||''}; }):cortesNoTexto(cTxt).map(function(k){ var ps=prodsDoCorte(k); return {chave:'',produto:k,nome:k,ps:ps}; });
+  var algum=function(x,f){ return x.ps&&x.ps.length?x.ps.some(function(p){ return f({chave:p.chave,produto:p.produto,nome:p.produto}); }):f(x); };
+  if(!noTx.length){ if(tmV&&prd.some(function(x){ return !algum(x,function(y){ return produtoDoTema(y.chave,y.produto,tmV); }); })) v.push('produto não combina com o tema ('+tmV+')'); }
+  if(tipo!=='kit'&&RE_PREP_TXT.test(cTxt)&&prd.some(function(x){ return !algum(x,ehCarnePrep); })) v.push('preparo oferecido para o que não é carne');
+  if(/acabamos de receber|chegou hoje um lote novo/i.test(cTxt)&&prd[0]&&!algum(prd[0],carneFresca)) v.push('"chegou hoje" para o que não é carne fresca');
+  var eTp=function(t){ return prd[0]&&algum(prd[0],function(y){ return tipoPreparo(y.produto,y.chave)===t; }); };
+  if(prd[0]&&!/como da última vez/i.test(cTxt)&&((/moíd[oa] em pacotes/i.test(cTxt)&&!eTp('moivel'))||(/como gostaria dos cortes/i.test(cTxt)&&!eTp('peca'))||(/em tiras para estrogonofe/i.test(cTxt)&&!eTp('bife'))||(/em cubos ou em tiras/i.test(cTxt)&&!eTp('frango'))||(/é só dizer quantos/i.test(cTxt)&&!eTp('hb')))) v.push('pergunta do preparo não combina com o produto');
   if(c&&!blocoCombina(ls.slice(1).join(' '),c)) v.push('gíria para cliente '+(lingua(c).tom==='formal'?'formal':'mulher'));
   return v; }
 /* conserta o que a verificação pegar (proteção extra para textos escritos à mão) */
@@ -3250,11 +3272,13 @@ function comporMsg(c,o){ var B=bib4(), L=lingua(c), at=atendenteDe(c.loja), loja
 function tamMsg(txt){ return String(txt||'').split('\n').filter(function(l){ return !/\bSAIR\b/.test(l); }).join('\n').length; }
 function montarSug(c,foco,modo){ var o=ofertaHoje(c,foco), sit=situacaoV5(c,o,foco,modo), B=bib4(), seed=c.chave+'|'+hoje()+'|'+((S.regen&&S.regen[c.chave])||0)+'|'+(foco||'');
   var apr=aprendidasPara(sit), bon={}, base=(B[sit]||B.padrao).slice(); var chg0=o.itens.length&&BIB_PREP[sit]&&(o.itens.length===1||!o.escolhaEquipe)?chegouTxt(o,seed):''; if(chg0) BIB_PREP[sit].forEach(function(t){ if(base.indexOf(t)<0){ base.push(t); bon[t]=3; } }); apr.forEach(function(x){ if(base.indexOf(x.t)<0){ base.push(x.t); bon[x.t]=1+6*x.score; } });
-  var corpo=escolherCorpo(c,sit,base,seed,bon); if(/\{chegou\}/.test(corpo.t)&&o.itens.length>1) o.itens=o.itens.slice(0,1); var aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null, p1=o.itens[0], fm=p1?fem(p1.produto)||fem(p1.nome.toUpperCase()):false;
+  var corpo=escolherCorpo(c,sit,base,seed,bon);
+  if(RE_PREP_TXT.test(corpo.t)&&o.itens.length&&!o.itens.every(ehCarnePrep)){ var icP=o.itens.filter(ehCarnePrep); if(icP.length&&!o.escolhaEquipe) o.itens=icP; else { var baseNP=base.filter(function(t){ return !RE_PREP_TXT.test(t); }); if(baseNP.length) corpo=escolherCorpo(c,sit,baseNP,seed,bon); } }
+  if(/\{chegou\}/.test(corpo.t)&&o.itens.length>1) o.itens=o.itens.slice(0,1); var aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null, p1=o.itens[0], fm=p1?fem(p1.produto)||fem(p1.nome.toUpperCase()):false;
   var vars={p:listaPT(o.itens.map(function(x){ return x.nome; })),p1:p1?p1.nome:'',Seu_p1:p1?(fm?'Sua ':'Seu ')+p1.nome:'',seu_p1:p1?(fm?'sua ':'seu ')+p1.nome:'',o_p1:p1?(fm?'a ':'o ')+p1.nome:'',do_p1:p1?(fm?'da ':'do ')+p1.nome:'',tempo:tempoHumano(c.recencia),chegou:chegouTxt(o,seed),preparo:preparoTxt(c,p1)};
   var r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed});
   if(o.itens.length>1&&!o.escolhaEquipe&&tamMsg(r.txt)>LIMITE_MSG){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; vars.chegou=chegouTxt(o,seed); r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
-  if(tamMsg(r.txt)>LIMITE_MSG){ var curtos=base.filter(function(t){ return t&&t!==corpo.t&&blocoCombina(t,c); }).sort(function(a,b){ return a.length-b.length; });
+  if(tamMsg(r.txt)>LIMITE_MSG){ var curtos=base.filter(function(t){ return t&&t!==corpo.t&&blocoCombina(t,c)&&(!RE_PREP_TXT.test(t)||o.itens.every(ehCarnePrep))&&(!/\{chegou\}/.test(t)||vars.chegou); }).sort(function(a,b){ return a.length-b.length; });
     for(var ci=0;ci<curtos.length;ci++){ var r2=comporMsg(c,{corpo:curtos[ci],vars:vars,seed:seed}); if(tamMsg(r2.txt)<=LIMITE_MSG){ r=r2; corpo={t:curtos[ci],i:base.indexOf(curtos[ci])}; aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null; break; } } }
   var soManual=c.recencia>LIMITE_AUTO, comp=o.grupo?complementoDe(c,o.grupo,o.itens):null;
   if(/_p1\}/.test(corpo.t)&&o.itens.length>1&&!o.escolhaEquipe){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
@@ -3283,6 +3307,7 @@ function sgTextoLoja(c,textos,chave,o){ var ts=String(textos||'').split(/\n\s*--
   var i=cand[(hashN(c.chave+'|'+chave+'|'+hoje())+((S.regen&&S.regen[c.chave])||0))%cand.length], fc=focoDasRegras(c,o.regras), tmT=fc?'':temaTexto(ts[i]), eT=tmT?itemTema(c,tmT,o.promo):null, base=fc?sugFoco(c,fc,'produto'):eT?sugFoco(c,eT.chave,'produto'):sugestoes(c), corpo=limparCorpo(ts[i]);
   if(tmT&&!eT) base=Object.assign({},base,{itens:[],ofertas:[],semTema:tmT});
   if(tmT&&eT){ var fT=function(x){ return produtoDoTema(x.chave||x.cod||'',x.produto||x.nome||'',tmT); }; base=Object.assign({},base,{itens:(base.itens||[]).filter(fT),ofertas:(base.ofertas||[]).filter(fT)}); }
+  if(RE_PREP_TXT.test(corpo)&&/\{(itens|fav)\}/.test(corpo)){ var icC=(base.itens||[]).filter(ehCarnePrep); if(!icC.length&&!o._semPrep){ var alt=ts.filter(function(t){ return !RE_PREP_TXT.test(t); }); if(alt.length) return sgTextoLoja(c,alt.join('\n---\n'),chave,Object.assign({},o,{_semPrep:1})); } base=Object.assign({},base,{itens:icC}); if(!icC.length) o=Object.assign({},o,{vars:Object.assign({},o.vars||{},{itens:'os seus cortes de sempre',fav:'os seus cortes de sempre'})}); }
   var usaComp=o.comp!==false&&!RE_TEXTO_FEEDBACK.test(corpo)&&!/\{comp\}/.test(corpo)&&!!base.comp;
   var r=comporMsg(c,{corpo:corpo,vars:varsTextoLoja(c,base,o.vars),seed:c.chave+'|'+chave+'|'+hoje(),comp:usaComp?base.comp:null,intro:o.intro,cta:false});
   return {mensagem:r.txt,situacao:o.sit,variante:o.sit+':'+chave+':'+i,vh:o.sit+'|'+hashN(ts[i]),vb:r.vb,ofertas:[],novidades:usaComp?base.novidades:[],atendente:r.atendente,cesta:base.cesta,grupo:base.grupo,itens:base.itens,comp:usaComp?base.comp:null}; }
@@ -4477,7 +4502,7 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,violacoes:violacoesMsg,ehCarnePrep:ehCarnePrep,linhaDe:linhaDe,pfPreparo:pfPreparo,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!RESP.radarEm||Date.now()-RESP.radarEm>(S.aba==='conversas'?20e3:45e3)) radarRespostas(); },10*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
     setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
