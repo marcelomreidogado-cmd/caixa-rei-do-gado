@@ -2298,13 +2298,19 @@ function sgLeve(sg){ var o={}; Object.keys(sg||{}).forEach(function(k){ var v=sg
 async function carregarFila(){ if(!syncAtivo()) return; try{ FM.fila=await fb('GET','fila')||{}; var d=hoje(), f={}; for(var i=0;i<LOJAS_ENVIO.length;i++){ f[LOJAS_ENVIO[i]]=await fb('GET','fila_feita/'+LOJAS_ENVIO[i]+'/'+d)||{}; } FM.feita=f; FM.carregadaEm=Date.now(); }catch(e){} }
 function pendentesDe(chave){ var n=0; Object.keys(FM.fila||{}).forEach(function(l){ Object.keys(FM.fila[l]||{}).forEach(function(id){ var it=FM.fila[l][id]; if(it&&it.chave===chave&&(it.st==='aguardando'||it.st==='enviando')) n++; }); }); return n; }
 /* entrada do motor: substitui o envio direto. Gera a mensagem aqui (com a assinatura da loja) e põe na fila da loja de cada cliente. */
+/* REVISOR (pedido do Marcelo, 20/11/2026): toda mensagem é conferida antes de entrar na fila e de novo antes de sair.
+   Barra o que fere as regras do Rei do Gado (preparo fora da cesta do cliente ou para o que não é carne, "chegou hoje" errado,
+   tiras, pergunta trocada, produto que não combina com o tema). A mensagem barrada não sai: fica em Campanhas → Fila com o motivo. */
+var RE_REVISOR=/preparo|chegou hoje|tiras|tema|cesta do cliente/;
+function revisarMsg(txt,c,sg){ sg=sg||{}; var tipo=sg.midia||sg.kit?'kit':(/^(campanha|lista)$/.test(sg.situacao||'')?'campanha':(sg.situacao||'')); try{ return violacoesMsg(txt,c,tipo,sg).filter(function(v){ return RE_REVISOR.test(v); }); }catch(e){ return []; } }
 async function loteUazapi(lista,fnSug,lojaF){ var quandoQ=FM.quandoProx||''; FM.quandoProx=''; fnSug=fnSug||sugestoes; if(restrito()){ if(!minhaLoja()){ toast(semPermMsg(),'erro'); return; } lojaF=minhaLoja(); }
   if(!syncAtivo()){ toast('A fila de envio precisa da nuvem ligada.','erro'); return; }
   var lojaL=lojaF||S.loja||(lista.length===1?lista[0].loja:''); if(!lojaL&&lista.some(function(c){ return c.loja!==lista[0].loja; })){ lojaL=await escolherLoja('Por qual loja vão estas mensagens?',true); if(!lojaL) return; } else if(!lojaL) lojaL=lista[0].loja;
   if(lojaL!=='cada'){ var antesL=lista.length; lista=lista.filter(function(c){ return c.loja===lojaL; }); if(!lista.length){ toast('Nenhum cliente marcado é da loja '+tituloProd(lojaL)+'.','erro'); return; } if(lista.length<antesL) toast((antesL-lista.length)+' cliente(s) de outras lojas ficaram de fora: cada um sai pela loja dele.','ok'); }
   await carregarFila();
-  var base=lista.filter(function(c){ var g=fnSug(c); if(g.bloqPromo||g.focoTravado||g.semTema) return false; if(g.semTrava&&g.campanha&&jaRecebeuCampanha(c,g.campanha,g.campanhaDias||1)) return false; if(pendentesDe(c.chave)) return false; return elegivel(c,!!g.promo); });
-  if(!base.length){ toast('Ninguém liberado com celular nessa lista (ou já estão na fila).','erro'); return; }
+  var barradas=[]; var base=lista.filter(function(c){ var g=fnSug(c); if(g.bloqPromo||g.focoTravado||g.semTema) return false; var rv=revisarMsg(g.mensagem,c,g); if(rv.length){ barradas.push(c.nome+': '+rv[0]); return false; } if(g.semTrava&&g.campanha&&jaRecebeuCampanha(c,g.campanha,g.campanhaDias||1)) return false; if(pendentesDe(c.chave)) return false; return elegivel(c,!!g.promo); });
+  if(barradas.length) toast('Revisor barrou '+barradas.length+' mensagem(ns) que fugiam das regras do Rei do Gado (ex.: '+barradas[0]+'). Elas não vão para a fila.','erro');
+  if(!base.length){ toast(barradas.length?'Nenhuma mensagem passou no revisor.':'Ninguém liberado com celular nessa lista (ou já estão na fila).','erro'); return; }
   var alvo=base.slice(0,FM.FILA_MAX), porLoja={}; alvo.forEach(function(c){ porLoja[c.loja]=(porLoja[c.loja]||0)+1; });
   var lojas=Object.keys(porLoja), pend=lojas.filter(atendPendente); if(pend.length){ abrirAtendentes('Escolha quem assina pela loja '+pend.map(tituloProd).join(' e ')+' — o nome vai na mensagem.'); return; }
   var g0=fnSug(alvo[0]);
@@ -2348,6 +2354,7 @@ async function processarFila(l){ var inst=uazInst(l); if(!inst||FM.rodando[l]||!
       if(pausado(c)){ await filaConcluir(l,id,it,'pulado','cliente em pausa (decisão da loja)'); continue; }
       var trvF=((sg.auto||!/^(kit|campanha|lista)$/.test(sg.situacao||''))?(sg.itens||[]):[]).map(function(x){ return travaCorte(c,x.produto||x.nome,{promo:!!sg.promo}); }).filter(function(t){ return !t.ok&&(t.tipo==='recusa'||t.tipo==='promo'||(!sg.semTrava&&t.tipo==='ciclo'&&sg.situacao!=='posvenda')); })[0];
       if(trvF){ await filaConcluir(l,id,it,'pulado',trvF.motivo); continue; }
+      var rvF=revisarMsg(it.msg,c,sg); if(rvF.length){ await filaConcluir(l,id,it,'pulado','revisor: '+rvF.join('; ')); continue; }
       if(!sg.semTrava&&!(sg.situacao==='posvenda'&&posVenda(c))&&(estadoContato(c).bloqueado||soPromo(c))){ await filaConcluir(l,id,it,'pulado','já recebeu mensagem na janela de 7 dias'); continue; }
       var rm=sg.semTrava?null:await checarRemoto(c); if(rm&&dias(rm.em.slice(0,10),hoje())<regras().diasCliente){ await filaConcluir(l,id,it,'pulado','outro computador acabou de enviar'); continue; }
       try{ var rs=sg.midia?await uazEnviarMidia(inst,it.numero,sg.midia,it.msg):await uazEnviar(inst,it.numero,it.msg);
@@ -2523,31 +2530,43 @@ function chegouTxt(o,seed){ var p1=o.itens[0]; if(!carneFresca(p1)) return ''; v
   return ['Acabamos de receber '+p1.nome,'Chegou hoje um lote novo de '+p1.nome][h%2]; }
 function tipoPreparo(prod,chave){ var n=rgNorm(prod||''), L=linhaDe(chave||'',prod);
   if(ehHamb(prod)) return 'hb';
-  /* frango: peito, filé e bife de frango a loja manipula (bifes ou cubos; tiras a loja não faz); estrogonofe, desfiado, temperado etc. já vêm prontos */
+  /* frango: peito, filé e bife de frango a loja manipula (oferta só pelo que está na cesta do cliente; o que ele pedir a loja faz); estrogonofe, desfiado, temperado etc. já vêm prontos */
   if(L==='Frango') return /ESTROGONOF|DESFIAD|EMPANAD|\bTEMP\b|TEMPERAD|RECH|HAMB|ISCA|NABRASA|MEDALH|ESPETO/.test(n)?'':/FILE|PEITO|BIFE/.test(n)?'frango':'';
   if(/BIFE|ESTROGONOF|STROGONOF|MOID|TEMPERAD|EMPANAD|RECH|MEDALH|DESFIAD|ESPETO|NABRASA|KAFTA|ISCA|CUBOS|TIRAS|FATIAD|DEFUMAD/.test(n)) return '';
-  if(/FILE MIGNON|\bPECA\b|INTEIR/.test(n)) return 'peca';
+  if(/FILE MIGNON/.test(n)) return 'peca';
+  if(/PATINHO|ACEM|MUSCULO|COXAO|PEITO BOVINO/.test(n)||(/PALETA/.test(n)&&L==='Bovinos dia a dia')) return 'moivel';
   if(/ALCATRA|CONTRA ?FILE|CONTRA DIA|LAGARTO/.test(n)) return 'bife';
-  if(/PATINHO|ACEM|MUSCULO|COXAO|PEITO BOVINO/.test(n)||(/PALETA/.test(n)&&L==='Bovinos dia a dia')) return 'moivel'; return ''; }
+  if(/\bPECA\b|INTEIR/.test(n)) return 'peca'; return ''; }
 /* "a gente prepara do jeito que você gosta" só para peça de carne: nunca pão de alho, queijo, batata, molho, bebida, hambúrguer ou item já temperado/pronto */
 var RE_PREP_TXT=/(do jeito que (você|voce|vc) gosta|do seu jeito|do jeito que preferir|como gostaria dos cortes|mo[ií]d[oa] em pacotes)/i;
 function prodsDoCorte(k){ if(!S.model) return []; if(!PF.pdc||PF.pdcM!==S.model){ PF.pdc={}; PF.pdcM=S.model; Object.keys(S.model.produtos).forEach(function(ch){ var p=S.model.produtos[ch]; if(!p) return; var ck=corte(p.produto); (PF.pdc[ck]=PF.pdc[ck]||[]).push(p); }); Object.keys(PF.pdc).forEach(function(ck){ PF.pdc[ck].sort(function(a,b){ return (b.valor||0)-(a.valor||0); }); }); } return PF.pdc[k]||[]; }
 function ehCarnePrep(p){ var nm=p&&(p.produto||p.nome)||''; if(!p||!carneFresca(p)||ehHamb(nm)) return false; if(tipoPreparo(nm,p.chave)) return true; return !/KAFTA|ALMONDEGA|BIFE|DESFIAD|ISCA|COXINHA|ESPETO|ROCAMBOLE|ESTROGONOF|MOID|HAMB|BACON|CORACAO|MEDALH|^LING\b|LINGUICA|SALAME|SALMAO|PEIXE|PORCHETTA/.test(rgNorm(nm)); }
-/* O QUE O REI DO GADO FAZ (definido pelo Marcelo em 20/11/2026). Única fonte: nenhuma pergunta, sugestão ou "como da última vez" oferece preparo fora desta lista.
-   hb: hambúrguer da manipulação (só quantidade) · moivel (patinho, acém, músculo, coxão, peito bovino): moído em pacotes de 500 g ou bifes separados de 4 em 4
-   bife (alcatra, contrafilé, lagarto): bifes separados de 4 em 4 ou a peça inteira · peca (filé mignon, peças): cortes do jeito do cliente
-   frango (peito, filé, bife de frango): bifes ou cubos. NÃO fazemos tiras. */
-var PREPAROS_LOJA={hb:[],moivel:['MOID','PACOTE','BIFE','4 EM 4'],bife:['BIFE','4 EM 4','INTEIR','PECA'],frango:['BIFE','CUBO'],peca:['*']};
-function preparoPermitido(tipo,txt){ var ok=PREPAROS_LOJA[tipo]; if(!ok||!txt) return false; var n=rgNorm(txt); if(/TIRA/.test(n)) return false; if(ok.indexOf('*')>=0) return true; return ok.some(function(t){ return n.indexOf(t)>=0; }); }
+/* REI DO GADO (Marcelo, 20/11/2026): OFERECER = só as formas que estão na cesta do próprio cliente (o que ele compra: moído, bife,
+   estrogonofe de patinho/alcatra, medalhão…). FAZER = o que o cliente pedir (picanha em tiras, cubos…): a loja corta, mas não oferece.
+   Sem forma na cesta do cliente, a oferta padrão do Marcelo: patinho/acém/músculo/coxão "moído em pacotes de 500 g ou em bifes,
+   separados de 4 em 4"; alcatra/contrafilé "em bifes, separados de 4 em 4"; filé mignon/peça "Como gostaria dos cortes?";
+   hambúrguer só a quantidade; frango sem pergunta. */
+var FORMAS_CESTA=[[/MOID/,'moído em pacotes de 500 g','MOID'],[/ESTROGONOF/,'para estrogonofe','ESTROGONOF'],[/\bBIFES?\b/,'em bifes, separados de 4 em 4','BIFE'],[/CUBO/,'em cubos','CUBO'],[/MEDALH/,'em medalhões','MEDALH'],[/\bTIRAS?\b/,'em tiras','TIRA'],[/FATIAD/,'fatiado','FATIAD']];
+function chavesForma(txt){ var n=rgNorm(txt||''); return FORMAS_CESTA.filter(function(f){ return n.indexOf(f[2])>=0; }).map(function(f){ return f[2]; }); }
+var PREPAROS_LOJA={hb:[],moivel:['MOID','PACOTE','BIFE','4 EM 4'],bife:['BIFE','4 EM 4'],frango:[],peca:['*']};
+function formasDoCliente(c,k){ if(!c||!k) return []; var cnt={}; (c.compras||[]).forEach(function(d){ (d.itens||[]).forEach(function(it){ if(corte(it.produto)!==k) return; var n=rgNorm(it.produto); if(/ASSADO DE TIRAS/.test(n)) return; FORMAS_CESTA.forEach(function(f){ if(f[0].test(n)) cnt[f[1]]=(cnt[f[1]]||0)+1; }); }); }); return Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]; }); }
+function preparoPermitido(tipo,txt,formas){ if(!txt) return false; var kt=chavesForma(txt);
+  /* cliente com formas na cesta: só o que está lá. Sem formas: a oferta padrão da loja (PREPAROS_LOJA), nunca tiras e nunca "peça" livre */
+  if(formas&&formas.length){ var kf=[].concat.apply([],formas.map(chavesForma)); return kt.length>0&&kt.every(function(k){ return kf.indexOf(k)>=0; }); }
+  var ok=PREPAROS_LOJA[tipo]; if(!ok||!ok.length||tipo==='peca') return false; var n=rgNorm(txt); if(/TIRA/.test(n)) return false; return ok.some(function(t){ return n.indexOf(t)>=0; }); }
 function generoPrep(t,fm){ return fm?String(t).replace(/\bmoído\b/g,'moída').replace(/\binteiro\b/g,'inteira').replace(/\bfatiado\b/g,'fatiada').replace(/\blimpo\b/g,'limpa'):t; }
-function preparoTxt(c,p1){ if(!p1) return 'Posso separar pra você?'; var fm=fem(p1.produto)||fem(String(p1.nome||'').toUpperCase()), o_p1=(fm?'a ':'o ')+p1.nome, t=tipoPreparo(p1.produto,p1.chave), pr=t&&t!=='hb'?(perfilCliente(c).preparo||{})[corte(p1.produto)]:''; if(pr&&!preparoPermitido(t,pr)) pr=''; /* só o que a loja faz (PREPAROS_LOJA) */
+function perguntaPreparo(c,k,t,fm,o_x,resp){ var fs=formasDoCliente(c,k).map(function(f){ return generoPrep(t==='frango'?f.replace(', separados de 4 em 4',''):f,fm); });
+  if(fs.length>=2) return 'Prefere '+fs.slice(0,2).map(function(f){ return f.replace(', separados de 4 em 4','').replace(' em pacotes de 500 g',''); }).join(' ou ')+'?';
+  if(fs.length===1) return resp?'Vai querer '+fs[0]+', como sempre?':'Separo '+o_x+' '+fs[0]+', como sempre?';
+  if(t==='peca') return 'Como gostaria dos cortes? Separamos a peça inteira ou cortamos do seu jeito.';
+  if(t==='bife') return 'Quer em bifes, separados de 4 em 4?';
+  if(t==='moivel') return 'Quer '+(fm?'moída':'moído')+' em pacotes de 500 g ou em bifes, separados de 4 em 4?';
+  return ''; }
+function preparoTxt(c,p1){ if(!p1) return 'Posso separar pra você?'; var fm=fem(p1.produto)||fem(String(p1.nome||'').toUpperCase()), o_p1=(fm?'a ':'o ')+p1.nome, t=tipoPreparo(p1.produto,p1.chave), k=corte(p1.produto), pr=t&&t!=='hb'?(perfilCliente(c).preparo||{})[k]:''; if(pr&&!preparoPermitido(t,pr,formasDoCliente(c,k))) pr=''; /* oferece só o que está na cesta do cliente (ou a oferta padrão da loja) */
   if(pr) return 'Separo '+o_p1+' '+generoPrep(pr,fm)+', como da última vez?';
   if(t==='hb') return 'Separo '+o_p1+' pra você? É só dizer quantos.';
-  if(t==='peca') return 'Como gostaria dos cortes? Separamos a peça inteira ou cortamos do seu jeito.';
-  if(t==='bife') return 'Prefere em bifes, separados de 4 em 4, ou a peça inteira?';
-  if(t==='moivel') return 'Quer '+(fm?'moída':'moído')+' em pacotes de 500 g ou em bifes, separados de 4 em 4?';
-  if(t==='frango') return 'Prefere em bifes ou em cubos? A gente prepara do seu jeito.';
-  return ehCarnePrep(p1)?'Posso separar pra você? A gente prepara do jeito que preferir.':'Posso separar pra você?'; }
+  var q=t?perguntaPreparo(c,k,t,fm,o_p1):''; if(q) return q;
+  return 'Posso separar pra você?'; }
 /* aprende o preparo com o que o cliente pede e com o que a loja confirma ("separei o patinho moído em pacotes de 500 g") */
 var RE_PREP_T=/\b(MOID[OA]S?|MOER|BIFES?|CUBOS|TIRAS|MEDALH\w*|PECA INTEIRA|INTEIR[OA]|FATIAD[OA]S?|PACOTES? DE \d+ ?(?:G|GR|GRAMAS|KG)\b|DE \d+ EM \d+|SEM GORDURA|BEM LIMP[OA])/g;
 function prepFrase(n){ var out=[]; n=String(n).replace(/\b(DIA|MES|SEMANA|ANO|TEMPO|TARDE|MANHA|NOITE|MUNDO) INTEIR[OA]\b/g,' '); (String(n).match(RE_PREP_T)||[]).forEach(function(t){ var m2=t.match(/PACOTES? DE (\d+) ?(G|GR|GRAMAS|KG)/), x=/^MOI|^MOER/.test(t)?'moído':/^BIFE/.test(t)?'em bifes':/^CUBOS/.test(t)?'em cubos':/^TIRAS/.test(t)?'em tiras':/^MEDALH/.test(t)?'em medalhões':/INTEIR/.test(t)?'inteiro':/^FATIAD/.test(t)?'fatiado':m2?'em pacotes de '+m2[1]+(/KG/.test(m2[2])?' kg':' g'):/^DE \d+ EM/.test(t)?t.toLowerCase():/GORDURA|LIMP/.test(t)?'bem limpo':''; if(x&&out.indexOf(x)<0) out.push(x); });
@@ -2705,9 +2724,9 @@ function respostaSugerida(t){ if(!t||!t.c) return ''; var c=t.c, it=linhaTempo(c
   if(/\b(QUE HORAS|HORARIO|ABERTO|ABRE|FECHA|FUNCIONA)\b/.test(n)) return pronta(/HORARIO|FUNCIONAMENTO/)||'Já te confirmo o horário certinho, '+nome+'!';
   if(/\b(CARDAPIO|TABELA|LISTA DE PRECOS?)\b/.test(n)) return pronta(/CARDAPIO|TABELA|PRECO/)||'Já te mando, '+nome+'!';
   if(/\b(QUANTO|VALOR|PRECO|QTO|TA SAINDO|ESTA SAINDO)\b/.test(n)) return 'Vou confirmar o valor'+(itens?' '+art+itens:'')+' e já te passo, '+nome+'!';
-  if(/\b(QUERO|QUERIA|SEPARA|SEPARE|SEPARAR|RESERVA|RESERVAR|VOU QUERER|ME VE|MANDA|MANDE|ENCOMENDA|TEM COMO)\b/.test(n)){ var prA=prepFrase(n), pedeTiras=/tiras/i.test(prA); if(prA&&cs.length===1&&!preparoPermitido(tipoPreparo(cs[0]),prA)) prA='';
-    if(cs.length===1){ var tp=tipoPreparo(cs[0]), fmk=fem(cs[0]), pk=prA?'':(tp&&tp!=='hb'?(perfilCliente(c).preparo||{})[cs[0]]:''), pk=pk&&!preparoPermitido(tp,pk)?'':pk, perg=tp==='moivel'?'Prefere '+(fmk?'moída':'moído')+' em pacotes de 500 g ou em bifes? ':tp==='peca'?'Como gostaria dos cortes? ':tp==='bife'?'Prefere em bifes, separados de 4 em 4, ou a peça inteira? ':tp==='frango'?'Prefere em bifes ou em cubos? ':'';
-      return 'Combinado, '+nome+'! Já separo '+itens+(prA?' '+generoPrep(prA,fmk):pk?' '+generoPrep(pk,fmk)+', como da última vez':'')+'. '+(pedeTiras?'Em tiras a gente não faz. ':'')+(prA||pk?'':perg)+'Vai retirar ou prefere entrega?'; }
+  if(/\b(QUERO|QUERIA|SEPARA|SEPARE|SEPARAR|RESERVA|RESERVAR|VOU QUERER|ME VE|MANDA|MANDE|ENCOMENDA|TEM COMO)\b/.test(n)){ var prA=prepFrase(n); /* pedido do cliente: a loja faz do jeito que ele pediu */
+    if(cs.length===1){ var tp=tipoPreparo(cs[0]), fmk=fem(cs[0]), pk=prA?'':(tp&&tp!=='hb'?(perfilCliente(c).preparo||{})[cs[0]]:''), pk=pk&&!preparoPermitido(tp,pk,formasDoCliente(c,cs[0]))?'':pk, perg=tp&&tp!=='hb'?perguntaPreparo(c,cs[0],tp,fmk,itens,1):''; perg=perg?perg+' ':'';
+      return 'Combinado, '+nome+'! Já separo '+itens+(prA?' '+generoPrep(prA,fmk):pk?' '+generoPrep(pk,fmk)+', como da última vez':'')+'. '+(prA||pk?'':perg)+'Vai retirar ou prefere entrega?'; }
     return 'Combinado, '+nome+'! Já separo'+(itens?' '+itens:' pra você')+'. Vai retirar ou prefere entrega?'; }
   if(/\?/.test(u.txt)&&cs.length) return 'Tem sim, '+nome+'! Quer que eu separe '+itens+' pra você?';
   if(encerraConversa(u.txt)) return 'Nós que agradecemos, '+nome+'! Qualquer coisa é só chamar.';
@@ -3190,9 +3209,9 @@ function violacoesMsg(txt,c,tipo,s){ var v=[], ls=String(txt||'').split('\n'), l
   if(tipo!=='kit'&&RE_PREP_TXT.test(cTxt)&&prd.some(function(x){ return !algum(x,ehCarnePrep); })) v.push('preparo oferecido para o que não é carne');
   if(/acabamos de receber|chegou hoje um lote novo/i.test(cTxt)&&prd[0]&&!algum(prd[0],carneFresca)) v.push('"chegou hoje" para o que não é carne fresca');
   var eTp=function(t){ return prd[0]&&algum(prd[0],function(y){ return tipoPreparo(y.produto,y.chave)===t; }); };
-  if(prd[0]&&!/como da última vez/i.test(cTxt)&&((/moíd[oa] em pacotes/i.test(cTxt)&&!eTp('moivel'))||(/como gostaria dos cortes/i.test(cTxt)&&!eTp('peca'))||(/separados de 4 em 4, ou a peça inteira/i.test(cTxt)&&!eTp('bife'))||(/em bifes ou em cubos/i.test(cTxt)&&!eTp('frango'))||(/é só dizer quantos/i.test(cTxt)&&!eTp('hb')))) v.push('pergunta do preparo não combina com o produto');
-  if(/\btiras\b/i.test(cTxt.replace(/assado (de|em) tiras/gi,' '))) v.push('oferece tiras (a loja não faz)');
-  var mUlt=cTxt.match(/Separo (?:o|a) .+? (em .+?|mo[ií]d[oa].*?|inteir[oa].*?), como da última vez/i); if(mUlt&&prd[0]&&!algum(prd[0],function(y){ return preparoPermitido(tipoPreparo(y.produto,y.chave),mUlt[1]); })) v.push('preparo que a loja não faz');
+  if(prd[0]&&!/como da última vez/i.test(cTxt)&&((/moíd[oa] em pacotes/i.test(cTxt)&&!/como sempre/i.test(cTxt)&&!eTp('moivel'))||(/como gostaria dos cortes/i.test(cTxt)&&!eTp('peca'))||(/é só dizer quantos/i.test(cTxt)&&!eTp('hb')))) v.push('pergunta do preparo não combina com o produto');
+  if(/\btiras\b/i.test(cTxt.replace(/assado (de|em) tiras/gi,' '))&&!(c&&prd[0]&&formasDoCliente(c,corte(prd[0].produto)).indexOf('em tiras')>=0)) v.push('oferece tiras (não está na cesta do cliente)');
+  var mUlt=cTxt.match(/Separo (?:o|a) .+? (em .+?|mo[ií]d[oa].*?|inteir[oa].*?), como da última vez/i); if(mUlt&&prd[0]&&!algum(prd[0],function(y){ return preparoPermitido(tipoPreparo(y.produto,y.chave),mUlt[1],c?formasDoCliente(c,corte(y.produto)):null); })) v.push('preparo que não está na cesta do cliente');
   if(c&&!blocoCombina(ls.slice(1).join(' '),c)) v.push('gíria para cliente '+(lingua(c).tom==='formal'?'formal':'mulher'));
   return v; }
 /* conserta o que a verificação pegar (proteção extra para textos escritos à mão) */
@@ -4510,7 +4529,7 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,violacoes:violacoesMsg,ehCarnePrep:ehCarnePrep,linhaDe:linhaDe,pfPreparo:pfPreparo,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,corte:corte,formas:formasDoCliente,violacoes:violacoesMsg,revisar:revisarMsg,ehCarnePrep:ehCarnePrep,linhaDe:linhaDe,pfPreparo:pfPreparo,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!RESP.radarEm||Date.now()-RESP.radarEm>(S.aba==='conversas'?20e3:45e3)) radarRespostas(); },10*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
     setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');

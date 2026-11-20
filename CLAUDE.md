@@ -14,7 +14,7 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 ## Arquitetura
 - Sem build. Firebase compat 10.12.5 (auth + **Realtime Database**), Chart.js 4.4.0.
 - Firebase projeto `motoboy-ddefa` (o mesmo do RH e do Compras). Caixa grava em `caixa/…`; a cesta grava em `cesta_rei_do_gado/…` via REST (sem SDK).
-- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'5.3'`) em `computadores`.
+- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'5.3'`, com as correções 5.3.1/5.3.2 de 20/11) em `computadores`.
 - Nós da cesta: `imports_meta`, `imports_linhas`, `imports_cli`, `vinculos`, `config` (inclui `regrasContato`, `metaDiaria`, `metaCadastro` e `mesclas`), `contatos`, `contatos_ult`, `hist`, `seg`, `camp`, `lemb`, `kit_img`, `computadores`, `rev`. O teste usa `cesta_rei_do_gado/teste/…`.
 - Única fonte de dados: PDF "Relatório de Produtos Vendidos por Cliente/Vendedor" (Alterdata), importado pelas lojas. Extrato de Produtos e Curva ABC não são mais usados.
 - **Conexão com a Uazapi (v4.2):** canal ao vivo `GET /sse?token=…&events=messages,connection` por loja (`rtLigar`); com ele aberto a leitura por varredura cai de 45 s para 3 min. Vigia a cada 2 min (`checarNumeros` → `vigiarConexao`): aviso vermelho no topo, motivo (`lastDisconnectReason`), `POST /instance/reset` sozinho (no máx. 1 a cada 10 min, só se ainda logado) e botão Reconectar com QR code/código (`POST /instance/connect`). Quedas vão para `computadores/{pc}/quedas`.
@@ -105,13 +105,10 @@ Valem para Hoje, Sugestões, Recompra, Reconquista, Campanhas (inclusive Boas-vi
 
 ## O que o Rei do Gado faz (regra do Marcelo, 20/11/2026 — nunca inventar)
 O Rei do Gado não é genérico. **Nenhuma mensagem, pergunta, sugestão ou texto de exemplo pode oferecer preparo, serviço, produto ou condição que o Marcelo não tenha dito que a loja faz.** Na dúvida, perguntar ao Marcelo antes; não completar com "o que açougue costuma fazer".
-- Única fonte no código: `PREPAROS_LOJA` + `preparoPermitido` (usados em `preparoTxt`, `respostaSugerida` e no verificador).
-  - Hambúrguer da manipulação: só quantidade ("Acabamos de produzir nossos hambúrgueres" / "Hoje tem hambúrguer fresquinho saindo da nossa manipulação").
-  - Patinho, acém, músculo, coxão, peito bovino: moído em pacotes de 500 g ou em bifes separados de 4 em 4.
-  - Alcatra e contrafilé (dia a dia): bifes separados de 4 em 4 ou a peça inteira.
-  - Filé mignon e peças: "Como gostaria dos cortes?" (cortes do jeito do cliente).
-  - Frango (peito de frango, filé de frango): bifes ou cubos. **Não fazemos tiras.** Frango estrogonofe já vem pronto.
-  - Contra grill é churrasco; contrafilé e alcatra são dia a dia; coxão mole nunca vai para churrasco.
+- **Oferecer ≠ fazer.** OFERECER ao cliente = só as formas que estão **na cesta do próprio cliente** (o que ele compra: patinho moído, patinho/alcatra para estrogonofe, bife, medalhão…) — `formasDoCliente`/`FORMAS_CESTA`, `perguntaPreparo`. FAZER = o que o cliente pedir (ex.: picanha em tiras): a loja corta e a resposta sugerida aceita, **nunca** diz "não fazemos". Um pedido avulso do cliente não vira oferta.
+- Sem forma na cesta do cliente, a oferta padrão do Marcelo (`PREPAROS_LOJA`): patinho/acém/músculo/coxão "moído em pacotes de 500 g ou em bifes, separados de 4 em 4"; alcatra/contrafilé "em bifes, separados de 4 em 4"; filé mignon "Como gostaria dos cortes?"; hambúrguer só a quantidade ("Acabamos de produzir nossos hambúrgueres"); frango sem pergunta. "Como da última vez" só com preparo que está na cesta do cliente (`preparoPermitido(tipo,txt,formas)`).
+- Contra grill é churrasco; contrafilé e alcatra são dia a dia; coxão mole nunca vai para churrasco.
+- **Revisor automático nas mensagens** (`revisarMsg`, usa `violacoesMsg` com `RE_REVISOR`): confere toda mensagem ao entrar na fila (`loteUazapi`, barradas não entram e a loja vê o aviso) e de novo antes de sair (`processarFila`: `pulado` com "revisor: …"). Barra preparo fora da cesta ou para o que não é carne, "chegou hoje" errado, tiras oferecidas, pergunta trocada e produto fora do tema.
 - "do jeito que você gosta" só para peça de carne (nunca pão de alho, queijo, batata, molho, bebida etc.).
 - Mudou algo do que a loja faz? Atualizar `PREPAROS_LOJA` e esta seção juntos.
 
