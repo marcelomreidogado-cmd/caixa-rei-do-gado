@@ -1126,7 +1126,7 @@ function histAdd(c,msgs){ if(!c||!msgs||!msgs.length) return 0; var K=histK(c), 
   msgs.forEach(function(m){ if(!m||!(m.txt||m.mt)) return; var id=histId(m.id); if(cache[id]&&!m.forcar) return;
     var o={em:m.em||new Date().toISOString(),de:m.de||'c',txt:String(m.txt||'').slice(0,1000)}; ['loja','por','mt','tags','mid'].forEach(function(k){ if(m[k]) o[k]=String(m[k]).slice(0,120); }); if(m.tr) o.tr=m.tr<0?-1:1; if(m.dur) o.dur=m.dur;
     cache[id]=o; f[id]=o; n++; novos.push(o); });
-  if(msgs.some(function(m){ return m&&m.de==='c'&&m.txt&&!/^\[/.test(m.txt); })) pfExtrair(c,Object.keys(cache).map(function(id){ return cache[id]; }));
+  if(msgs.some(function(m){ return m&&m.de==='c'&&m.txt&&!/^\[/.test(m.txt); })||novos.some(function(m){ return m.de==='l'&&!m.tags&&m.txt&&!/\?/.test(m.txt)&&RE_CONF_L.test(rgNorm(m.txt)); })) pfExtrair(c,Object.keys(cache).map(function(id){ return cache[id]; }));
   cvRegistrar(c,msgs.filter(function(m){ return m&&(m.txt||m.mt)&&m.em; }).map(function(m){ return {em:m.em,de:m.de||'c',txt:String(m.txt||''),mt:m.mt||'',loja:m.loja||''}; }));
   if(!Object.keys(f).length) delete HI.fila[K];
   if(n){ salvarFilaHist(); clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,1500); } return n; }
@@ -2388,7 +2388,7 @@ async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
     try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
   DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
   if(syncAtivo()){ try{ var pid=''; try{ pid=localStorage.getItem('cesta_pcid')||''; if(!pid){ pid=Math.random().toString(36).slice(2,7); localStorage.setItem('cesta_pcid',pid); } }catch(e){} var id=String(S.sync.computador||('sem nome '+(S.loja||'')+' '+pid)).replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,versao:'5.1'}); }catch(e){} }
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,versao:'5.2'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
@@ -2509,6 +2509,55 @@ function blocoControleLojas(){ var R=controleLojas(), ls=LOJAS_ENVIO.filter(func
       return '<tr data-ctlloja="'+l+'"><td><b class="lj" style="--cor:'+(COR_LOJA_BAR[l]||'#777')+'">'+esc(tituloProd(l))+'</b></td><td class="n'+(r.pend?' warn':'')+'">'+num(r.pend)+'</td><td class="n'+(ant>60?' late':'')+'">'+(r.maisAntiga?'há '+esperaTxt(r.maisAntiga):'—')+'</td><td class="n'+(r.nl?' late':'')+'">'+num(r.nl)+'</td><td class="n">'+num(r.rpN)+'</td><td class="n">'+(r.rpN?durTxt(r.rpS/r.rpN):'—')+'</td><td class="n">'+(r.ult?quandoCurto(r.ult):'—')+'</td></tr>'; }).join('')+
     '</tbody></table></div></section>'; }
 
+/* =================== v5.2: o jeito da loja nas mensagens (lote novo, manipulação) e o preparo que cada cliente gosta =================== */
+/* tudo na loja é manipulado do jeito que o cliente pedir: a mensagem conta que chegou/foi produzido e pergunta como preparar */
+var BIB_PREP={recompra:['{chegou}! {preparo}','{chegou} e me lembrei de você. {preparo}'],padrao:['{chegou} e me lembrei de você. {preparo}','{chegou}! {preparo}'],vip:['{chegou} e pensei em você. {preparo}'],reativar_risco:['Senti sua falta! {chegou}. {preparo}']};
+var CARNE_FRESCA=['Bovinos dia a dia','Churrasco nobre','Wagyu','Frango','Suínos e linguiças','Cordeiro','Peixes'];
+function ehHamb(prod){ var n=rgNorm(prod||''); return /^HB\b|^HAMB|HAMBURGUER$/.test(n)&&!/\bPAO\b|QUEIJO|CHEDDAR|BACON|PARA HAMB/.test(n); }
+function carneFresca(p){ if(!p) return false; var nm=p.produto||p.nome||'', n=rgNorm(nm); if(ehHamb(nm)) return true; return CARNE_FRESCA.indexOf(linhaDe(p.chave,nm))>=0&&!/TEMPERAD|EMPANAD|RECH|NABRASA|DEFUMAD|CONGEL|PAO DE ALHO|\bPRONT/.test(n); }
+/* "chegou" só para carne fresca e só do 1º item (a pergunta do preparo é sobre ele) */
+function chegouTxt(o,seed){ var p1=o.itens[0]; if(!carneFresca(p1)) return ''; var h=hashN(seed+'|chg');
+  if(ehHamb(p1.produto||p1.nome)) return ['Acabamos de produzir nossos hambúrgueres','Hoje tem hambúrguer fresquinho saindo da nossa manipulação'][h%2];
+  return ['Acabamos de receber '+p1.nome,'Chegou hoje um lote novo de '+p1.nome][h%2]; }
+function tipoPreparo(prod,chave){ var n=rgNorm(prod||''), L=linhaDe(chave||'',prod);
+  if(ehHamb(prod)) return 'hb';
+  if(/BIFE|ESTROGONOF|STROGONOF|MOID|TEMPERAD|EMPANAD|RECH|MEDALH|DESFIAD|ESPETO|NABRASA|KAFTA|ISCA|CUBOS|TIRAS|FATIAD|DEFUMAD/.test(n)) return '';
+  if(/FILE MIGNON|\bPECA\b|INTEIR/.test(n)) return 'peca';
+  if(L==='Frango') return /FILE|PEITO/.test(n)?'frango':'';
+  if(/ALCATRA|CONTRA ?FILE|LAGARTO/.test(n)) return 'bife';
+  if(/PATINHO|ACEM|MUSCULO|COXAO|PEITO BOVINO/.test(n)||(/PALETA/.test(n)&&L==='Bovinos dia a dia')) return 'moivel'; return ''; }
+function generoPrep(t,fm){ return fm?String(t).replace(/\bmoído\b/g,'moída').replace(/\binteiro\b/g,'inteira').replace(/\bfatiado\b/g,'fatiada').replace(/\blimpo\b/g,'limpa'):t; }
+function preparoTxt(c,p1){ if(!p1) return 'Posso separar pra você?'; var fm=fem(p1.produto)||fem(String(p1.nome||'').toUpperCase()), o_p1=(fm?'a ':'o ')+p1.nome, t=tipoPreparo(p1.produto,p1.chave), pr=t&&t!=='hb'?(perfilCliente(c).preparo||{})[corte(p1.produto)]:'';
+  if(pr) return 'Separo '+o_p1+' '+generoPrep(pr,fm)+', como da última vez?';
+  if(t==='hb') return 'Separo '+o_p1+' pra você? É só dizer quantos.';
+  if(t==='peca') return 'Como gostaria dos cortes? Separamos a peça inteira ou cortamos do seu jeito.';
+  if(t==='bife') return 'Prefere em bifes, em tiras para estrogonofe ou a peça inteira?';
+  if(t==='moivel') return 'Quer '+(fm?'moída':'moído')+' em pacotes de 500 g ou em bifes, separados de 4 em 4?';
+  if(t==='frango') return 'Prefere em bifes, em cubos ou em tiras? A gente prepara do seu jeito.';
+  return carneFresca(p1)?'Posso separar pra você? A gente prepara do jeito que preferir.':'Posso separar pra você?'; }
+/* aprende o preparo com o que o cliente pede e com o que a loja confirma ("separei o patinho moído em pacotes de 500 g") */
+var RE_PREP_T=/\b(MOID[OA]S?|MOER|BIFES?|CUBOS|TIRAS|MEDALH\w*|PECA INTEIRA|INTEIR[OA]|FATIAD[OA]S?|PACOTES? DE \d+ ?(?:G|GR|GRAMAS|KG)\b|DE \d+ EM \d+|SEM GORDURA|BEM LIMP[OA])/g;
+function prepFrase(n){ var out=[]; n=String(n).replace(/\b(DIA|MES|SEMANA|ANO|TEMPO|TARDE|MANHA|NOITE|MUNDO) INTEIR[OA]\b/g,' '); (String(n).match(RE_PREP_T)||[]).forEach(function(t){ var m2=t.match(/PACOTES? DE (\d+) ?(G|GR|GRAMAS|KG)/), x=/^MOI|^MOER/.test(t)?'moído':/^BIFE/.test(t)?'em bifes':/^CUBOS/.test(t)?'em cubos':/^TIRAS/.test(t)?'em tiras':/^MEDALH/.test(t)?'em medalhões':/INTEIR/.test(t)?'inteiro':/^FATIAD/.test(t)?'fatiado':m2?'em pacotes de '+m2[1]+(/KG/.test(m2[2])?' kg':' g'):/^DE \d+ EM/.test(t)?t.toLowerCase():/GORDURA|LIMP/.test(t)?'bem limpo':''; if(x&&out.indexOf(x)<0) out.push(x); });
+  if(out.length>1&&out.indexOf('em bifes')>=0&&out.indexOf('moído')>=0) return ''; return out.join(' '); }
+var RE_PEDIDO=/\b(QUERO|QUERIA|PODE|PODERIA|SEPARA|SEPARE|MANDA|MANDE|ME VE|RESERVA|VOU QUERER)\b/;
+var RE_CONF_L=/\b(SEPAREI|SEPARAMOS|DEIXEI|DEIXAMOS|CORTEI|CORTAMOS|MOI|MOEMOS|EMBALEI|EMBALAMOS|FIZ|FIZEMOS|TA PRONT\w*|ESTA PRONT\w*|FICOU PRONT\w*|JA ESTA SEPARAD\w*)\b/;
+function tipoOkPrep(k){ var t=tipoPreparo(k); return !!t&&t!=='hb'; }
+function pfPreparo(c,ms,nv){ var mud=false, ultL=null; nv.prep=nv.prep||{};
+  ms.slice().sort(function(a,b){ return a.em<b.em?-1:1; }).forEach(function(m){ if(!m.txt||/^\[/.test(m.txt)||m.tr===-1||(m.de!=='c'&&m.de!=='l')) return; var bruto=String(m.txt).replace(/^🎤\s*/,'');
+    /* loja só ensina quando confirma o que fez ("separei o patinho moído"); mensagem automática, campanha ou pergunta não ensina */
+    if(m.de==='l'&&(m.tags||/\?/.test(bruto)||!RE_CONF_L.test(rgNorm(bruto)))){ ultL=m; return; }
+    var csMsg=cortesNoTexto(bruto), partes=[];
+    (bruto.match(/[^.!?;\n]+[.!?;\n]*/g)||[]).forEach(function(fr){ var q=/\?/.test(fr), pd=RE_PEDIDO.test(rgNorm(fr)); fr.split(/\s+(?:e|mais|mas|porém)\s+|,\s*(?:e\s+)?(?=\d)/i).forEach(function(x){ partes.push({t:x,q:q,pd:pd}); }); });
+    partes.forEach(function(pt){ var f=rgNorm(pt.t); if(RE_REC_PERM.test(' '+f+' ')||/\bNAO\b/.test(f)) return; if(m.de==='c'&&pt.q&&!pt.pd) return; var pr=prepFrase(f); if(!pr) return;
+      var cf=cortesNoTexto(pt.t);
+      if(!cf.length){ if(csMsg.length) return; /* outro corte citado na mesma mensagem: não dá para saber de qual é */
+        if(m.de==='c'&&ultL&&dias(String(ultL.em).slice(0,10),String(m.em).slice(0,10))<=3){ var u=cortesNoTexto(ultL.txt).filter(tipoOkPrep)[0]; if(u) cf=[u]; } }
+      cf=cf.filter(tipoOkPrep); if(cf.length!==1) return;
+      var k=cf[0], a=nv.prep[k]; if(a&&a.em>=m.em) return; nv.prep[k]={txt:pr,em:m.em}; mud=true; });
+    if(m.de==='l') ultL=m; });
+  return mud; }
+async function pfTirarPreparo(c,k){ var K=histK(c), nv=PF.d[K]=PF.d[K]||{}; nv.prep=nv.prep||{}; nv.prep[k]={off:1,em:new Date().toISOString(),por:meuPapel().nome||''}; PF.fila[K]=1; pfLimparCli(c); await pfEnviar(); }
+
 /* =================== v5.1: TEMA DA MENSAGEM x FAMÍLIA DO PRODUTO, ENVIADAS, AGENDAMENTO =================== */
 /* texto que fala de churrasco só oferece produto de churrasco (nunca patinho do dia a dia "para o churrasco") */
 var TEMA_LINHAS={churrasco:['Churrasco nobre','Wagyu','Cordeiro','Suínos e linguiças'],hamburguer:['Hambúrguer']};
@@ -2559,7 +2608,8 @@ function perfilCliente(c){ var vk=pfVer(); if(c._pf&&c._pfv===vk) return c._pf; 
   var nd=(c.diasCompra&&c.diasCompra.length)||Object.keys(comps.reduce(function(a,d){ a[d.data]=1; return a; },{})).length;
   var est=!nc?'NUNCA_COMPROU':nd===1?'PRIMEIRA_COMPRA':habit.some(function(e){ return e.diasSem>=e.cicloUso*0.8; })?'RECOMPRA_CICLO':'EXPANSAO_CESTA';
   var ult=comps[0]?[].concat.apply([],comps.filter(function(d){ return d.data===comps[0].data; }).map(function(d){ return d.itens||[]; })).map(function(it){ return nomeNatural(it.produto); }).filter(function(x,i,a){ return a.indexOf(x)===i; }).slice(0,6):[];
-  c._pf={estagio:est,ultima_compra_data:c.ultimaCompra||(comps[0]&&comps[0].data)||'',ultima_cesta:ult,cortes:cortes,recusas:rec,preferencias:(nv.pref||[]).slice(0,6),tom:lingua(c).tom||''}; c._pfv=vk; return c._pf; }
+  var prep={}; Object.keys(nv.prep||{}).forEach(function(k){ if(nv.prep[k]&&nv.prep[k].txt) prep[k]=nv.prep[k].txt; });
+  c._pf={preparo:prep,estagio:est,ultima_compra_data:c.ultimaCompra||(comps[0]&&comps[0].data)||'',ultima_cesta:ult,cortes:cortes,recusas:rec,preferencias:(nv.pref||[]).slice(0,6),tom:lingua(c).tom||''}; c._pfv=vk; return c._pf; }
 var ESTAGIO_TXT={NUNCA_COMPROU:'Nunca comprou',PRIMEIRA_COMPRA:'1ª compra',RECOMPRA_CICLO:'Recompra no ciclo',EXPANSAO_CESTA:'Expandir a cesta'};
 /* a trava única de produto */
 function travaCorte(c,prod,opt){ opt=opt||{}; var pf=perfilCliente(c), k=corte(prod), e=pf.cortes[k], r=pf.recusas[k];
@@ -2602,13 +2652,14 @@ function pfExtrair(c,msgs){ if(!c||!msgs||!msgs.length) return false; var K=hist
       if(a&&a.em>=m.em) return; if(a&&a.off&&a.em>=m.em) return; rec[k]={em:m.em,ate:ate,tipo:tipo,txt:bruto.slice(0,80),auto:1}; mud=true; });
     var pm=n.match(RE_PREF), pp=n.match(/\bPREFIRO\s+([A-Z ]{3,30})/); [pm&&pm[1],pp&&('prefere '+pp[1].trim())].forEach(function(x){ if(!x) return; x=x.toLowerCase().trim(); if(pref.indexOf(x)<0){ pref.push(x); mud=true; } });
   });
+  if(pfPreparo(c,msgs,nv)) mud=true;
   if(pref.length>6) nv.pref=pref.slice(-6);
   if(mud){ nv.atu=new Date().toISOString(); PF.fila[K]=1; pfLimparCli(c); clearTimeout(PF.tmr); PF.tmr=setTimeout(pfEnviar,1500); } return mud; }
 function pfLimparCli(c){ if(!c) return; delete c._pf; delete c._oh; delete c._sug; delete c._sugF; }
 async function pfEnviar(){ if(!syncAtivo()) return; var ks=Object.keys(PF.fila); if(!ks.length) return; PF.fila={};
   for(var i=0;i<ks.length;i++){ var K=ks[i]; try{ var rem=(await fb('GET','perfil/'+K))||{}, loc=PF.d[K]||{}, r=Object.assign({},rem.rec||{});
       Object.keys(loc.rec||{}).forEach(function(k){ var a=loc.rec[k], b=r[k]; if(!b||(a.em||'')>=(b.em||'')) r[k]=a; });
-      var pref=(rem.pref||[]).concat((loc.pref||[]).filter(function(x){ return (rem.pref||[]).indexOf(x)<0; })).slice(-6), v={rec:r,pref:pref,atu:new Date().toISOString()};
+      var pref=(rem.pref||[]).concat((loc.pref||[]).filter(function(x){ return (rem.pref||[]).indexOf(x)<0; })).slice(-6), pp=Object.assign({},rem.prep||{}); Object.keys(loc.prep||{}).forEach(function(k){ var a=loc.prep[k], b=pp[k]; if(!b||(a.em||'')>=(b.em||'')) pp[k]=a; }); var v={rec:r,pref:pref,prep:pp,atu:new Date().toISOString()};
       await fb('PUT','perfil/'+K,v); PF.d[K]=v; }catch(e){ PF.fila[K]=1; } }
   ks.forEach(function(K){ pfLimparCli(clientePorK(K)); }); try{ for(var j=0;j<ks.length;j+=40) avisarMudanca({t:'pf',ks:ks.slice(j,j+40)}); }catch(e){} }
 async function pfCarregar(){ if(!syncAtivo()) return; try{ var d=(await fb('GET','perfil'))||{}; Object.keys(PF.fila).forEach(function(K){ if(PF.d[K]) d[K]=PF.d[K]; }); var mudou=JSON.stringify(d)!==JSON.stringify(PF.d); PF.d=d; PF.ok=true; if(mudou) limparSugestoes(); }catch(e){} }
@@ -2634,7 +2685,10 @@ function respostaSugerida(t){ if(!t||!t.c) return ''; var c=t.c, it=linhaTempo(c
   if(/\b(QUE HORAS|HORARIO|ABERTO|ABRE|FECHA|FUNCIONA)\b/.test(n)) return pronta(/HORARIO|FUNCIONAMENTO/)||'Já te confirmo o horário certinho, '+nome+'!';
   if(/\b(CARDAPIO|TABELA|LISTA DE PRECOS?)\b/.test(n)) return pronta(/CARDAPIO|TABELA|PRECO/)||'Já te mando, '+nome+'!';
   if(/\b(QUANTO|VALOR|PRECO|QTO|TA SAINDO|ESTA SAINDO)\b/.test(n)) return 'Vou confirmar o valor'+(itens?' '+art+itens:'')+' e já te passo, '+nome+'!';
-  if(/\b(QUERO|QUERIA|SEPARA|SEPARE|SEPARAR|RESERVA|RESERVAR|VOU QUERER|ME VE|MANDA|MANDE|ENCOMENDA|TEM COMO)\b/.test(n)) return 'Combinado, '+nome+'! Já separo'+(itens?' '+itens:' pra você')+'. Vai retirar ou prefere entrega?';
+  if(/\b(QUERO|QUERIA|SEPARA|SEPARE|SEPARAR|RESERVA|RESERVAR|VOU QUERER|ME VE|MANDA|MANDE|ENCOMENDA|TEM COMO)\b/.test(n)){ var prA=prepFrase(n);
+    if(cs.length===1){ var tp=tipoPreparo(cs[0]), fmk=fem(cs[0]), pk=prA?'':(tp&&tp!=='hb'?(perfilCliente(c).preparo||{})[cs[0]]:''), perg=tp==='moivel'?'Prefere '+(fmk?'moída':'moído')+' em pacotes de 500 g ou em bifes? ':tp==='peca'?'Como gostaria dos cortes? ':tp==='bife'?'Prefere em bifes, em tiras ou a peça inteira? ':tp==='frango'?'Prefere em bifes, em cubos ou em tiras? ':'';
+      return 'Combinado, '+nome+'! Já separo '+itens+(prA?' '+generoPrep(prA,fmk):pk?' '+generoPrep(pk,fmk)+', como da última vez':'')+'. '+(prA||pk?'':perg)+'Vai retirar ou prefere entrega?'; }
+    return 'Combinado, '+nome+'! Já separo'+(itens?' '+itens:' pra você')+'. Vai retirar ou prefere entrega?'; }
   if(/\?/.test(u.txt)&&cs.length) return 'Tem sim, '+nome+'! Quer que eu separe '+itens+' pra você?';
   if(encerraConversa(u.txt)) return 'Nós que agradecemos, '+nome+'! Qualquer coisa é só chamar.';
   return ''; }
@@ -3195,11 +3249,11 @@ function comporMsg(c,o){ var B=bib4(), L=lingua(c), at=atendenteDe(c.loja), loja
   return {txt:corrigirMsg(personalizar(partes.join('\n'),c,at),c),vb:'',atendente:at}; }
 function tamMsg(txt){ return String(txt||'').split('\n').filter(function(l){ return !/\bSAIR\b/.test(l); }).join('\n').length; }
 function montarSug(c,foco,modo){ var o=ofertaHoje(c,foco), sit=situacaoV5(c,o,foco,modo), B=bib4(), seed=c.chave+'|'+hoje()+'|'+((S.regen&&S.regen[c.chave])||0)+'|'+(foco||'');
-  var apr=aprendidasPara(sit), bon={}, base=(B[sit]||B.padrao).slice(); apr.forEach(function(x){ if(base.indexOf(x.t)<0){ base.push(x.t); bon[x.t]=1+6*x.score; } });
-  var corpo=escolherCorpo(c,sit,base,seed,bon), aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null, p1=o.itens[0], fm=p1?fem(p1.produto)||fem(p1.nome.toUpperCase()):false;
-  var vars={p:listaPT(o.itens.map(function(x){ return x.nome; })),p1:p1?p1.nome:'',Seu_p1:p1?(fm?'Sua ':'Seu ')+p1.nome:'',seu_p1:p1?(fm?'sua ':'seu ')+p1.nome:'',o_p1:p1?(fm?'a ':'o ')+p1.nome:'',do_p1:p1?(fm?'da ':'do ')+p1.nome:'',tempo:tempoHumano(c.recencia)};
+  var apr=aprendidasPara(sit), bon={}, base=(B[sit]||B.padrao).slice(); var chg0=o.itens.length&&BIB_PREP[sit]&&(o.itens.length===1||!o.escolhaEquipe)?chegouTxt(o,seed):''; if(chg0) BIB_PREP[sit].forEach(function(t){ if(base.indexOf(t)<0){ base.push(t); bon[t]=3; } }); apr.forEach(function(x){ if(base.indexOf(x.t)<0){ base.push(x.t); bon[x.t]=1+6*x.score; } });
+  var corpo=escolherCorpo(c,sit,base,seed,bon); if(/\{chegou\}/.test(corpo.t)&&o.itens.length>1) o.itens=o.itens.slice(0,1); var aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null, p1=o.itens[0], fm=p1?fem(p1.produto)||fem(p1.nome.toUpperCase()):false;
+  var vars={p:listaPT(o.itens.map(function(x){ return x.nome; })),p1:p1?p1.nome:'',Seu_p1:p1?(fm?'Sua ':'Seu ')+p1.nome:'',seu_p1:p1?(fm?'sua ':'seu ')+p1.nome:'',o_p1:p1?(fm?'a ':'o ')+p1.nome:'',do_p1:p1?(fm?'da ':'do ')+p1.nome:'',tempo:tempoHumano(c.recencia),chegou:chegouTxt(o,seed),preparo:preparoTxt(c,p1)};
   var r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed});
-  if(o.itens.length>1&&!o.escolhaEquipe&&tamMsg(r.txt)>LIMITE_MSG){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
+  if(o.itens.length>1&&!o.escolhaEquipe&&tamMsg(r.txt)>LIMITE_MSG){ o.itens=o.itens.slice(0,1); vars.p=o.itens[0].nome; vars.chegou=chegouTxt(o,seed); r=comporMsg(c,{corpo:corpo.t,vars:vars,seed:seed}); }
   if(tamMsg(r.txt)>LIMITE_MSG){ var curtos=base.filter(function(t){ return t&&t!==corpo.t&&blocoCombina(t,c); }).sort(function(a,b){ return a.length-b.length; });
     for(var ci=0;ci<curtos.length;ci++){ var r2=comporMsg(c,{corpo:curtos[ci],vars:vars,seed:seed}); if(tamMsg(r2.txt)<=LIMITE_MSG){ r=r2; corpo={t:curtos[ci],i:base.indexOf(curtos[ci])}; aprX=apr.filter(function(x){ return x.t===corpo.t; })[0]||null; break; } } }
   var soManual=c.recencia>LIMITE_AUTO, comp=o.grupo?complementoDe(c,o.grupo,o.itens):null;
@@ -3845,6 +3899,7 @@ function telaClientes(){ var f=S.filtro,l=filtrarClientes(), m=S.model;
 
 function blocoPerfilFicha(c){ var pf=perfilCliente(c), o=ofertaHoje(c,null), rk=Object.keys(pf.recusas);
   return '<div class="pf-ficha"><span class="pill">'+esc(ESTAGIO_TXT[pf.estagio]||pf.estagio)+'</span>'+(pf.preferencias.length?' <span class="pill">'+esc(pf.preferencias.join(' · '))+'</span>':'')+
+    (Object.keys(pf.preparo||{}).length?'<div class="pf-l">✂️ <b>Preparo que '+(lingua(c).genero==='f'?'ela':'ele')+' gosta:</b> '+Object.keys(pf.preparo).map(function(k){ return '<span class="pill">'+esc(nomeNatural(k))+' — '+esc(generoPrep(pf.preparo[k],fem(k)))+' <a href="#" data-pfprepdel="'+esc(k)+'" data-c="'+esc(c.chave)+'" title="Tirar o preparo">✕</a></span>'; }).join(' ')+'</div>':'')+
     ((o.travados||[]).length?'<div class="pf-l">⏳ <b>Fora hoje:</b> '+o.travados.map(function(x){ return esc(x.nome)+' <small>('+esc(x.motivo)+')</small>'; }).join(' · ')+'</div>':'')+
     '<div class="pf-l">🚫 <b>Não oferecer:</b> '+(rk.length?rk.map(function(k){ var r=pf.recusas[k]; return '<span class="pill late">'+esc(cap1(k.toLowerCase()))+' <small>'+esc(r.ate&&r.ate<'9999'?'até '+dBR(r.ate):'sempre')+(r.txt?' · "'+String(r.txt).slice(0,40)+'"':'')+'</small> <a href="#" data-pfdel="'+esc(k)+'" data-c="'+esc(c.chave)+'" title="Tirar a recusa">✕</a></span>'; }).join(' '):'<small class="nota">nada</small>')+' <button class="ico txt" data-pfadd="'+esc(c.chave)+'">+ produto</button></div></div>'; }
 function blocoSugestao(c){ var s=sgDoModal(c), fm=S.focoModal&&S.focoModal.cli===c.chave?S.focoModal:null;
@@ -4158,6 +4213,7 @@ function bind(){
     if((b=t.closest('[data-envf]'))){ var pe=b.dataset.envf.split('|'); S.env=S.env||{}; S.env[pe[0]]=pe[1]; S.env.lim=0; render(); return; }
     if((b=t.closest('[data-envmais]'))){ S.env.lim=(S.env.lim||200)+200; render(); return; }
     if((b=t.closest('[data-sugresp]'))){ var tas=document.querySelector('.cv-send textarea'); if(tas){ tas.value=b.dataset.sugresp; tas.focus(); } return; }
+    if((b=t.closest('[data-pfprepdel]'))){ e.preventDefault(); var cpp=S.model.clientes[b.dataset.c]; if(!cpp) return; await pfTirarPreparo(cpp,b.dataset.pfprepdel); limparSugestoes(); abrirCliente(cpp.chave); render(); toast('Preparo retirado.','ok'); return; }
     if((b=t.closest('[data-pfdel]'))){ e.preventDefault(); var cpd=S.model.clientes[b.dataset.c]; if(!cpd) return; await pfTirarRecusa(cpd,b.dataset.pfdel); limparSugestoes(); abrirCliente(cpd.chave); render(); toast('Recusa retirada.','ok'); return; }
     if((b=t.closest('[data-pfadd]'))){ var cpa=S.model.clientes[b.dataset.pfadd]; if(!cpa) return; var nmR=prompt('Qual produto '+cpa.nome+' não quer receber? (ex.: filé mignon)'); if(!nmR) return; var ksR=await pfPorRecusa(cpa,nmR); limparSugestoes(); abrirCliente(cpa.chave); render(); toast('Não oferecer mais: '+ksR.join(', ')+'.','ok'); return; }
     if((b=t.closest('[data-mp]'))){ var xmp=mpLista().filter(function(y){ return y.id===b.dataset.mp; })[0], tmp=threadsConversa().filter(function(y){ return y.k===S.cvSel; })[0], tam=document.querySelector('.cv-send textarea'); if(!xmp||!tam) return;
@@ -4421,7 +4477,7 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!RESP.radarEm||Date.now()-RESP.radarEm>(S.aba==='conversas'?20e3:45e3)) radarRespostas(); },10*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
     setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
