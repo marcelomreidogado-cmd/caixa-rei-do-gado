@@ -14,7 +14,7 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 ## Arquitetura
 - Sem build. Firebase compat 10.12.5 (auth + **Realtime Database**), Chart.js 4.4.0.
 - Firebase projeto `motoboy-ddefa` (o mesmo do RH e do Compras). Caixa grava em `caixa/…`; a cesta grava em `cesta_rei_do_gado/…` via REST (sem SDK).
-- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'4.9.1'`) em `computadores`.
+- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'5.0'`) em `computadores`.
 - Nós da cesta: `imports_meta`, `imports_linhas`, `imports_cli`, `vinculos`, `config` (inclui `regrasContato`, `metaDiaria`, `metaCadastro` e `mesclas`), `contatos`, `contatos_ult`, `hist`, `seg`, `camp`, `lemb`, `kit_img`, `computadores`, `rev`. O teste usa `cesta_rei_do_gado/teste/…`.
 - Única fonte de dados: PDF "Relatório de Produtos Vendidos por Cliente/Vendedor" (Alterdata), importado pelas lojas. Extrato de Produtos e Curva ABC não são mais usados.
 - **Conexão com a Uazapi (v4.2):** canal ao vivo `GET /sse?token=…&events=messages,connection` por loja (`rtLigar`); com ele aberto a leitura por varredura cai de 45 s para 3 min. Vigia a cada 2 min (`checarNumeros` → `vigiarConexao`): aviso vermelho no topo, motivo (`lastDisconnectReason`), `POST /instance/reset` sozinho (no máx. 1 a cada 10 min, só se ainda logado) e botão Reconectar com QR code/código (`POST /instance/connect`). Quedas vão para `computadores/{pc}/quedas`.
@@ -63,8 +63,22 @@ Valem para Hoje, Sugestões, Recompra, Reconquista, Campanhas (inclusive Boas-vi
   - `publicoCamp` lista o segmento inteiro (ex.: Boas-vindas com 7 clientes e só 3 liberados).
   - Campanha nova nasce com o texto em branco para a loja escrever.
   - Segmentos criados em dobro aparecem como listas repetidas na ficha do cliente ("Boas-vindas" e "Hora de repor: Patinho" duas vezes).
-- **Arquitetura-alvo pedida:** front só exibe, aprova e dispara; regras num motor único. Decisão pendente com o Marcelo: (a) motor único no próprio código da cesta, gravando o perfil em `perfil/{K}` no Realtime Database, para todos os computadores verem o mesmo; ou (b) Cloud Functions, que exigem o plano Blaze do Firebase e deploy, e só se justificam se algo precisar rodar com todos os computadores fechados.
+- **Arquitetura DECIDIDA pelo Marcelo (19/11/2026, regra):** o motor fica **no próprio código da cesta** e o perfil é gravado na nuvem (`perfil/{K}` no Realtime Database), para todos os computadores verem o mesmo. Sem Cloud Functions, sem servidor, sem custo. Toda mudança **só acrescenta**: nada que já funciona é retirado, e nada pode deixar a cesta mais lenta (cálculos com cache por cliente e por dia).
 - **Regra de código:** uma única função de trava, usada por Hoje, Sugestões, Recompra, Reconquista, Campanhas, lote e fila. É proibido criar outro filtro paralelo.
+- **Implementado na v5.0 (19–20/11/2026):**
+  - `perfilCliente(c)`: cortes com `ultima`, `ciclo` (mediana dos intervalos), `cicloUso` (padrão 7; teto 21 com 2 compras e 30 com 3+), `liberaEm`; `estagio`; `ultima_cesta`; recusas e preferências de `perfil/{K}`. Cache por cliente e por versão (`S._gv`, que sobe em `limparSugestoes`).
+  - `travaCorte(c,produto,{promo})` é a trava única: recusa → ciclo → já oferecido (`produtosRecentes`); na promoção, só "comprou hoje/ontem".
+  - `ofertaHoje` = cache de `ofertaHoje0` por dia + escolha da equipe + registros do cliente. Corte travado sai da oferta (`travados`). Sem corte livre (ou só acompanhamento livre) = `semMotivo`.
+  - `elegivel` = travas antigas + `!semMotivoHoje` (lista limpa). O pós-venda (`posVenda`: 1ª compra, D+1 a D+3, sem mensagem depois da compra) passa pela espera pós-compra, mas respeita recusas.
+  - `situacaoV5` → `'posvenda'` (`BIB5.posvenda`).
+  - A fila confere recusa, ciclo e promoção na hora de enviar (`trvF`).
+  - Campanha sem texto (ou com o texto padrão antigo) = mensagem automática da jornada (`campAuto`/`sgCamp`). O público na tela é só quem pode receber hoje (`podeCamp`); os outros aparecem só como contagem por motivo (`details.fora`).
+  - Recusas e preferências vêm das mensagens e dos áudios transcritos (`pfExtrair`, frase a frase; pergunta não conta; "hoje não/ainda tenho" = 14 dias, "não quero/dispenso" = 30 dias, "não gosto/não como" = sempre). Sem corte na frase, a recusa vale para o que a loja ofereceu nos últimos 3 dias. A loja tira ou acrescenta recusa na ficha (✕ / "+ produto").
+  - Leitura inicial das conversas antigas uma vez (`pfMontar`, `perfil_meta`).
+  - Resposta sugerida na conversa (`respostaSugerida`, chip 💡): pedido, preço, PIX, horário, cardápio, recusa, agradecimento. Usa as mensagens prontas quando existem.
+  - `novaLista` não cria lista com nome repetido, e a ficha mostra cada nome uma vez.
+  - Revisão independente da v5.0 (20 achados) corrigida antes de publicar: cache devolve cópia, invalidação por cliente (`pfLimparCli`), pós-venda no envio 1 a 1 e por dia de compra, vocabulário pelo nome do produto (suíno/frango separados), frases partidas em "mas", Sugestões/Recompra/selo/caixa pela mesma trava, Recompra sem corte travado, `focoTravado` fora do lote, fila só confere itens de mensagem automática, `pfMontar` retoma pela última chave.
+  - Pendências conhecidas: linguiça e alguns nomes não são reconhecidos nas recusas; uma função única `podeReceber(c,ctx)` ainda não substituiu todas as checagens espalhadas.
 
 ## Regras das mensagens (motor v5)
 - `LIMITE_MSG=200`: mensagens automáticas até 200 caracteres, sem contar a linha do SAIR. O gerador (`montarSug`) e o verificador (`violacoesMsg`) usam a mesma medida (`tamMsg`). Kits e campanhas têm o texto da loja e ficam fora do limite.
