@@ -43,6 +43,12 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 
 ## Fluxo de trabalho
 - Editar → `node --check` no script extraído → testar em `cesta-teste/` → promover → commit em português.
+- **Antes de publicar qualquer mudança na Cesta (obrigatório desde 19/11/2026, depois da regressão da v4.9):**
+  1. Rodar a bateria inteira de testes automáticos (em `/home/claude/build`: vivotest, convtest, histtest, audtest, lgtest, kittest, rq2test, hojetest, camptest, f3test, a404test, mptest, v49test, trtest e o `m5t.js` com dados reais) — todos com `ERRS []`.
+  2. **Simular com os dados reais, só leitura:** baixar o nó afetado (ex.: `hist`, `conv`) e rodar a lógica nova fora do navegador, conferindo os números e uma amostra do que aparece para a loja. Nada que mostre estado (pendente, lida, aguardando) vai ao ar sem essa simulação.
+  3. **Revisão independente:** um agente revisor (só leitura) compara a versão nova com a anterior e procura erros, duplicidades e regressões; tudo o que for grave é corrigido antes de publicar.
+  4. Nunca trocar uma tela que funciona por uma nova sem manter o que já existia (o que era melhor antes continua).
+  5. Fotos antes/depois em 390 e 1440 px e dizer ao Marcelo o que não foi testado.
 - Nunca apagar dados do Realtime Database sem backup. Não mexer em regras de segurança/login sem perguntar.
 - Usuário (Marcelo) trabalha em português do Brasil, no Mac, e prefere soluções simples, sem terminal.
 
