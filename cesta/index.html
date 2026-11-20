@@ -417,8 +417,7 @@ body:has(#modal.on) #uazAlerta{display:none}
 .mp-tx{flex:1;min-width:0}.mp-tx b{display:block}.mp-tx small{display:block;color:var(--mut,#777);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:760px){.cv-comp-box .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.cv-comp-box .chips .chip{flex:none}}
 .mp-form{display:flex;flex-direction:column;gap:8px}.mp-form textarea{resize:vertical;border:1px solid var(--line);border-radius:12px;padding:9px 12px;font:inherit}
-.cv-it .esp{flex:none;margin-left:6px;font-style:normal;font-size:11px;font-weight:600;color:#9a6a12;background:#fbf0d9;border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.cv-it .esp.nl{color:#fff;background:#b3121b}.cv-it .l3{margin-top:2px}
+.cv-it .esp{flex:none;margin-left:6px;font-style:normal;font-size:11px;font-weight:600;color:#9a6a12;font-variant-numeric:tabular-nums;white-space:nowrap}.cv-it .l3{margin-top:2px}
 .lj{font-style:normal;font-size:11px;font-weight:600;color:var(--cor,#777);display:inline-flex;align-items:center;gap:5px}.lj::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cor,#777)}
 .ctl-lojas{margin-top:12px}.ctl-lojas header{display:flex;align-items:baseline;gap:10px}.ctl-lojas .tw{overflow-x:auto}
 table.ctl{width:100%;border-collapse:collapse;font-size:13px}table.ctl th{text-align:left;font-weight:600;font-size:11px;color:var(--mut,#777);padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -1120,17 +1119,18 @@ function histDeUaz(x,loja){ var t=tsMs(x.messageTimestamp); return {id:x.id||x.m
 function salvarFilaHist(){ try{ localStorage.setItem('cesta_histfila',JSON.stringify(HI.fila)); }catch(e){} }
 function histAdd(c,msgs){ if(!c||!msgs||!msgs.length) return 0; var K=histK(c), cache=HI.cache[K]=HI.cache[K]||{}, f=HI.fila[K]=HI.fila[K]||{}, n=0, novos=[];
   msgs.forEach(function(m){ if(!m||!(m.txt||m.mt)) return; var id=histId(m.id); if(cache[id]&&!m.forcar) return;
-    var o={em:m.em||new Date().toISOString(),de:m.de||'c',txt:String(m.txt||'').slice(0,1000)}; ['loja','por','mt','tags','mid'].forEach(function(k){ if(m[k]) o[k]=String(m[k]).slice(0,120); }); if(m.tr) o.tr=1; if(m.dur) o.dur=m.dur;
+    var o={em:m.em||new Date().toISOString(),de:m.de||'c',txt:String(m.txt||'').slice(0,1000)}; ['loja','por','mt','tags','mid'].forEach(function(k){ if(m[k]) o[k]=String(m[k]).slice(0,120); }); if(m.tr) o.tr=m.tr<0?-1:1; if(m.dur) o.dur=m.dur;
     cache[id]=o; f[id]=o; n++; novos.push(o); });
-  if(novos.length) cvRegistrar(c,novos);
+  cvRegistrar(c,msgs.filter(function(m){ return m&&(m.txt||m.mt)&&m.em; }).map(function(m){ return {em:m.em,de:m.de||'c',txt:String(m.txt||''),mt:m.mt||'',loja:m.loja||''}; }));
   if(!Object.keys(f).length) delete HI.fila[K];
   if(n){ salvarFilaHist(); clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,1500); } return n; }
 async function enviarHist(){ if(!syncAtivo()||HI.enviando) return; HI.enviando=true;
   try{ var ks=Object.keys(HI.fila); for(var i=0;i<ks.length;i++){ var K=ks[i], f=HI.fila[K]; if(f&&Object.keys(f).length){ await fb('PATCH','hist/'+K,f); avisarMudanca({t:'hist',K:K}); } delete HI.fila[K]; salvarFilaHist(); } }
   catch(e){ clearTimeout(HI.timer); HI.timer=setTimeout(enviarHist,60000); } finally{ HI.enviando=false; } }
 async function carregarHist(c,forcar){ var K=histK(c); if(HI.ok[K]&&!forcar) return HI.cache[K]||{};
-  if(syncAtivo()){ try{ var d=await fb('GET','hist/'+K)||{}, alt=histKs(c); for(var i=0;i<alt.length;i++){ var da=await fb('GET','hist/'+alt[i]); if(da) d=Object.assign({},da,d); } HI.cache[K]=Object.assign({},d,HI.cache[K]||{}); HI.ok[K]=1; cvLocal(c,HI.cache[K]); }catch(e){} } return HI.cache[K]||{}; }
-function cvLocal(c,H){ var K=histK(c); Object.keys(H||{}).map(function(id){ return H[id]; }).sort(function(a,b){ return a.em<b.em?-1:1; }).forEach(function(m){ var l=m.loja||c.loja||''; if(!l) return; var k=cvKey(K,l), e=CV.d[k]||{K:K,l:l}; if(cvAplicar(e,m)) CV.d[k]=e; }); }
+  if(syncAtivo()){ try{ var d=await fb('GET','hist/'+K)||{}, alt=histKs(c); for(var i=0;i<alt.length;i++){ var da=await fb('GET','hist/'+alt[i]); if(da) d=Object.assign({},da,d); }
+      var loc=HI.cache[K]||{}, pf=HI.fila[K]||{}, junto=Object.assign({},d); Object.keys(loc).forEach(function(id){ if(pf[id]||!d[id]||(loc[id].tr&&!d[id].tr)) junto[id]=loc[id]; }); HI.cache[K]=junto; HI.ok[K]=1; cvLocal(c,HI.cache[K]); }catch(e){} } return HI.cache[K]||{}; }
+function cvLocal(c,H){ var K=histK(c); Object.keys(H||{}).map(function(id){ return H[id]; }).sort(function(a,b){ return a.em<b.em?-1:1; }).forEach(function(m){ var l=m.loja||c.loja||''; if(!l) return; var k=cvKey(K,l), e=CV.d[k]||{K:K,l:l}; if(cvAplicar(e,m)){ CV.d[k]=e; CV.fila[k]=1; } }); if(Object.keys(CV.fila).length){ clearTimeout(CV.tmr); CV.tmr=setTimeout(cvEnviar,1500); } }
 /* junta o histórico da nuvem com o que já estava nos registros de mensagem (msg enviada, respostas) e as compras */
 function linhaTempo(c){ var K=histK(c), out=[], vistos={}, sig={};
   var add=function(id,o){ id=histId(id); if(vistos[id]) return; var s=o.de+'|'+String(o.em).slice(0,16)+'|'+rgNorm(String(o.txt||'')).slice(0,30); if(o.de!=='n'&&sig[s]) return; vistos[id]=1; sig[s]=1; out.push(Object.assign({id:id},o)); };
@@ -1506,7 +1506,7 @@ async function linguaGravar(K,val){ LG[K]=Object.assign({},LG[K]||{},val); try{ 
 var EMO_SRC='(?:[\\u2600-\\u27BF]\\uFE0F?|[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF])';
 var RE_EMO=/[☀-➿]|[\uD83C-\uDBFF][\uDC00-\uDFFF]/;
 function textosCliente(c){ var tx=[], K=histK(c), vis={}; contatosDe(c).forEach(function(r){ var cv=r.conversa||[]; cv.forEach(function(x){ if(x.de==='c'&&x.txt&&!vis[x.txt]){ vis[x.txt]=1; tx.push(x.txt); } }); if(!cv.length&&r.resp&&r.resp.txt&&!vis[r.resp.txt]){ vis[r.resp.txt]=1; tx.push(r.resp.txt); } });
-  var H=HI.cache[K]; if(H) Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='c'&&x.txt&&!/^\[/.test(x.txt)&&!vis[x.txt]){ vis[x.txt]=1; tx.push(x.txt); } }); return tx; }
+  var H=HI.cache[K]; if(H) Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='c'&&x.txt&&x.tr!==-1&&!/^\[/.test(x.txt)&&!/^🎤\s*\(/.test(x.txt)){ var tt=x.txt.replace(/^🎤\s*/,''); if(!vis[tt]){ vis[tt]=1; tx.push(tt); } } }); return tx; }
 function textosEquipe(c){ var tx=[], H=HI.cache[histK(c)]||{}; Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='l'&&x.txt&&!x.tags) tx.push(x.txt); }); contatosDe(c).forEach(function(r){ (r.conversa||[]).forEach(function(x){ if(x.de==='l'&&x.txt) tx.push(x.txt); }); }); return tx; }
 /* lê como o cliente escreve e como a equipe já trata ele */
 function lerLinguagem(c){ var tx=textosCliente(c), eq=textosEquipe(c), pn=primeiroNome(c.nome), o={n:tx.length};
@@ -1557,7 +1557,7 @@ function blocoLingua(c){ var L=lingua(c), K=histK(c), man=LG[K]||{};
    O áudio é baixado pela Uazapi (/message/download) e transcrito NO PRÓPRIO COMPUTADOR com o Whisper
    (modelo aberto, roda no navegador via transformers.js). Na 1ª vez o computador baixa o modelo (~80 a 250 MB)
    e guarda; depois funciona sem custo. O texto fica no histórico do cliente (🎤) e entra no aprendizado de tom. */
-var TR={pipe:null,carregando:null,fila:[],rodando:false,feitos:0,status:''};
+var TR={tent:{},pipe:null,carregando:null,fila:[],rodando:false,feitos:0,status:''};
 function trCfg(){ try{ return JSON.parse(localStorage.getItem('cesta_transc')||'{}')||{}; }catch(e){ return {}; } }
 function trSalvarCfg(o){ try{ localStorage.setItem('cesta_transc',JSON.stringify(Object.assign(trCfg(),o))); }catch(e){} }
 /* uma transcrição por vez neste computador (o motor não aceita duas ao mesmo tempo) */
@@ -1584,16 +1584,20 @@ async function pcm16k(buf){ var Ctx=window.AudioContext||window.webkitAudioConte
 function ehAudio(x){ return x&&(x.mt==='audio'||/^\[(audio|ptt)\]$/i.test(String(x.txt||'').trim())); }
 /* transcreve um áudio do histórico do cliente e grava o texto */
 async function transcreverAudio(c,hid){ var K=histK(c), H=HI.cache[K]||{}, x=H[hid]; if(!x) throw new Error('Áudio não encontrado no histórico');
-  var buf=await baixarAudio(x.loja,x.mid||hid), au=await pcm16k(buf);
+  var buf=await baixarAudio(x.loja||c.loja,x.mid||hid), au=await pcm16k(buf);
   var out=await trExecutar(au.pcm), txt=String((out&&out.text)||'').trim()||'(áudio sem fala)';
   var novo=Object.assign({},x,{txt:'🎤 '+txt,mt:'audio',tr:1,dur:Math.round(au.dur)}); histAdd(c,[Object.assign({id:hid,forcar:true},novo)]); HI.cache[K][hid]=Object.assign(HI.cache[K][hid],{tr:1});
   (S.contatos||[]).forEach(function(r){ (r.conversa||[]).forEach(function(y){ if(y.id===hid||(y.id&&histId(y.id)===hid)){ y.txt='🎤 '+txt; r.pendente=true; } }); });
   delete c._lg; TR.feitos++; return txt; }
 /* áudio que a Uazapi não tem mais (antigo ou de antes de conectar): marca para não tentar de novo, em nenhum computador */
-function audioIndisponivel(c,hid){ var K=histK(c), x=(HI.cache[K]||{})[hid]; if(!x) return; var novo=Object.assign({},x,{tr:-1,txt:'🎤 (áudio antigo — o arquivo não está mais na Uazapi)'}); histAdd(c,[Object.assign({id:hid,forcar:true},novo)]); }
-function enfileirarAudios(c){ var H=HI.cache[histK(c)]||{}; Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='c'&&ehAudio(x)&&!x.tr&&(!x.loja||uazLeitura(x.loja))&&!TR.fila.some(function(f){return f.id===id;})) TR.fila.push({c:c,id:id}); }); rodarFila(); }
+function audioIndisponivel(c,hid,falhou){ var K=histK(c), x=(HI.cache[K]||{})[hid]; if(!x) return; var novo=Object.assign({},x,{tr:-1,txt:falhou?'🎤 (áudio — não foi possível transcrever; ouça no celular da loja)':'🎤 (áudio antigo — o arquivo não está mais na Uazapi)'}); histAdd(c,[Object.assign({id:hid,forcar:true},novo)]); }
+function enfileirarAudios(c){ var H=HI.cache[histK(c)]||{}; Object.keys(H).forEach(function(id){ var x=H[id]; if(x.de==='c'&&ehAudio(x)&&!x.tr&&uazInst(x.loja||c.loja)&&(TR.tent[id]||0)<3&&Date.now()-Date.parse(x.em||0)<30*864e5&&!TR.fila.some(function(f){return f.id===id;})) TR.fila.push({c:c,id:id}); }); rodarFila(); }
+/* áudios de clientes que chegaram com o computador fechado: o computador da loja transcreve sozinho ao abrir e a cada 5 min */
+async function varrerAudios(){ if(trCfg().auto===false||!S.model) return; var ls=LOJAS_ENVIO.filter(function(l){ return !!uazInst(l); }); if(!ls.length) return; var n=0;
+  var ks=Object.keys(CV.d).filter(function(k){ var e=CV.d[k]; return e&&ls.indexOf(e.l)>=0&&e.uc&&Date.now()-Date.parse(e.uc)<7*864e5&&/^\[audio\]/.test(e.ut||''); });
+  for(var i=0;i<ks.length&&n<40;i++){ var c=clientePorK(CV.d[ks[i]].K); if(!c) continue; await carregarHist(c,true); enfileirarAudios(c); n++; } }
 async function rodarFila(){ if(TR.rodando||!TR.fila.length) return; TR.rodando=true;
-  while(TR.fila.length){ var it=TR.fila.shift(); atualizarTrStatus(); try{ await transcreverAudio(it.c,it.id); if(S.aba==='conversas'||document.getElementById('histBox')) { if(S.aba==='conversas') render(); else pintarHist(it.c); } }catch(e){ if(/404|not found|indispon|não devolveu/i.test(e.message)){ audioIndisponivel(it.c,it.id); TR.indisp=(TR.indisp||0)+1; TR.status='Transcrevendo · '+TR.feitos+' feito(s) · '+TR.indisp+' áudio(s) antigo(s) sem arquivo na Uazapi (pulados)'; atualizarTrStatus(); continue; } TR.status='Erro ao transcrever: '+e.message; atualizarTrStatus(); if(/modelo|import|fetch|carregar/i.test(e.message)) { TR.fila=[]; break; } } }
+  while(TR.fila.length){ var it=TR.fila.shift(); atualizarTrStatus(); try{ await transcreverAudio(it.c,it.id); if(S.aba==='conversas'||document.getElementById('histBox')) { if(S.aba==='conversas') render(); else pintarHist(it.c); } }catch(e){ TR.tent[it.id]=(TR.tent[it.id]||0)+1; if(/\b404\b|not found|não devolveu/i.test(e.message)||TR.tent[it.id]>=3){ audioIndisponivel(it.c,it.id,!/\b404\b|not found|não devolveu/i.test(e.message)); TR.indisp=(TR.indisp||0)+1; TR.status='Transcrevendo · '+TR.feitos+' feito(s) · '+TR.indisp+' áudio(s) antigo(s) sem arquivo na Uazapi (pulados)'; atualizarTrStatus(); continue; } TR.status='Erro ao transcrever: '+e.message; atualizarTrStatus(); if(/modelo|import|fetch|carregar/i.test(e.message)) { TR.fila=[]; break; } } }
   TR.rodando=false; await enviarHist(); TR.status=TR.status.indexOf('Erro')===0?TR.status:'Transcrição pronta neste computador · '+TR.feitos+' áudio(s) transcrito(s)'+(TR.indisp?' · '+TR.indisp+' antigo(s) sem arquivo na Uazapi (pulados, não voltam para a fila)':''); atualizarTrStatus(); }
 /* APRENDER COM TODAS AS CONVERSAS: lê o histórico de quem já falou com a loja e grava tom, tratamento e gênero */
 var AP={rodando:false};
@@ -1916,18 +1920,18 @@ async function verificarRespostas(manual,forcar){ if(RESP.rodando||!S.model) ret
     var porCli={}; (S.contatos||[]).forEach(function(r){ if(r.excluido) return; var k=(r.chaves||[])[0]||r.nome; (porCli[k]=porCli[k]||[]).push(r); });
     var proximo={}; Object.keys(porCli).forEach(function(k){ var l=porCli[k].sort(function(a,b){ return a.em<b.em?-1:1; }); for(var i=0;i<l.length-1;i++) proximo[l[i].id]=Date.parse(l[i+1].em); });
     var cand=(S.contatos||[]).filter(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')) return false; var idade=agora-Date.parse(r.em); if(idade>10*864e5) return false;
-        if(!uazLeitura(r.envioLoja||'CORONEL')) return false; if(forcar) return !!forcar[r.id]; if(manual) return true;
+        if(!uazLeitura(lojaReg(r))) return false; if(forcar) return !!forcar[r.id]; if(manual) return true;
         var ult=r.respChk?agora-Date.parse(r.respChk):1e15, ativo=r.resp&&agora-Date.parse((r.conversa&&r.conversa.length?r.conversa[r.conversa.length-1].em:r.resp.em))<3*864e5;
         return ult>(ativo?3:(idade<864e5?8:25))*60*1000; })
       .sort(function(a,b){ return (a.respChk||'')<(b.respChk||'')?-1:1; }).slice(0,manual?150:40);
-    for(var i=0;i<cand.length;i++){ var r=cand[i], inst=uazLeitura(r.envioLoja||'CORONEL'), c=clienteDoContato(r,idx), envio=Date.parse(r.em), limite=proximo[r.id]||9e15, ms=[];
+    for(var i=0;i<cand.length;i++){ var r=cand[i], inst=uazLeitura(lojaReg(r)), c=clienteDoContato(r,idx), envio=Date.parse(r.em), limite=proximo[r.id]||9e15, ms=[];
       var js=jidsDe(r,c);
       for(var k=0;k<js.length&&!ms.length;k++){ var d; try{ d=await uazReq(inst,'POST','/message/find',{chatid:js[k],limit:30,offset:0,sort:'-messageTimestamp',fromMe:false}); }catch(e){ if(/Token|conexão/i.test(e.message)) throw e; continue; }
         ms=(d.messages||d.data||[]).filter(function(m){ var t=tsMs(m.messageTimestamp); return !m.fromMe&&t>envio&&t<limite; }).sort(function(a,b){ return tsMs(a.messageTimestamp)-tsMs(b.messageTimestamp); });
         if(ms.length&&!r.chatid) r.chatid=js[k]; }
       r.respChk=new Date().toISOString(); var mudou=false;
       if(ms.length){ r.conversa=r.conversa||[]; var ids={}; r.conversa.forEach(function(x){ if(x.id) ids[x.id]=1; });
-        if(c) histAdd(c,ms.map(function(m){ return histDeUaz(m,r.envioLoja||'CORONEL'); }));
+        if(c) histAdd(c,ms.map(function(m){ return histDeUaz(m,lojaReg(r,c)); }));
         ms.forEach(function(m){ var id=m.id||m.messageid||String(m.messageTimestamp); if(ids[id]) return; r.conversa.push({id:id,em:new Date(tsMs(m.messageTimestamp)).toISOString(),txt:txtMsgUaz(m).slice(0,500),de:'c'}); mudou=true; });
         r.conversa.sort(function(a,b){ return a.em<b.em?-1:1; }); if(r.conversa.length>200) r.conversa=r.conversa.slice(-200);
         if(!r.resp){ r.resp={em:new Date(tsMs(ms[0].messageTimestamp)).toISOString(),txt:ms.map(txtMsgUaz).filter(Boolean).join(' | ').slice(0,300),n:ms.length}; }
@@ -2259,7 +2263,7 @@ function avRender(){ clearTimeout(AV.rTmr); AV.rTmr=setTimeout(function(){ var a
     AV.pend=false; if(['conversas','fila','hoje','painel'].indexOf(S.aba)>=0||$('#modal').classList.contains('on')) render(); },700); }
 document.addEventListener('focusout',function(){ if(AV.pend) setTimeout(avRender,300); });
 async function tratarEvento(e){ if(!e||e.pc===idAba()) return;
-  if(e.t==='hist'&&e.K){ var c=clientePorK(e.K); if(c){ await carregarHist(c,true); delete c._lg; avRender(); } }
+  if(e.t==='hist'&&e.K){ var c=clientePorK(e.K); if(c){ await carregarHist(c,true); delete c._lg; avRender(); if(document.getElementById('histBox')) try{ pintarHist(c); }catch(x){} if(trCfg().auto!==false) enfileirarAudios(c); } }
   else if(e.t==='contatos'&&e.ids){ for(var i=0;i<e.ids.length;i++) await puxarContato(e.ids[i]); indexarContatos(); limparSugestoes(); avRender(); }
   else if(e.t==='conv'){ if(e.todos) await cvCarregar(); else if(e.ks) await cvPuxar(e.ks); clearTimeout(AV.cTmr); AV.cTmr=setTimeout(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); },300); }
   else if(e.t==='usu'){ await carregarUsuarios(); render(); }
@@ -2372,7 +2376,7 @@ async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
     try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
   DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
   if(syncAtivo()){ try{ var pid=''; try{ pid=localStorage.getItem('cesta_pcid')||''; if(!pid){ pid=Math.random().toString(36).slice(2,7); localStorage.setItem('cesta_pcid',pid); } }catch(e){} var id=String(S.sync.computador||('sem nome '+(S.loja||'')+' '+pid)).replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,versao:'4.9'}); }catch(e){} }
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,versao:'4.9.1'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
@@ -2389,7 +2393,7 @@ async function lerComputadores(){ if(!syncAtivo()) return; try{ S.computadores=a
 /* ---------- CONVERSAS: respostas dos clientes e resposta da loja, tudo pela Uazapi ---------- */
 function ultimaDoCliente(r){ var cv=(r.conversa||[]).filter(function(x){return x.de==='c';}); return cv.length?cv[cv.length-1].em:(r.resp?r.resp.em:''); }
 function conversaNova(r){ var u=ultimaDoCliente(r); return !!u&&(!r.visto||u>r.visto); }
-function nConversasNovas(){ var n=0; threadsMemo().forEach(function(t){ if(t.nova&&(!S.loja||t.loja===S.loja)) n++; }); return n; }
+function nConversasNovas(){ var n=0; threadsMemo().forEach(function(t){ if(t.nova&&t.nl&&(!S.loja||t.loja===S.loja)) n++; }); return n; }
 /* =================== PERMISSÕES (v4.9) ===================
    usuarios/{nome} = {papel:'adm'|'loja', loja, por, em}. Administrador: todas as lojas e cria usuários.
    Usuário de loja: só a própria loja (tela, campanhas, envios, fila, mensagens prontas).
@@ -2397,7 +2401,8 @@ function nConversasNovas(){ var n=0; threadsMemo().forEach(function(t){ if(t.nov
    Enquanto nenhum administrador for definido, tudo funciona como antes. */
 var PERM={us:{},ok:false};
 function chaveUsuario(n){ return String(n||'').toLowerCase().trim().replace(/[.#$\[\]\/\s]/g,'_'); }
-async function carregarUsuarios(){ if(!syncAtivo()) return; try{ PERM.us=(await fb('GET','usuarios'))||{}; PERM.ok=true; }catch(e){} aplicarPerm(); }
+async function carregarUsuarios(){ try{ var g=JSON.parse(localStorage.getItem('cesta_usuarios')||'null'); if(g&&!PERM.ok){ PERM.us=g; PERM.ok=true; } }catch(e){}
+  if(syncAtivo()){ try{ PERM.us=(await fb('GET','usuarios'))||{}; PERM.ok=true; try{ localStorage.setItem('cesta_usuarios',JSON.stringify(PERM.us)); }catch(e){} }catch(e){} } aplicarPerm(); }
 function temAdm(){ var u=PERM.us||{}; return Object.keys(u).some(function(k){ return u[k]&&u[k].papel==='adm'; }); }
 function lojaDoComputador(){ var ls=LOJAS_ENVIO.filter(function(l){ return !!uazInst(l); }); return ls.length===1?ls[0]:''; }
 function meuPapel(){ var n=nomeUsuario(AU.user)||'', u=(PERM.us||{})[chaveUsuario(n)];
@@ -2422,16 +2427,25 @@ async function gravarUsuario(nome,papel,loja){ var k=chaveUsuario(nome); if(!k) 
    Toda mensagem nova (WhatsApp ao vivo, varredura, envio) atualiza aqui e avisa os outros computadores. */
 var CV={d:{},ok:false,fila:{},tmr:null,montando:null}, CV_DIAS=7;
 function cvKey(K,l){ return K+'~'+(l||'X'); }
+function lojaReg(r,c){ return (r&&(r.envioLoja||r.lojaCli))||(c&&c.loja)||'CORONEL'; }
 function cvNorm(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
-function encerraConversa(t){ var n=cvNorm(t).replace(/^\[[^\]]*\]\s*/,'').trim(); if(!n||n.length>45) return false; var so=n.replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
-  if(!so) return true; return /^(ok+|okay|oks|blz|beleza|obrigad[oa]s?|obrigadinh[oa]|muito obrigad[oa]|obg|brigad[oa]|valeu|vlw|ta bom|ta certo|ta otimo|certo|certinho|perfeito|combinado|show|top|otimo|joia|boa noite|bom dia|boa tarde|ate mais|ate amanha|ate logo|amem|de nada|tmj|fechado|beleza entao|obrigad[oa] boa noite|ok obrigad[oa]|ok obg|ok obrigad[oa] boa noite|sim obrigad[oa]|deus abencoe)( [a-z]+)?$/.test(so); }
+function encerraConversa(t){ var raw=String(t==null?'':t).trim(); if(!raw) return true;
+  var n=cvNorm(raw), midia=/^\[(audio|video|documento|imagem|localizacao|contato)\]/.test(n); n=n.replace(/^\[[^\]]*\]\s*/,'').trim(); if(!n) return false;
+  var so0=n.replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+  if(/\b(agradece (o )?seu contato|como podemos (te )?ajudar|mensagem automatica|resposta automatica|ligue para|ciclo \d+|nao estamos disponiveis|horario de atendimento)\b/.test(so0)) return true;
+  if(n.indexOf('?')>=0||n.length>140) return false; var so=n.replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim(); if(!so) return true;
+  var pede=/\b(quero|queria|separa|separe|separar|reserva|reservar|tem|teria|quanto|qto|valor|preco|pix|chave|manda|mande|envia|envie|passa o|me passa|pode|podem|preciso|gostaria|entrega|entregar|horario|ate que horas|aberto|abre|fecha|encomenda|pedido|kg|quilo|peca)\b/.test(so);
+  if(/^(sair|parar|pare|nao quero|nao obrigad\w*|hj nao\b.*|hoje nao\b.*|sim|claro|tudo certo|tudo bem|certo|abs|abss|bj|bjs|ta|ta bom|beleza|perfeito)$/.test(so)) return true;
+  var fecha=/\b(ok|okay|oks|blz\w*|abs|beleza|nobrigad\w*|obgd\w*|tb|p vc|pra vc|para vc|obrigad\w*|obg|brigad\w*|valeu|vlw|agrade\w*|igualmente|abraco\w*|bjs|beijo\w*|tmj|amem|joia|show|top|perfeito|combinado|certinho|fechado|tbm|tambem|boa semana|bom fim de semana|bom final de semana|de nada|deus abencoe|maravilha|otimo|vou ver|te falo|te aviso|mais tarde|recebi|chegou|ja comprei)\b/.test(so);
+  if(fecha&&!pede) return so.split(' ').length<=18; if(fecha&&/\b(obrigad\w*|obg|valeu|agrade\w*)\b/.test(so)&&so.split(' ').length<=8) return true; return false; }
 function cvAplicar(e,m){ if(!m||(m.de!=='c'&&m.de!=='l')||!m.em) return false; var em=m.em, mud=false;
-  if(!e.u||em>e.u){ e.u=em; e.ud=m.de; e.ut=String((m.mt?'['+m.mt+'] ':'')+String(m.txt||'').replace(/^\[[^\]]*\]\s*/,'')).replace(/\s+/g,' ').trim().slice(0,90); mud=true; }
+  var nt=String((m.mt&&!/^🎤/.test(String(m.txt||''))?'['+m.mt+'] ':'')+String(m.txt||'').replace(/^\[[^\]]*\]\s*/,'')).replace(/\s+/g,' ').trim().slice(0,90);
+  if(!e.u||em>e.u){ e.u=em; e.ud=m.de; e.ut=nt; mud=true; } else if(em===e.u&&m.de===e.ud&&nt&&nt!==e.ut&&(!e.ut||/^\[audio\]/.test(e.ut))){ e.ut=nt; mud=true; }
   if(m.de==='c'){ if(!e.uc||em>e.uc){ e.uc=em; mud=true; } if((!e.ul||em>e.ul)&&(!e.ad||em<e.ad)){ e.ad=em; mud=true; } }
   else { if(!e.ul||em>e.ul){ e.ul=em; mud=true; } if(e.ad&&em>e.ad){ e.rp={em:em,s:Math.max(0,Math.round((Date.parse(em)-Date.parse(e.ad))/1000))}; e.ad=null; mud=true; } }
   return mud; }
 function cvMesclar(a,b){ if(!a) return b?Object.assign({},b):null; if(!b) return a; var r=Object.assign({},a);
-  if((b.u||'')>(a.u||'')){ r.u=b.u; r.ud=b.ud; r.ut=b.ut; r.ad=b.ad||null; } ['uc','ul'].forEach(function(k){ if((b[k]||'')>(r[k]||'')) r[k]=b[k]; });
+  if((b.u||'')>(a.u||'')){ r.u=b.u; r.ud=b.ud; r.ut=b.ut; r.ad=b.ad||null; } else if(b.u===a.u&&b.ut&&(!a.ut||/^\[audio\]/.test(a.ut))) r.ut=b.ut; ['uc','ul'].forEach(function(k){ if((b[k]||'')>(r[k]||'')) r[k]=b[k]; });
   if(b.rp&&(!r.rp||b.rp.em>r.rp.em)) r.rp=b.rp; if(b.li&&(!r.li||b.li.em>r.li.em)) r.li=b.li; if(r.ad&&r.ul&&r.ul>r.ad) r.ad=null; r.K=r.K||b.K; r.l=r.l||b.l; return r; }
 /* chamada pelo histAdd: só mensagens realmente novas */
 function cvRegistrar(c,msgs){ if(!c||!msgs||!msgs.length) return; var K=histK(c);
@@ -2439,7 +2453,8 @@ function cvRegistrar(c,msgs){ if(!c||!msgs||!msgs.length) return; var K=histK(c)
   if(Object.keys(CV.fila).length){ clearTimeout(CV.tmr); CV.tmr=setTimeout(cvEnviar,1200); } }
 async function cvEnviar(){ if(!syncAtivo()) return; if(!CV.ok){ clearTimeout(CV.tmr); CV.tmr=setTimeout(cvEnviar,5000); return; }
   var ks=Object.keys(CV.fila); if(!ks.length) return; CV.fila={}; var p={};
-  ks.forEach(function(k){ var e=CV.d[k]; if(!e) return; ['K','l','u','ud','ut','uc','ul','rp'].forEach(function(f){ if(e[f]!=null) p[k+'/'+f]=e[f]; }); p[k+'/ad']=e.ad||null; });
+  for(var g=0;g<ks.length;g+=8){ await Promise.all(ks.slice(g,g+8).map(async function(k){ try{ var rem=await fb('GET','conv/'+k); if(rem) CV.d[k]=cvMesclar(CV.d[k],rem); }catch(x){} })); }
+  ks.forEach(function(k){ var e=CV.d[k]; if(!e) return; ['K','l','u','ud','ut','uc','ul','rp','li'].forEach(function(f){ if(e[f]!=null) p[k+'/'+f]=e[f]; }); p[k+'/ad']=e.ad||null; });
   try{ await fb('PATCH','conv',p); for(var i=0;i<ks.length;i+=40) avisarMudanca({t:'conv',ks:ks.slice(i,i+40)}); }catch(e){ ks.forEach(function(k){ CV.fila[k]=1; }); clearTimeout(CV.tmr); CV.tmr=setTimeout(cvEnviar,15000); } }
 async function cvCarregar(){ if(!syncAtivo()) return; try{ var d=(await fb('GET','conv'))||{}; Object.keys(d).forEach(function(k){ CV.d[k]=cvMesclar(CV.d[k],d[k]); }); CV.ok=true; CV.em=Date.now(); }catch(e){} }
 async function cvPuxar(ks){ for(var i=0;i<ks.length;i++){ try{ var e=await fb('GET','conv/'+ks[i]); if(e) CV.d[ks[i]]=cvMesclar(CV.d[ks[i]],e); }catch(x){} } }
@@ -2448,39 +2463,39 @@ async function cvMarcarLido(t){ if(!t||!t.e||!t.c) return; var p=meuPapel(); if(
   var e=t.e; if(!e.uc||(e.li&&e.li.em>=e.uc)) return; e.li={em:new Date().toISOString(),por:p.nome||S.sync.computador||'loja'}; CV.d[t.k]=e;
   if(syncAtivo()){ try{ await fb('PUT','conv/'+t.k+'/li',e.li); avisarMudanca({t:'conv',ks:[t.k]}); }catch(x){} } }
 function cvEstado(e){ var o={pend:false,enc:false,nl:false,desde:'',rpHoje:null};
-  if(!e) return o; o.pend=e.ud==='c'&&!(encerraConversa(e.ut)&&e.ul); o.enc=e.ud==='c'&&!o.pend;
+  if(!e) return o; o.pend=e.ud==='c'&&!encerraConversa(e.ut); o.enc=e.ud==='c'&&!o.pend;
   if(o.pend){ o.desde=(e.ad&&(!e.ul||e.ad>e.ul))?e.ad:e.uc; if(Date.now()-Date.parse(o.desde)>CV_DIAS*864e5){ o.pend=false; o.velha=true; o.desde=''; } else o.nl=!e.li||e.li.em<e.uc; }
   if(e.rp&&horaSP(e.rp.em).dia===hoje()) o.rpHoje=e.rp; return o; }
-function esperaTxt(iso){ if(!iso) return ''; var m=Math.max(0,Math.round((Date.now()-Date.parse(iso))/60000)); return m<1?'agora':m<60?m+' min':m<1440?Math.floor(m/60)+' h'+(m%60&&m<600?' '+(m%60)+' min':''):Math.floor(m/1440)+' d'; }
+function esperaTxt(iso){ if(!iso) return ''; var m=Math.max(0,Math.round((Date.now()-Date.parse(iso))/60000)); return m<1?'agora':m<60?m+' min':m<1440?Math.floor(m/60)+' h':Math.floor(m/1440)+' d'; }
 function durTxt(s){ if(s==null) return '—'; var m=Math.round(s/60); return m<1?'menos de 1 min':m<60?m+' min':Math.floor(m/60)+' h'+(m%60?' '+m%60+' min':''); }
 /* montagem inicial do índice a partir de todo o histórico (uma vez, em um computador só) */
-async function cvMontar(forcar){ if(!syncAtivo()||!S.model||CV.montando) return; var meta=null; try{ meta=await fb('GET','conv_meta'); }catch(e){ return; }
-  if(meta&&meta.v>=1&&!forcar) return; if(meta&&meta.lock&&Date.now()-Date.parse(meta.lock.em)<15*60e3&&meta.lock.pc!==idAba()) return;
-  try{ await fb('PATCH','conv_meta',{lock:{pc:idAba(),em:new Date().toISOString()}}); }catch(e){ return; }
-  CV.montando={n:0,t:0}; pintarVivo();
-  try{ var ks=Object.keys((await fb('GET','hist',undefined,'shallow=true'))||{}); CV.montando.t=ks.length; var novos={};
-    var porK={}; (S.contatos||[]).forEach(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')) return; var c=clienteDoContato(r,indiceClientesContato()); if(!c) return; var K=histK(c); (porK[K]=porK[K]||[]).push(r); });
-    for(var i=0;i<ks.length;i+=6){ await Promise.all(ks.slice(i,i+6).map(async function(K){ var c=clientePorK(K); if(!c) return; var H; try{ H=(await fb('GET','hist/'+K))||{}; }catch(e){ return; }
-        var ms=Object.keys(H).map(function(id){ return H[id]; }); (porK[K]||[]).forEach(function(r){ var l=r.envioLoja||r.lojaCli||c.loja; if(r.msg) ms.push({em:r.em,de:'l',txt:r.msg,loja:l}); (r.conversa||[]).forEach(function(x){ ms.push({em:x.em,de:x.de||'c',txt:x.txt,loja:l}); }); });
-        ms.filter(function(m){ return m&&m.em&&(m.de==='c'||m.de==='l'); }).sort(function(a,b){ return a.em<b.em?-1:a.em>b.em?1:0; }).forEach(function(m){ var l=m.loja||c.loja||''; if(!l) return; var k=cvKey(K,l), e=novos[k]||(novos[k]={K:K,l:l}); cvAplicar(e,m); }); }));
-      CV.montando.n=Math.min(i+6,ks.length); if(i%60===0) pintarVivo(); }
-    await cvCarregar(); var p={}, n=0; Object.keys(novos).forEach(function(k){ var e=cvMesclar(novos[k],CV.d[k]); CV.d[k]=e; ['K','l','u','ud','ut','uc','ul','rp','li'].forEach(function(f){ if(e[f]!=null) p[k+'/'+f]=e[f]; }); p[k+'/ad']=e.ad||null; n++;
-      if(Object.keys(p).length>800){ /* lote */ } });
-    var ch=Object.keys(p); for(var j=0;j<ch.length;j+=900){ var pp={}; ch.slice(j,j+900).forEach(function(x){ pp[x]=p[x]; }); await fb('PATCH','conv',pp); }
-    await fb('PUT','conv_meta',{v:1,em:new Date().toISOString(),pc:idAba(),n:n}); CV.ok=true; avisarMudanca({t:'conv',todos:1});
-  }catch(e){ console.warn('cvMontar',e); try{ await fb('PATCH','conv_meta',{lock:null}); }catch(x){} } finally{ CV.montando=null; pintarVivo(); avRender(); } }
+async function cvMontar(forcar){ if(!syncAtivo()||!S.model||CV.montando) return; var meta=null; try{ meta=(await fb('GET','conv_meta'))||{}; }catch(e){ return; }
+  if(meta.v>=1&&!forcar) return; if(meta.lock&&Date.now()-Date.parse(meta.lock.em)<5*60e3&&meta.lock.pc!==idAba()) return;
+  var trava=function(){ return fb('PATCH','conv_meta',{lock:{pc:idAba(),em:new Date().toISOString()}}); };
+  try{ await trava(); }catch(e){ return; } if(!CV.ok) await cvCarregar(); CV.montando={n:0,t:0}; pintarVivo();
+  try{ var ks=Object.keys((await fb('GET','hist',undefined,'shallow=true'))||{}).sort(), ini=forcar?0:Math.max(0,meta.cur||0); CV.montando.t=ks.length; CV.montando.n=ini;
+    var idx=indiceClientesContato(), porK={}; (S.contatos||[]).forEach(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')) return; var c=clienteDoContato(r,idx); if(!c) return; var K=histK(c); (porK[K]=porK[K]||[]).push(r); });
+    for(var i=ini;i<ks.length;i+=30){ var novos={};
+      for(var j=i;j<Math.min(i+30,ks.length);j+=6){ await Promise.all(ks.slice(j,Math.min(j+6,i+30,ks.length)).map(async function(K0){ var c=clientePorK(K0); if(!c) return; var K=histK(c), H; try{ H=(await fb('GET','hist/'+K0))||{}; }catch(e){ return; }
+          var ms=Object.keys(H).map(function(id){ return H[id]; }); (porK[K]||[]).forEach(function(r){ var l=r.envioLoja||r.lojaCli||c.loja; if(r.msg) ms.push({em:r.em,de:'l',txt:r.msg,loja:l}); (r.conversa||[]).forEach(function(x){ ms.push({em:x.em,de:x.de||'c',txt:x.txt,loja:l}); }); });
+          ms.filter(function(m){ return m&&m.em&&(m.de==='c'||m.de==='l')&&(m.txt||m.mt); }).sort(function(a,b){ return a.em<b.em?-1:a.em>b.em?1:0; }).forEach(function(m){ var l=m.loja||c.loja||''; if(!l) return; var k=cvKey(K,l), e=novos[k]||(novos[k]={K:K,l:l}); cvAplicar(e,m); }); })); }
+      var p={}; Object.keys(novos).forEach(function(k){ var e=cvMesclar(novos[k],CV.d[k]); CV.d[k]=e; ['K','l','u','ud','ut','uc','ul','rp','li'].forEach(function(f){ if(e[f]!=null) p[k+'/'+f]=e[f]; }); p[k+'/ad']=e.ad||null; });
+      if(Object.keys(p).length) await fb('PATCH','conv',p); var fim=Math.min(i+30,ks.length); await fb('PATCH','conv_meta',{cur:fim,lock:{pc:idAba(),em:new Date().toISOString()}});
+      CV.montando.n=fim; pintarVivo(); if(S.aba==='conversas'&&fim%150===0) avRender(); }
+    await fb('PUT','conv_meta',{v:1,em:new Date().toISOString(),pc:idAba(),n:ks.length}); avisarMudanca({t:'conv',todos:1});
+  }catch(e){ console.warn('cvMontar',e); } finally{ CV.montando=null; pintarVivo(); avRender(); } }
 function cvMontandoTxt(){ var m=CV.montando; return m?'Organizando as conversas de todas as lojas: '+m.n+' de '+(m.t||'…'):''; }
 /* controle das lojas: o que cada loja está fazendo agora */
-function controleLojas(){ var R={}; LOJAS_ENVIO.forEach(function(l){ R[l]={pend:0,nl:0,maisAntiga:'',rpN:0,rpS:0,ult:'',hoje:0}; });
-  Object.keys(CV.d).forEach(function(k){ var e=CV.d[k]; if(!e||!R[e.l]||!clientePorK(e.K)) return; var r=R[e.l], st=cvEstado(e);
-    if(st.pend){ r.pend++; if(st.nl) r.nl++; if(!r.maisAntiga||st.desde<r.maisAntiga) r.maisAntiga=st.desde; }
-    if(st.rpHoje){ r.rpN++; r.rpS+=st.rpHoje.s; } if(e.ul&&horaSP(e.ul).dia===hoje()) r.hoje++; if(e.ul&&e.ul>r.ult) r.ult=e.ul; });
+function controleLojas(){ var R={}; LOJAS_ENVIO.forEach(function(l){ R[l]={pend:0,nl:0,maisAntiga:'',rpN:0,rpS:0,ult:''}; });
+  threadsMemo().forEach(function(t){ var e=t.e; if(!e||!R[t.loja]) return; var r=R[t.loja], st=t.st;
+    if(t.nova){ r.pend++; if(t.nl) r.nl++; if(st.desde&&(!r.maisAntiga||st.desde<r.maisAntiga)) r.maisAntiga=st.desde; }
+    if(st.rpHoje){ r.rpN++; r.rpS+=st.rpHoje.s; } if(e.ul&&e.ul>r.ult) r.ult=e.ul; });
   return R; }
-function blocoControleLojas(){ var R=controleLojas(), ls=LOJAS_ENVIO.filter(function(l){ return S.model.lista.some(function(c){ return c.loja===l; }); });
-  return '<section class="card ctl-lojas"><header><h3>Controle das lojas</h3><span class="nota">agora · '+new Date().toTimeString().slice(0,5)+'</span></header><div class="tw"><table class="ctl"><thead><tr><th>Loja</th><th>Aguardando resposta</th><th>Mais antiga</th><th>Não lidas</th><th>Respondidas hoje</th><th>Tempo médio de resposta</th><th>Última resposta</th></tr></thead><tbody>'+
+function blocoControleLojas(){ var R=controleLojas(), ls=LOJAS_ENVIO.filter(function(l){ return R[l].pend||R[l].rpN||R[l].ult||S.model.lista.some(function(c){ return c.loja===l; }); });
+  return '<section class="card ctl-lojas"><header><h3 title="Aguardando = nos últimos 7 dias o cliente escreveu por último e a loja ainda não respondeu (agradecimentos e “ok” não contam). Não lidas = ninguém da loja abriu a conversa. Clique na loja para ver as conversas dela.">Controle das lojas <small class="nota">ⓘ</small></h3><span class="nota">agora · '+new Date().toTimeString().slice(0,5)+'</span></header><div class="tw"><table class="ctl"><thead><tr><th>Loja</th><th>Aguardando resposta</th><th>Mais antiga</th><th>Não lidas</th><th>Loja respondeu hoje</th><th>Tempo médio de resposta</th><th>Última resposta</th></tr></thead><tbody>'+
     ls.map(function(l){ var r=R[l], ant=r.maisAntiga?(Date.now()-Date.parse(r.maisAntiga))/60000:0;
       return '<tr data-ctlloja="'+l+'"><td><b class="lj" style="--cor:'+(COR_LOJA_BAR[l]||'#777')+'">'+esc(tituloProd(l))+'</b></td><td class="n'+(r.pend?' warn':'')+'">'+num(r.pend)+'</td><td class="n'+(ant>60?' late':'')+'">'+(r.maisAntiga?'há '+esperaTxt(r.maisAntiga):'—')+'</td><td class="n'+(r.nl?' late':'')+'">'+num(r.nl)+'</td><td class="n">'+num(r.rpN)+'</td><td class="n">'+(r.rpN?durTxt(r.rpS/r.rpN):'—')+'</td><td class="n">'+(r.ult?quandoCurto(r.ult):'—')+'</td></tr>'; }).join('')+
-    '</tbody></table></div><p class="nota">Aguardando = nos últimos 7 dias o cliente escreveu por último e a loja ainda não respondeu (agradecimentos e “ok” não contam). Não lidas = ninguém da loja abriu a conversa. Clique na loja para ver as conversas dela.</p></section>'; }
+    '</tbody></table></div></section>'; }
 
 /* =================== MENSAGENS PRONTAS (v4.8): Chave PIX, cardápios e outros textos de envio rápido, com foto opcional =================== */
 function mpLista(){ return (S.cfg.msgProntas||[]).filter(function(x){ return x&&x.id&&x.titulo; }); }
@@ -2508,10 +2523,12 @@ var RESP_RAPIDAS=['Combinado, {nome}! Já vou separar pra você 😊','Perfeito!
 /* =================== CONVERSAS (v3.23): lista por cliente · conversa · painel do cliente =================== */
 function threadsConversa(){ var idx=indiceClientesContato(), T={};
   Object.keys(CV.d).forEach(function(k){ var e=CV.d[k]; if(!e||!e.u||!e.l) return; var c=clientePorK(e.K); if(!c) return; T[k]={k:k,c:c,recs:[],ult:e.u,nova:false,resp:!!e.uc,nome:c.nome,loja:e.l,e:e}; });
-  (S.contatos||[]).forEach(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')) return; var c=clienteDoContato(r,idx), l=r.envioLoja||r.lojaCli||(c&&c.loja)||'', k=c?cvKey(histK(c),l):'R:'+r.id;
+  (S.contatos||[]).forEach(function(r){ if(r.excluido||!/uazapi/.test(r.tipo||'')) return; var c=clienteDoContato(r,idx), l=lojaReg(r,c), k=c?cvKey(histK(c),l):'R:'+r.id;
     var t=T[k]||(T[k]={k:k,c:c,recs:[],ult:'',nova:false,resp:false,nome:c?c.nome:(r.nome||'?'),loja:l,e:c?(CV.d[k]||null):null});
     t.recs.push(r); var u=ultimaDoCliente(r)||r.em; if(u>t.ult) t.ult=u; if(r.resp) t.resp=true; });
-  var v=Object.keys(T).map(function(k){ var t=T[k]; t.recs.sort(function(a,b){ return a.em<b.em?1:-1; }); t.r=t.recs[0]||null; t.st=cvEstado(t.e);
+  var v=Object.keys(T).map(function(k){ var t=T[k]; t.recs.sort(function(a,b){ return a.em<b.em?1:-1; }); t.r=t.recs[0]||null;
+      if(t.e&&t.recs.length){ var ee=Object.assign({},t.e); t.recs.slice().reverse().forEach(function(r){ if(r.msg) cvAplicar(ee,{em:r.em,de:'l',txt:r.msg}); (r.conversa||[]).forEach(function(x){ cvAplicar(ee,{em:x.em,de:x.de||'c',txt:x.txt}); }); }); t.e=ee; if(ee.u>t.ult) t.ult=ee.u; }
+      t.st=cvEstado(t.e);
       if(t.e){ t.nova=t.st.pend; t.nl=t.st.nl; } else { t.nova=t.recs.some(conversaNova); t.nl=t.nova; t.st.desde=t.nova?t.ult:''; } return t; })
     .sort(function(a,b){ return a.ult<b.ult?1:-1; }); S._thrM={t:Date.now(),v:v}; return v; }
 function threadsMemo(){ return S._thrM&&Date.now()-S._thrM.t<500?S._thrM.v:threadsConversa(); }
@@ -2528,20 +2545,20 @@ function telaConversas(){ var f=S.cv||(S.cv={filtro:'todas',q:''}), q=rgNorm(f.q
   var chips=[['todas','Todas',0],['novas','Aguardando',cnt.novas],['naolidas','Não lidas',cnt.nl],['respondidas','Responderam',0],['sem','Sem resposta',0],['sair','SAIR',0],['promo','Só promo',0]].map(function(x){ return '<button class="chip'+(f.filtro===x[0]?' on':'')+'" data-cvf="'+x[0]+'">'+x[1]+(x[2]?' <b>'+x[2]+'</b>':'')+'</button>'; }).join('');
   var lista='<div class="cv-l">'+barraVivo()+'<div class="cv-busca"><input id="cvq" placeholder="Buscar" value="'+esc(f.q||'')+'"></div><div class="chips">'+chips+'</div><div class="cv-itens">'+
     (l.length?l.slice(0,150).map(function(x){ var c=x.c, mostraLoja=!S.loja&&LOJAS_ENVIO.length>1;
-      return '<div class="cv-it'+(x.k===S.cvSel?' on':'')+(x.nova?' nova':'')+'" data-cvsel="'+esc(x.k)+'"><div class="av" style="background:'+corAvatar(x.nome)+'">'+esc(iniciais(x.nome))+'</div><div class="cv-tx"><div class="l1"><b>'+esc(c?primeiroNomeSob(c.nome):x.nome)+'</b><small>'+quandoCurto(x.ult)+'</small></div><div class="l2"><span>'+esc(previaThread(x))+'</span>'+(x.nova?'<i class="esp'+(x.nl?' nl':'')+'" title="'+(x.nl?'Ninguém da loja abriu ainda':'Aberta, sem resposta')+'">'+esc(esperaTxt(x.st.desde||x.ult))+'</i>':'')+(c&&optout(c)?'<i class="tg">SAIR</i>':c&&soPromo(c)?'<i class="tg p">promo</i>':'')+'</div>'+(mostraLoja?'<div class="l3"><i class="lj" style="--cor:'+(COR_LOJA_BAR[x.loja]||'#777')+'">'+esc(tituloProd(x.loja||'?'))+'</i></div>':'')+'</div></div>'; }).join(''):'<div class="cv-vazio">Nenhuma conversa</div>')+'</div></div>';
+      return '<div class="cv-it'+(x.k===S.cvSel?' on':'')+(x.nova?' nova':'')+'" data-cvsel="'+esc(x.k)+'"><div class="av" style="background:'+corAvatar(x.nome)+'">'+esc(iniciais(x.nome))+'</div><div class="cv-tx"><div class="l1"><b>'+esc(c?primeiroNomeSob(c.nome):x.nome)+'</b><small>'+quandoCurto(x.ult)+'</small></div><div class="l2"><span>'+esc(previaThread(x))+'</span>'+(x.nova?'<i class="esp" title="Esperando resposta da loja'+(x.nl?' · ninguém da loja abriu ainda':'')+'">'+esc(esperaTxt(x.st.desde||x.ult))+'</i>'+(x.nl?'<i class="dot"></i>':''):'')+(c&&optout(c)?'<i class="tg">SAIR</i>':c&&soPromo(c)?'<i class="tg p">promo</i>':'')+'</div>'+(mostraLoja?'<div class="l3"><i class="lj" style="--cor:'+(COR_LOJA_BAR[x.loja]||'#777')+'">'+esc(tituloProd(x.loja||'?'))+'</i></div>':'')+'</div></div>'; }).join(''):'<div class="cv-vazio">Nenhuma conversa</div>')+'</div></div>';
   var kb=function(k,r,v,sub,cls){ return kpiCard(r,num(v),sub,'data-cvf="'+k+'"',f.filtro===k,cls); };
   var cab='<div class="cvh"><div class="kbar kbar3">'+kb('todas','Conversas',all.length,'clientes com mensagem')+kb('novas','Aguardando resposta',cnt.novas,cnt.ant?'mais antiga há '+esperaTxt(cnt.ant):'ninguém esperando','warn')+kb('naolidas','Não lidas',cnt.nl,'ninguém da loja abriu',cnt.nl?'late':'')+
-    kpiCard('Respondidas hoje',num(cnt.rpN),cnt.rpN?'tempo médio '+durTxt(cnt.rpS/cnt.rpN):'nenhuma ainda','',false,'ok')+kb('respondidas','Responderam',cnt.resp,all.length?pct0(cnt.resp/all.length)+' das conversas':'')+kb('sem','Sem resposta',all.length-cnt.resp,'ainda não responderam')+'</div>'+(ehAdm()&&!S.loja?blocoControleLojas():'')+'</div>';
+    kpiCard('Loja respondeu hoje',num(cnt.rpN),cnt.rpN?'tempo médio '+durTxt(cnt.rpS/cnt.rpN):'nenhuma ainda','',false,'ok')+kb('respondidas','Clientes que responderam',cnt.resp,all.length?pct0(cnt.resp/all.length)+' das conversas':'')+kb('sem','Sem resposta',all.length-cnt.resp,'ainda não responderam')+'</div>'+(ehAdm()&&!S.loja?blocoControleLojas():'')+'</div>';
   return '<div class="cvwrap">'+cab+'<div class="cv">'+lista+(t?chatConversa(t)+astroPainel(t):'<div class="cv-m cv-vazio">Selecione uma conversa</div><div></div>')+'</div></div>'; }
 function corAvatar(n){ var C=['#9b1c1c','#1f6f43','#1d4f91','#a0522d','#6b3fa0','#b8860b','#2f6f73','#7c2d12']; return C[hashN(String(n))%C.length]; }
 function primeiroNomeSob(n){ var w=String(n||'').trim().split(/\s+/); return tituloProd(w.slice(0,2).join(' ')); }
-function chatConversa(t){ var c=t.c, r=t.r, rid=r?r.id:'K_'+(c?c.chave:'')+'~'+(t.loja||''), itens=c?linhaTempo(c).filter(function(x){ return !x.loja||!t.loja||x.loja===t.loja; }):[], comp=c?c.compras.slice(0,40).map(function(d){ return {em:d.data+'T15:00:00.000Z',de:'$',txt:'Comprou '+brl(d.valor)+' · '+d.itens.slice(0,3).map(function(x){return tituloProd(x.produto);}).join(', ')+(d.itens.length>3?'…':''),doc:d.doc,data:d.data}; }):[];
+function chatConversa(t){ var c=t.c, r=t.r, rid=c?'K_'+c.chave+'~'+(t.loja||''):(r?r.id:''), itens=c?linhaTempo(c).filter(function(x){ return !x.loja||!t.loja||x.loja===t.loja; }):[], comp=c?c.compras.slice(0,40).map(function(d){ return {em:d.data+'T15:00:00.000Z',de:'$',txt:'Comprou '+brl(d.valor)+' · '+d.itens.slice(0,3).map(function(x){return tituloProd(x.produto);}).join(', ')+(d.itens.length>3?'…':''),doc:d.doc,data:d.data}; }):[];
   if(!c&&r){ itens=[{em:r.em,de:'l',txt:r.msg,por:r.atendente}].concat(r.conversa||[]); }
   var ini=itens.length?itens[0].em.slice(0,10):'', tl=itens.concat(comp.filter(function(x){ return x.em.slice(0,10)>=ini; })).sort(function(a,b){ return a.em<b.em?-1:a.em>b.em?1:0; }).slice(-150), ud='';
   var bol=tl.map(function(x){ var tt=horaSP(x.em), dh=tt.dia!==ud?'<div class="cv-dia"><span>'+(tt.dia===hoje()?'Hoje':dBR(tt.dia))+'</span></div>':''; ud=tt.dia;
     if(x.de==='$') return dh+'<div class="cv-comp" data-compra="'+esc(c.chave+'|'+x.doc+'|'+x.data)+'">🛒 '+esc(x.txt)+'</div>';
     if(x.de==='n') return dh+'<div class="cv-nota">'+esc(x.txt)+' <small>'+esc(x.por||'')+'</small></div>';
-    if(ehAudio(x)&&!x.tr) return dh+'<div class="bb '+(x.de==='c'?'in':'out')+'"><i>🎤 áudio</i> '+(c&&x.id?'<button class="ico txt" data-transc="'+esc(x.id)+'" data-c="'+esc(c.chave)+'">Transcrever</button>':'')+'<small>'+new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</small></div>';
+    if(ehAudio(x)&&!x.tr) return dh+'<div class="bb '+(x.de==='c'?'in':'out')+'"><i>🎤 áudio</i> '+(c&&x.id&&!uazLeitura(x.loja||c.loja)?'<small class="nota"> · transcrição automática no computador da loja</small>':'')+(c&&x.id&&uazLeitura(x.loja||c.loja)?'<button class="ico txt" data-transc="'+esc(x.id)+'" data-c="'+esc(c.chave)+'">Transcrever</button>':'')+'<small>'+new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</small></div>';
     return dh+'<div class="bb '+(x.de==='c'?'in':'out')+'">'+(x.mt&&!x.tr?'<i>['+esc(x.mt)+']</i> ':'')+esc(x.txt||'').replace(/\n/g,'<br>')+'<small>'+(x.de==='l'&&x.por?esc(x.por)+' · ':'')+new Date(x.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</small></div>'; }).join('');
   var st=c?(optout(c)?'<button class="ico txt" data-cvlibc="'+esc(rid)+'" title="Voltar a receber mensagens">↩ Liberar</button>':(soPromo(c)?'<button class="ico txt" data-cvlibc="'+esc(rid)+'">↩ Liberar</button>':'<button class="ico txt" data-cvpromoc="'+esc(rid)+'" title="Só recebe promoções">Só promo</button>')+'<button class="ico txt perigo" data-cvsairc="'+esc(rid)+'" title="Não recebe mais mensagens">SAIR</button>'):'';
   return '<div class="cv-m"><div class="cv-h"><div class="av" style="background:'+corAvatar(t.nome)+'">'+esc(iniciais(t.nome))+'</div><div><b'+(c?' class="lk" data-cli="'+esc(c.chave)+'"':'')+'>'+esc(tituloProd(t.nome))+'</b><small>'+esc(tituloProd(t.loja))+(c&&c.celular?' · '+esc(foneFmt(c.celular)):'')+(c&&optout(c)?' · <span class="tg">SAIR</span>':c&&soPromo(c)?' · <span class="tg p">só promoções</span>':'')+'</small></div><div class="cv-acts">'+st+(c?'<button class="ico" data-histatu="'+esc(c.chave)+'" title="Buscar a conversa inteira no WhatsApp da loja">⟳</button>':'')+'</div></div>'+
@@ -2573,9 +2590,9 @@ async function abrirThread(k){ S.cvSel=k; var t=threadsConversa().filter(functio
   if(t){ var mud=false; t.recs.forEach(function(r){ if(conversaNova(r)){ r.visto=new Date().toISOString(); r.atu=r.visto; r.pendente=true; mud=true; } }); if(mud){ await dbTx('contatos',function(st){ t.recs.forEach(function(r){ if(r.pendente) st.put(r); }); }); agendarSync(500); badge('conversas',nConversasNovas()); }
     if(t.c){ await carregarHist(t.c); delete t.c._lg; salvarLinguaAuto(t.c); if(S.cvSel===k&&S.aba==='conversas'){ var ta=document.querySelector('.cv-send textarea'), v=ta?ta.value:''; render(); var ta2=document.querySelector('.cv-send textarea'); if(ta2&&v) ta2.value=v; rolarChat(); } } } }
 function rolarChat(){ var ch=document.getElementById('cvchat'); if(ch) ch.scrollTop=ch.scrollHeight; }
-async function responderConversa(id,texto,md){ var r=(S.contatos||[]).filter(function(x){return x.id===id;})[0]; if(!r) return; if(!podeLoja(r.envioLoja||r.lojaCli||'CORONEL')){ toast(semPermMsg(),'erro'); return; }
+async function responderConversa(id,texto,md){ var r=(S.contatos||[]).filter(function(x){return x.id===id;})[0]; if(!r) return; if(!podeLoja(lojaReg(r))){ toast(semPermMsg(),'erro'); return; }
   texto=String(texto||'').trim(); if(!texto&&!md){ toast('Escreva a resposta.','erro'); return; }
-  var inst=uazInst(r.envioLoja||'CORONEL'); if(!inst){ toast('O número da loja '+tituloProd(r.envioLoja||'')+' não está configurado neste computador.','erro'); return; }
+  var inst=uazInst(lojaReg(r)); if(!inst){ toast('O número da loja '+tituloProd(r.envioLoja||'')+' não está configurado neste computador.','erro'); return; }
   var c=clienteDoContato(r,indiceClientesContato()), num=(r.chatid||'').replace(/@.*/,'')||foneWa(c&&c.celular||''); if(!num){ toast('Sem número para responder.','erro'); return; }
   try{ if(md) await uazEnviarMidia(inst,num,md,texto); else await uazEnviar(inst,num,texto); }catch(e){ toast('Não enviou: '+e.message,'erro'); return; }
   if(md&&!texto) texto='(foto)';
@@ -3624,6 +3641,7 @@ function render(){
   var y=window.scrollY;
   var avB=''; if(m&&/sugestoes|recompra|reconquista|kits|listas|produtos/.test(S.aba)){ var a0=alertas()[0]; if(a0&&a0.ic==='📥') avB='<div class="'+(a0.nivel==='alto'?'erro':'aviso')+'" style="margin-bottom:10px">'+a0.ic+' <b>'+esc(a0.tit)+'.</b> '+esc(a0.txt)+' '+a0.acao+'</div>'; }
   $('#main').innerHTML=(m&&S.aba!=='conversas'?avisoLacunas():'')+avB+({clientes:telaClientes,sugestoes:telaSugestoes,recompra:telaRecompra,produtos:telaProdutos,funcionarios:telaFuncs,cadastro:telaCadastroDup,vinculos:telaVinculos,conferencia:telaConferencia,importacoes:telaConfigurar,painel:telaPainel,conversas:telaConversas,kits:telaKits,reconquista:telaReconquista,hoje:telaHoje,listas:telaListas,fila:telaFila,campanhas:telaCampanhas,dicionario:telaDicionario,analise:telaAnalise}[S.aba]||telaSugestoes)();
+  if(m&&PERM.ok&&restrito()&&!minhaLoja()&&grupoDe(S.aba)!=='ajustes') $('#main').innerHTML='<div class="aviso">Este computador ainda não tem loja: nenhum WhatsApp de loja está ligado para enviar aqui. Entre com o usuário da loja ou com o administrador (Ajustes → Conta), ou ligue o WhatsApp da loja em Ajustes → WhatsApp.</div>';
   window.scrollTo(0,y); if(S.aba==='conversas') rolarChat(); try{ var sbn=document.querySelector('#subnav button.on'), sw=document.getElementById('subnav'); if(sbn&&sw&&sw.scrollWidth>sw.clientWidth) sw.scrollLeft=sbn.offsetLeft-(sw.clientWidth-sbn.offsetWidth)/2; }catch(e){}
 }
 function sel(id,rot,ops,v){ return '<select id="'+id+'"><option value="">'+rot+'</option>'+ops.map(function(o){ var val=Array.isArray(o)?o[0]:o, lab=Array.isArray(o)?o[1]:o; return '<option value="'+esc(val)+'"'+(val===v?' selected':'')+'>'+esc(lab)+'</option>';}).join('')+'</select>'; }
@@ -4234,7 +4252,7 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!RESP.radarEm||Date.now()-RESP.radarEm>(S.aba==='conversas'?20e3:45e3)) radarRespostas(); },10*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
     setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(lerComputadores,6000); setInterval(lerComputadores,5*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
