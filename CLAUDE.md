@@ -34,6 +34,38 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 - Sem IA externa: toda a "inteligência" roda no navegador.
 - Arquivos da cesta são enormes: editar com buscas pontuais, nunca ler o arquivo inteiro. Não existe fonte separada (os antigos `app3.js` e `build3.py` não estão no repositório): o script da aplicação é o bloco `<script>` que começa com `CESTA DE PRODUTOS POR CLIENTE`, e ele deve ser **idêntico** em `cesta/` e `cesta-teste/` depois de promovido.
 
+## Regras de negócio do motor de mensagens (inegociáveis — definidas pelo Marcelo em 19/11/2026)
+Valem para Hoje, Sugestões, Recompra, Reconquista, Campanhas (inclusive Boas-vindas), lote e fila. Toda regra de bloqueio, cálculo de dias e escolha de público é **código determinístico**, aplicado **antes** de qualquer sugestão aparecer na tela. Nada disso fica em prompt.
+
+1. **Perfil vivo do cliente** (um resumo compacto, atualizado a cada compra importada, mensagem ou áudio transcrito; o motor lê o perfil, não o histórico bruto):
+   - `estagio`: `NUNCA_COMPROU` | `PRIMEIRA_COMPRA` | `RECOMPRA_CICLO` | `EXPANSAO_CESTA`
+   - `ultima_compra_data`, `ultima_cesta` (cortes da última compra)
+   - `produtos_recusados` (tirados das mensagens e dos áudios transcritos: "não quero", "não gosto", "não como", "prefiro outro"…)
+   - `historico_produtos`: `{corte: {ultima_compra, ciclo_dias}}`
+   - `preferencias` (resumo curto: carne magra, compra na sexta…) e `tom_preferido`
+2. **Elegibilidade (filtro antes de exibir):**
+   - **Ciclo do produto:** se `hoje − ultima_compra < ciclo_dias` daquele corte (padrão 7 dias para item semanal), o corte está **bloqueado**; só volta na data de reposição. Nunca oferecer o que o cliente comprou há 4 dias.
+   - **Recusa:** corte em `produtos_recusados` é proibido em qualquer sugestão automática.
+   - **Lista limpa:** cliente sem motivo válido para receber contato hoje **não aparece** em Hoje nem na lista de Campanhas. A loja continua podendo abrir o cliente em Conversas e mandar mensagem 1 a 1.
+   - **Promoção** (`tipo == PROMOCAO`): libera para todos, bloqueando só quem comprou aquele mesmo produto hoje ou ontem (≤ 1 dia). As travas que já existem continuam: SAIR, pausa, só promo, 1 mensagem comum a cada 7 dias, 3 dias após compra.
+3. **Jornada com mensagem pronta (sem escrita manual)**, pelo `estagio` + perfil:
+   - `NUNCA_COMPROU`: boas-vindas com um item de entrada.
+   - `PRIMEIRA_COMPRA` (D+1 a D+3): pós-venda perguntando o que achou dos itens exatos da `ultima_cesta` e convidando a provar outros cortes.
+   - `RECOMPRA_CICLO`: lembrete na janela certa dos cortes habituais.
+   - `EXPANSAO_CESTA`: corte complementar que nunca comprou, respeitando preferências e recusas.
+4. **Conversas e áudios:** chegou mensagem ou áudio → transcrever → extrair fatos para o perfil (recusas, preferências, feedback) → sugerir resposta usando só o perfil + catálogo/promoções ativas.
+
+### Como isso se encaixa na arquitetura real (não confundir)
+- **Hoje** a cesta é página estática + **Realtime Database** (não Firestore), **sem Cloud Functions** e **sem IA externa**: o "agente" é JavaScript determinístico no navegador (`ofertaHoje` → `montarSug`/`sugestoes`, `estadoContato`, `elegivel`, `situacaoV5`, `bib4`, aprendizado em `aprenderMensagensEquipe`/`lerLinguagem`). Não há gasto de tokens em produção; tokens são gastos nas sessões de desenvolvimento — por isso as regras ficam aqui e no código, não em prompts.
+- **Achados de 19/11/2026:**
+  - `ofertaHoje` escolhe os cortes mais pesados do histórico sem olhar o ciclo de cada corte nem `produtosRecentes`. Ex.: Irena Borges comprou filé mignon em 10/11 e recebeu oferta de filé em 18/11, e a tela mostrava "cortes já oferecidos ficam fora" ao lado da oferta do mesmo corte.
+  - Não existe detecção de recusa.
+  - `publicoCamp` lista o segmento inteiro (ex.: Boas-vindas com 7 clientes e só 3 liberados).
+  - Campanha nova nasce com o texto em branco para a loja escrever.
+  - Segmentos criados em dobro aparecem como listas repetidas na ficha do cliente ("Boas-vindas" e "Hora de repor: Patinho" duas vezes).
+- **Arquitetura-alvo pedida:** front só exibe, aprova e dispara; regras num motor único. Decisão pendente com o Marcelo: (a) motor único no próprio código da cesta, gravando o perfil em `perfil/{K}` no Realtime Database, para todos os computadores verem o mesmo; ou (b) Cloud Functions, que exigem o plano Blaze do Firebase e deploy, e só se justificam se algo precisar rodar com todos os computadores fechados.
+- **Regra de código:** uma única função de trava, usada por Hoje, Sugestões, Recompra, Reconquista, Campanhas, lote e fila. É proibido criar outro filtro paralelo.
+
 ## Regras das mensagens (motor v5)
 - `LIMITE_MSG=200`: mensagens automáticas até 200 caracteres, sem contar a linha do SAIR. O gerador (`montarSug`) e o verificador (`violacoesMsg`) usam a mesma medida (`tamMsg`). Kits e campanhas têm o texto da loja e ficam fora do limite.
 - Assinatura: `"{Atendente} · Rei do Gado {Loja}"` (`assinaturaDe`). SAIR só na primeira mensagem ao cliente.
