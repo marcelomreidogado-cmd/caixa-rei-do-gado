@@ -103,6 +103,18 @@ Valem para Hoje, Sugestões, Recompra, Reconquista, Campanhas (inclusive Boas-vi
   - Pente fino (`/home/claude/build/pente53.js`): 4.710 mensagens antigas da loja + campanha de 20/11 + 4.463 do motor novo. Motor novo: 0 problemas. Antigas: 14 da campanha de 20/11 e 6 do motor antigo com preparo para o que não é carne.
   - Revisão independente: 20 achados; corrigidos 1–12 e 14–18. Pendente: recalcular o "motivo" da tela depois do filtro de carne (13).
 
+## O que o Rei do Gado faz (regra do Marcelo, 20/11/2026 — nunca inventar)
+O Rei do Gado não é genérico. **Nenhuma mensagem, pergunta, sugestão ou texto de exemplo pode oferecer preparo, serviço, produto ou condição que o Marcelo não tenha dito que a loja faz.** Na dúvida, perguntar ao Marcelo antes; não completar com "o que açougue costuma fazer".
+- Única fonte no código: `PREPAROS_LOJA` + `preparoPermitido` (usados em `preparoTxt`, `respostaSugerida` e no verificador).
+  - Hambúrguer da manipulação: só quantidade ("Acabamos de produzir nossos hambúrgueres" / "Hoje tem hambúrguer fresquinho saindo da nossa manipulação").
+  - Patinho, acém, músculo, coxão, peito bovino: moído em pacotes de 500 g ou em bifes separados de 4 em 4.
+  - Alcatra e contrafilé (dia a dia): bifes separados de 4 em 4 ou a peça inteira.
+  - Filé mignon e peças: "Como gostaria dos cortes?" (cortes do jeito do cliente).
+  - Frango (peito de frango, filé de frango): bifes ou cubos. **Não fazemos tiras.** Frango estrogonofe já vem pronto.
+  - Contra grill é churrasco; contrafilé e alcatra são dia a dia; coxão mole nunca vai para churrasco.
+- "do jeito que você gosta" só para peça de carne (nunca pão de alho, queijo, batata, molho, bebida etc.).
+- Mudou algo do que a loja faz? Atualizar `PREPAROS_LOJA` e esta seção juntos.
+
 ## Regras das mensagens (motor v5)
 - `LIMITE_MSG=200`: mensagens automáticas até 200 caracteres, sem contar a linha do SAIR. O gerador (`montarSug`) e o verificador (`violacoesMsg`) usam a mesma medida (`tamMsg`). Kits e campanhas têm o texto da loja e ficam fora do limite.
 - Assinatura: `"{Atendente} · Rei do Gado {Loja}"` (`assinaturaDe`). SAIR só na primeira mensagem ao cliente.

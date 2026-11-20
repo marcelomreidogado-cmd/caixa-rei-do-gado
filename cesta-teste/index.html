@@ -2530,7 +2530,7 @@ function chegouTxt(o,seed){ var p1=o.itens[0]; if(!carneFresca(p1)) return ''; v
   return ['Acabamos de receber '+p1.nome,'Chegou hoje um lote novo de '+p1.nome][h%2]; }
 function tipoPreparo(prod,chave){ var n=rgNorm(prod||''), L=linhaDe(chave||'',prod);
   if(ehHamb(prod)) return 'hb';
-  /* frango: peito, filé e bife de frango a loja manipula (bifes, cubos, tiras); estrogonofe, desfiado, temperado etc. já vêm prontos */
+  /* frango: peito, filé e bife de frango a loja manipula (bifes ou cubos; tiras a loja não faz); estrogonofe, desfiado, temperado etc. já vêm prontos */
   if(L==='Frango') return /ESTROGONOF|DESFIAD|EMPANAD|\bTEMP\b|TEMPERAD|RECH|HAMB|ISCA|NABRASA|MEDALH|ESPETO/.test(n)?'':/FILE|PEITO|BIFE/.test(n)?'frango':'';
   if(/BIFE|ESTROGONOF|STROGONOF|MOID|TEMPERAD|EMPANAD|RECH|MEDALH|DESFIAD|ESPETO|NABRASA|KAFTA|ISCA|CUBOS|TIRAS|FATIAD|DEFUMAD/.test(n)) return '';
   if(/FILE MIGNON|\bPECA\b|INTEIR/.test(n)) return 'peca';
@@ -2540,14 +2540,20 @@ function tipoPreparo(prod,chave){ var n=rgNorm(prod||''), L=linhaDe(chave||'',pr
 var RE_PREP_TXT=/(do jeito que (você|voce|vc) gosta|do seu jeito|do jeito que preferir|como gostaria dos cortes|mo[ií]d[oa] em pacotes)/i;
 function prodsDoCorte(k){ if(!S.model) return []; if(!PF.pdc||PF.pdcM!==S.model){ PF.pdc={}; PF.pdcM=S.model; Object.keys(S.model.produtos).forEach(function(ch){ var p=S.model.produtos[ch]; if(!p) return; var ck=corte(p.produto); (PF.pdc[ck]=PF.pdc[ck]||[]).push(p); }); Object.keys(PF.pdc).forEach(function(ck){ PF.pdc[ck].sort(function(a,b){ return (b.valor||0)-(a.valor||0); }); }); } return PF.pdc[k]||[]; }
 function ehCarnePrep(p){ var nm=p&&(p.produto||p.nome)||''; if(!p||!carneFresca(p)||ehHamb(nm)) return false; if(tipoPreparo(nm,p.chave)) return true; return !/KAFTA|ALMONDEGA|BIFE|DESFIAD|ISCA|COXINHA|ESPETO|ROCAMBOLE|ESTROGONOF|MOID|HAMB|BACON|CORACAO|MEDALH|^LING\b|LINGUICA|SALAME|SALMAO|PEIXE|PORCHETTA/.test(rgNorm(nm)); }
+/* O QUE O REI DO GADO FAZ (definido pelo Marcelo em 20/11/2026). Única fonte: nenhuma pergunta, sugestão ou "como da última vez" oferece preparo fora desta lista.
+   hb: hambúrguer da manipulação (só quantidade) · moivel (patinho, acém, músculo, coxão, peito bovino): moído em pacotes de 500 g ou bifes separados de 4 em 4
+   bife (alcatra, contrafilé, lagarto): bifes separados de 4 em 4 ou a peça inteira · peca (filé mignon, peças): cortes do jeito do cliente
+   frango (peito, filé, bife de frango): bifes ou cubos. NÃO fazemos tiras. */
+var PREPAROS_LOJA={hb:[],moivel:['MOID','PACOTE','BIFE','4 EM 4'],bife:['BIFE','4 EM 4','INTEIR','PECA'],frango:['BIFE','CUBO'],peca:['*']};
+function preparoPermitido(tipo,txt){ var ok=PREPAROS_LOJA[tipo]; if(!ok||!txt) return false; var n=rgNorm(txt); if(/TIRA/.test(n)) return false; if(ok.indexOf('*')>=0) return true; return ok.some(function(t){ return n.indexOf(t)>=0; }); }
 function generoPrep(t,fm){ return fm?String(t).replace(/\bmoído\b/g,'moída').replace(/\binteiro\b/g,'inteira').replace(/\bfatiado\b/g,'fatiada').replace(/\blimpo\b/g,'limpa'):t; }
-function preparoTxt(c,p1){ if(!p1) return 'Posso separar pra você?'; var fm=fem(p1.produto)||fem(String(p1.nome||'').toUpperCase()), o_p1=(fm?'a ':'o ')+p1.nome, t=tipoPreparo(p1.produto,p1.chave), pr=t&&t!=='hb'?(perfilCliente(c).preparo||{})[corte(p1.produto)]:'';
+function preparoTxt(c,p1){ if(!p1) return 'Posso separar pra você?'; var fm=fem(p1.produto)||fem(String(p1.nome||'').toUpperCase()), o_p1=(fm?'a ':'o ')+p1.nome, t=tipoPreparo(p1.produto,p1.chave), pr=t&&t!=='hb'?(perfilCliente(c).preparo||{})[corte(p1.produto)]:''; if(pr&&!preparoPermitido(t,pr)) pr=''; /* só o que a loja faz (PREPAROS_LOJA) */
   if(pr) return 'Separo '+o_p1+' '+generoPrep(pr,fm)+', como da última vez?';
   if(t==='hb') return 'Separo '+o_p1+' pra você? É só dizer quantos.';
   if(t==='peca') return 'Como gostaria dos cortes? Separamos a peça inteira ou cortamos do seu jeito.';
-  if(t==='bife') return 'Prefere em bifes, em tiras para estrogonofe ou a peça inteira?';
+  if(t==='bife') return 'Prefere em bifes, separados de 4 em 4, ou a peça inteira?';
   if(t==='moivel') return 'Quer '+(fm?'moída':'moído')+' em pacotes de 500 g ou em bifes, separados de 4 em 4?';
-  if(t==='frango') return 'Prefere em bifes, em cubos ou em tiras? A gente prepara do seu jeito.';
+  if(t==='frango') return 'Prefere em bifes ou em cubos? A gente prepara do seu jeito.';
   return ehCarnePrep(p1)?'Posso separar pra você? A gente prepara do jeito que preferir.':'Posso separar pra você?'; }
 /* aprende o preparo com o que o cliente pede e com o que a loja confirma ("separei o patinho moído em pacotes de 500 g") */
 var RE_PREP_T=/\b(MOID[OA]S?|MOER|BIFES?|CUBOS|TIRAS|MEDALH\w*|PECA INTEIRA|INTEIR[OA]|FATIAD[OA]S?|PACOTES? DE \d+ ?(?:G|GR|GRAMAS|KG)\b|DE \d+ EM \d+|SEM GORDURA|BEM LIMP[OA])/g;
@@ -2706,9 +2712,9 @@ function respostaSugerida(t){ if(!t||!t.c) return ''; var c=t.c, it=linhaTempo(c
   if(/\b(QUE HORAS|HORARIO|ABERTO|ABRE|FECHA|FUNCIONA)\b/.test(n)) return pronta(/HORARIO|FUNCIONAMENTO/)||'Já te confirmo o horário certinho, '+nome+'!';
   if(/\b(CARDAPIO|TABELA|LISTA DE PRECOS?)\b/.test(n)) return pronta(/CARDAPIO|TABELA|PRECO/)||'Já te mando, '+nome+'!';
   if(/\b(QUANTO|VALOR|PRECO|QTO|TA SAINDO|ESTA SAINDO)\b/.test(n)) return 'Vou confirmar o valor'+(itens?' '+art+itens:'')+' e já te passo, '+nome+'!';
-  if(/\b(QUERO|QUERIA|SEPARA|SEPARE|SEPARAR|RESERVA|RESERVAR|VOU QUERER|ME VE|MANDA|MANDE|ENCOMENDA|TEM COMO)\b/.test(n)){ var prA=prepFrase(n);
-    if(cs.length===1){ var tp=tipoPreparo(cs[0]), fmk=fem(cs[0]), pk=prA?'':(tp&&tp!=='hb'?(perfilCliente(c).preparo||{})[cs[0]]:''), perg=tp==='moivel'?'Prefere '+(fmk?'moída':'moído')+' em pacotes de 500 g ou em bifes? ':tp==='peca'?'Como gostaria dos cortes? ':tp==='bife'?'Prefere em bifes, em tiras ou a peça inteira? ':tp==='frango'?'Prefere em bifes, em cubos ou em tiras? ':'';
-      return 'Combinado, '+nome+'! Já separo '+itens+(prA?' '+generoPrep(prA,fmk):pk?' '+generoPrep(pk,fmk)+', como da última vez':'')+'. '+(prA||pk?'':perg)+'Vai retirar ou prefere entrega?'; }
+  if(/\b(QUERO|QUERIA|SEPARA|SEPARE|SEPARAR|RESERVA|RESERVAR|VOU QUERER|ME VE|MANDA|MANDE|ENCOMENDA|TEM COMO)\b/.test(n)){ var prA=prepFrase(n), pedeTiras=/tiras/i.test(prA); if(prA&&cs.length===1&&!preparoPermitido(tipoPreparo(cs[0]),prA)) prA='';
+    if(cs.length===1){ var tp=tipoPreparo(cs[0]), fmk=fem(cs[0]), pk=prA?'':(tp&&tp!=='hb'?(perfilCliente(c).preparo||{})[cs[0]]:''), pk=pk&&!preparoPermitido(tp,pk)?'':pk, perg=tp==='moivel'?'Prefere '+(fmk?'moída':'moído')+' em pacotes de 500 g ou em bifes? ':tp==='peca'?'Como gostaria dos cortes? ':tp==='bife'?'Prefere em bifes, separados de 4 em 4, ou a peça inteira? ':tp==='frango'?'Prefere em bifes ou em cubos? ':'';
+      return 'Combinado, '+nome+'! Já separo '+itens+(prA?' '+generoPrep(prA,fmk):pk?' '+generoPrep(pk,fmk)+', como da última vez':'')+'. '+(pedeTiras?'Em tiras a gente não faz. ':'')+(prA||pk?'':perg)+'Vai retirar ou prefere entrega?'; }
     return 'Combinado, '+nome+'! Já separo'+(itens?' '+itens:' pra você')+'. Vai retirar ou prefere entrega?'; }
   if(/\?/.test(u.txt)&&cs.length) return 'Tem sim, '+nome+'! Quer que eu separe '+itens+' pra você?';
   if(encerraConversa(u.txt)) return 'Nós que agradecemos, '+nome+'! Qualquer coisa é só chamar.';
@@ -3191,7 +3197,9 @@ function violacoesMsg(txt,c,tipo,s){ var v=[], ls=String(txt||'').split('\n'), l
   if(tipo!=='kit'&&RE_PREP_TXT.test(cTxt)&&prd.some(function(x){ return !algum(x,ehCarnePrep); })) v.push('preparo oferecido para o que não é carne');
   if(/acabamos de receber|chegou hoje um lote novo/i.test(cTxt)&&prd[0]&&!algum(prd[0],carneFresca)) v.push('"chegou hoje" para o que não é carne fresca');
   var eTp=function(t){ return prd[0]&&algum(prd[0],function(y){ return tipoPreparo(y.produto,y.chave)===t; }); };
-  if(prd[0]&&!/como da última vez/i.test(cTxt)&&((/moíd[oa] em pacotes/i.test(cTxt)&&!eTp('moivel'))||(/como gostaria dos cortes/i.test(cTxt)&&!eTp('peca'))||(/em tiras para estrogonofe/i.test(cTxt)&&!eTp('bife'))||(/em cubos ou em tiras/i.test(cTxt)&&!eTp('frango'))||(/é só dizer quantos/i.test(cTxt)&&!eTp('hb')))) v.push('pergunta do preparo não combina com o produto');
+  if(prd[0]&&!/como da última vez/i.test(cTxt)&&((/moíd[oa] em pacotes/i.test(cTxt)&&!eTp('moivel'))||(/como gostaria dos cortes/i.test(cTxt)&&!eTp('peca'))||(/separados de 4 em 4, ou a peça inteira/i.test(cTxt)&&!eTp('bife'))||(/em bifes ou em cubos/i.test(cTxt)&&!eTp('frango'))||(/é só dizer quantos/i.test(cTxt)&&!eTp('hb')))) v.push('pergunta do preparo não combina com o produto');
+  if(/\btiras\b/i.test(cTxt.replace(/assado (de|em) tiras/gi,' '))) v.push('oferece tiras (a loja não faz)');
+  var mUlt=cTxt.match(/Separo (?:o|a) .+? (em .+?|mo[ií]d[oa].*?|inteir[oa].*?), como da última vez/i); if(mUlt&&prd[0]&&!algum(prd[0],function(y){ return preparoPermitido(tipoPreparo(y.produto,y.chave),mUlt[1]); })) v.push('preparo que a loja não faz');
   if(c&&!blocoCombina(ls.slice(1).join(' '),c)) v.push('gíria para cliente '+(lingua(c).tom==='formal'?'formal':'mulher'));
   return v; }
 /* conserta o que a verificação pegar (proteção extra para textos escritos à mão) */
