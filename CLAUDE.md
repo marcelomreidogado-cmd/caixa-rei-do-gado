@@ -14,7 +14,7 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 ## Arquitetura
 - Sem build. Firebase compat 10.12.5 (auth + **Realtime Database**), Chart.js 4.4.0.
 - Firebase projeto `motoboy-ddefa` (o mesmo do RH e do Compras). Caixa grava em `caixa/…`; a cesta grava em `cesta_rei_do_gado/…` via REST (sem SDK).
-- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'5.3'`, com as correções 5.3.1/5.3.2 de 20/11) em `computadores`.
+- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'5.4'`) em `computadores`.
 - Nós da cesta: `imports_meta`, `imports_linhas`, `imports_cli`, `vinculos`, `config` (inclui `regrasContato`, `metaDiaria`, `metaCadastro` e `mesclas`), `contatos`, `contatos_ult`, `hist`, `seg`, `camp`, `lemb`, `kit_img`, `computadores`, `rev`. O teste usa `cesta_rei_do_gado/teste/…`.
 - Única fonte de dados: PDF "Relatório de Produtos Vendidos por Cliente/Vendedor" (Alterdata), importado pelas lojas. Extrato de Produtos e Curva ABC não são mais usados.
 - **Conexão com a Uazapi (v4.2):** canal ao vivo `GET /sse?token=…&events=messages,connection` por loja (`rtLigar`); com ele aberto a leitura por varredura cai de 45 s para 3 min. Vigia a cada 2 min (`checarNumeros` → `vigiarConexao`): aviso vermelho no topo, motivo (`lastDisconnectReason`), `POST /instance/reset` sozinho (no máx. 1 a cada 10 min, só se ainda logado) e botão Reconectar com QR code/código (`POST /instance/connect`). Quedas vão para `computadores/{pc}/quedas`.
@@ -102,6 +102,15 @@ Valem para Hoje, Sugestões, Recompra, Reconquista, Campanhas (inclusive Boas-vi
   - `pfVocab`: em colisão vence o corte principal (sem HB, nome mais curto); "fraldinha" = FRALDA; "contrafilé" sem produto de dia a dia = CONTRA GRILL.
   - Pente fino (`/home/claude/build/pente53.js`): 4.710 mensagens antigas da loja + campanha de 20/11 + 4.463 do motor novo. Motor novo: 0 problemas. Antigas: 14 da campanha de 20/11 e 6 do motor antigo com preparo para o que não é carne.
   - Revisão independente: 20 achados; corrigidos 1–12 e 14–18. Pendente: recalcular o "motivo" da tela depois do filtro de carne (13).
+
+- **v5.4 (24/11/2026) — diagnóstico com dados reais (20–24/11) e correções:**
+  - Anúncio de chegada ("recebemos", "acabei de receber", "chegou", "lote novo", "fresquinho" — `RE_CHEGOU_TXT`) só com carne fresca, também nas **frases aprendidas da equipe** (antes 128 de 385 mensagens anunciavam carvão, pão de alho, batata, temperados), na reconquista e em campanha com `{itens}` (sem carne fresca e sem outra versão = cliente fica fora, `semTema`). Sem modelo válido: `BIB_NEUTRO`. Promoção automática usa "Tem X com preço especial" quando não é carne fresca. Revisor/verificador acusa (kits ficam fora dessa checagem).
+  - Frases aprendidas de rotina ("Mesma quantidade para o mesmo horário?", "de sempre", "seu pedido") só para quem tem rotina (`aprOk`; antes 12 foram para clientes sem compra e 2 responderam "não fiz pedido").
+  - Número sem WhatsApp (Uazapi 500 "is not on WhatsApp"): `pulado` + cliente pausado ("número sem WhatsApp") — antes ficava em "verificar" e voltava todo dia (14 números, até 8 vezes).
+  - Histórico em dobro: `histId` tira o prefixo do número da loja ("5524…:3EB0…" = "3EB0…"); `carregarHist` junta as cópias antigas na leitura (sem apagar a nuvem; `mid` guarda o id completo para baixar áudio). No histórico real: 14.357 → 11.078 mensagens (3.279 cópias).
+  - Recusa: reclamação (não chegou, atraso, ruim, duro/dura, cheiro, vencido) não vira recusa; "hoje (eu) não", "no momento", "outro dia", "próxima", "estoque" = 14 dias.
+  - FEM: geleia, maionese, mostarda, cebola, pimenta (não pimentão), farofa, torta, morcilha.
+  - Revisão independente: 9 achados, todos corrigidos.
 
 ## O que o Rei do Gado faz (regra do Marcelo, 20/11/2026 — nunca inventar)
 O Rei do Gado não é genérico. **Nenhuma mensagem, pergunta, sugestão ou texto de exemplo pode oferecer preparo, serviço, produto ou condição que o Marcelo não tenha dito que a loja faz.** Na dúvida, perguntar ao Marcelo antes; não completar com "o que açougue costuma fazer".
