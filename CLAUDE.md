@@ -14,7 +14,7 @@ Caixa diário e controle de PIX das lojas do açougue Rei do Gado (Bingen, Corr�
 ## Arquitetura
 - Sem build. Firebase compat 10.12.5 (auth + **Realtime Database**), Chart.js 4.4.0.
 - Firebase projeto `motoboy-ddefa` (o mesmo do RH e do Compras). Caixa grava em `caixa/…`; a cesta grava em `cesta_rei_do_gado/…` via REST (sem SDK).
-- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'5.4'`) em `computadores`.
+- A cesta **não publica mais nada para o CRM antigo** (desde a v4, de 14/11/2026). Os nós `crm`, `crm_tel`, `crm_meta` e `crm_hash` são legado: a versão nova os arquiva **sozinha** em `arquivo_crm_antigo/AAAA-MM-DD_HHhMM` (40 s após abrir e a cada 20 min) e só depois os apaga, porque abas antigas não recarregadas ainda gravam neles. Em Ajustes há "Conferir agora". O computador informa a versão (`versao:'5.5'`) em `computadores`.
 - Nós da cesta: `imports_meta`, `imports_linhas`, `imports_cli`, `vinculos`, `config` (inclui `regrasContato`, `metaDiaria`, `metaCadastro` e `mesclas`), `contatos`, `contatos_ult`, `hist`, `seg`, `camp`, `lemb`, `kit_img`, `computadores`, `rev`. O teste usa `cesta_rei_do_gado/teste/…`.
 - Única fonte de dados: PDF "Relatório de Produtos Vendidos por Cliente/Vendedor" (Alterdata), importado pelas lojas. Extrato de Produtos e Curva ABC não são mais usados.
 - **Conexão com a Uazapi (v4.2):** canal ao vivo `GET /sse?token=…&events=messages,connection` por loja (`rtLigar`); com ele aberto a leitura por varredura cai de 45 s para 3 min. Vigia a cada 2 min (`checarNumeros` → `vigiarConexao`): aviso vermelho no topo, motivo (`lastDisconnectReason`), `POST /instance/reset` sozinho (no máx. 1 a cada 10 min, só se ainda logado) e botão Reconectar com QR code/código (`POST /instance/connect`). Quedas vão para `computadores/{pc}/quedas`.
@@ -111,6 +111,13 @@ Valem para Hoje, Sugestões, Recompra, Reconquista, Campanhas (inclusive Boas-vi
   - Recusa: reclamação (não chegou, atraso, ruim, duro/dura, cheiro, vencido) não vira recusa; "hoje (eu) não", "no momento", "outro dia", "próxima", "estoque" = 14 dias.
   - FEM: geleia, maionese, mostarda, cebola, pimenta (não pimentão), farofa, torta, morcilha.
   - Revisão independente: 9 achados, todos corrigidos.
+
+- **v5.5 (25/11/2026) — as 4 melhorias do retorno das mensagens:**
+  - **Pós-venda de corte novo** (`posVendaTipo` = 'primeira' | 'novo', `novidadesUltima`, `BIB_POSV_NOVO`): além da 1ª compra, D+1 a D+3 de uma compra que trouxe carne fresca que o cliente nunca levou (produto ativo, sem promo, sem recusa), no máx. 1 pós-venda a cada 30 dias; só vale se o 1º item da mensagem for a novidade.
+  - **Viajando = pausa de 7 dias** (`RE_VIAGEM`/`RE_VIAGEM_NAO` no `histAdd`): só mensagem nova (≤2 dias), sem "?", sem "voltei/estava/estive", não pausa de novo se a loja clicou Retomar depois (`pausaMudou`) nem se o cliente já fez pedido depois.
+  - **Preço real** (`precoAtual`/`precoTxt`): preço de tabela que explica TODAS as vendas do último dia daquele produto na loja do cliente (≥2 vendas, até 14 dias; cada venda dá a faixa (valor±0,005)/qtd), a no máx. 15% do preço normal da loja; senão não mostra. Vai no fim das automáticas de 1 item que citam o produto, só se couber em 200. Ajustes → Regras: "pôr o preço…" (`regrasContato.precoNaMsg`). Resposta sugerida para "quanto está?" usa esse preço só se houver um único produto ativo sem promo naquele corte.
+  - **Cliente respondeu só "Bom dia/Oi"**: resposta sugerida "Bom dia, {nome}! Tudo bem? Posso separar {última oferta da loja da conversa, ≤3 dias, sem recusa/ciclo} pra você? Vai retirar ou prefere entrega?" (lista fechada de cumprimentos + nomes dos atendentes).
+  - Revisão independente: 13 achados, todos corrigidos (preço que arredondava 76,99→77,00, falsos positivos de viagem, cumprimento que pegava "Opa! Perfeito", continuação sem trava).
 
 ## O que o Rei do Gado faz (regra do Marcelo, 20/11/2026 — nunca inventar)
 O Rei do Gado não é genérico. **Nenhuma mensagem, pergunta, sugestão ou texto de exemplo pode oferecer preparo, serviço, produto ou condição que o Marcelo não tenha dito que a loja faz.** Na dúvida, perguntar ao Marcelo antes; não completar com "o que açougue costuma fazer".
