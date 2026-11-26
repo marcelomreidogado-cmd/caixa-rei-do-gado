@@ -76,6 +76,7 @@ Recompra, Sugestões e Hoje ganham os mesmos três botões de linha no topo (em 
 
 ## Decisões minhas (para o Marcelo conferir)
 - Churrasco de **quarta a domingo** (entendi assim das duas falas).
+- Filé mignon e sobrecoxa = Dia a dia (confirmado pelo Marcelo, 26/11 20h22).
 - Frango de churrasco (coxinha, coração) conta como Churrasco; filé/peito/sobrecoxa/estrogonofe como Dia a dia.
 - No máximo 1 novidade por mensagem, para não virar lista.
 - Ordem de entrega: (1) motor + testes, (2) aba Campanhas nova, (3) Recompra/Sugestões/Hoje com os botões de linha, (4) troca das listas suspensas restantes. Cada etapa publicada só com todos os casos de aceite passando.
