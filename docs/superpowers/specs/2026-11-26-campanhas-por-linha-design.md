@@ -76,6 +76,7 @@ Recompra, Sugestões e Hoje ganham os mesmos três botões de linha no topo (em 
 
 ## Decisões minhas (para o Marcelo conferir)
 - Churrasco de **quarta a domingo** (entendi assim das duas falas).
+- Kafta = Dia a dia e Churrasco; "Trazer de volta" 30–90 dias com mensagem pronta; tom das mensagens vem das mensagens da equipe já captadas (Marcelo, 26/11 20h43).
 - Filé mignon e sobrecoxa = Dia a dia (confirmado pelo Marcelo, 26/11 20h22).
 - Frango de churrasco (coxinha, coração) conta como Churrasco; filé/peito/sobrecoxa/estrogonofe como Dia a dia.
 - No máximo 1 novidade por mensagem, para não virar lista.

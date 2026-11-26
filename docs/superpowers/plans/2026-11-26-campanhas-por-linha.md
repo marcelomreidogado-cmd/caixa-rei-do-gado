@@ -137,3 +137,17 @@
 - [ ] **Step 2:** bateria inteira + `timeout 600 node m5t.js` + `pente511.js` → tudo zero/`ERRS []`.
 - [ ] **Step 3:** revisão independente (agente só leitura) da diferença contra a v5.10; corrigir graves e médios.
 - [ ] **Step 4:** promover (bloco de script e de estilo idênticos), `versao:'5.11'`, seção v5.11 no CLAUDE.md, commit `Produção: v5.11 — campanhas por linha`, push, `gh run list -L 1`.
+
+### Task 3b: mensagens das linhas com a voz da equipe + kafta nas duas linhas (decisões do Marcelo, 26/11 20h43)
+
+**Files:**
+- Modify: `cesta-teste/index.html` — `sgLinha` (Task 2), `linhaMsgDe` (Task 1), aprendizado existente (`aprenderMensagensEquipe`, `lerLinguagem`, `aprOk`, `S.cfg.aprendidas`).
+- Test: `/home/claude/build/vozlinhatest.js`
+
+**Interfaces:**
+- `linhaMsgDe(prod)` continua devolvendo a linha principal; novo `linhasDoProduto(prod) -> ['dia','churrasco']` para produtos das duas linhas (KAFTA). `cestaDaLinha` aceita o produto em qualquer linha da lista.
+- `sgLinha(c,linha,obj,loja)`: a abertura, a frase de oferta e o fechamento vêm das frases já captadas das mensagens da equipe (as que tiveram resposta/compra, não anuladas, aprovadas por `aprOk` e pelo revisor), escolhidas por linha e objetivo; o texto fixo atual ("O Rei do Gado X também trabalha com…", "Já está na hora de repor…") fica como reserva quando não há frase aprendida válida.
+
+- [ ] **Step 1:** `vozlinhatest.js`: com frases da equipe no histórico do fixture, `sgLinha` usa uma delas (texto contém a frase aprendida) e continua passando no revisor, ≤200, sem "fresc", assinatura; sem frases, usa a reserva; frase anulada (`anulados`) nunca é usada; KAFTA aparece na cesta de dia e de churrasco; o ciclo da kafta vale nas duas.
+- [ ] **Step 2–4:** falha → implementar → `vozlinhatest`, `sugltest`, `linhatest`, `camplinhatest`, bateria → `ERRS []`.
+- [ ] **Step 5:** Commit `Teste: voz da equipe nas mensagens por linha; kafta nas duas linhas`.
