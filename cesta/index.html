@@ -432,6 +432,7 @@ table.ctl td.n{font-variant-numeric:tabular-nums}table.ctl td.warn{color:#9a6a12
 .chip.sugr{background:#eef6ff;border-color:#c9def7}
 .selbar label.agenda{display:inline-flex;align-items:center;gap:4px;font-size:12px}.selbar label.agenda input{font:inherit;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}
 table.env td{vertical-align:top}table.env .lnk{cursor:pointer;text-decoration:underline;text-decoration-color:var(--line)}#envq{min-width:200px}
+.nota.uzinfo{margin:0}
 </style>
 </head><body>
 <aside class="side"><div class="logo">RG</div><nav class="tabs"><button data-aba="hoje" data-g="hoje" data-tip="Hoje" aria-label="Hoje"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><em>Hoje</em><span class="bdg"></span></button><button data-aba="conversas" data-g="conversas" data-tip="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5A8.5 8.5 0 1 1 21 11.5z"/></svg><em>Conversas</em><span class="bdg"></span></button><button data-aba="clientes" data-g="clientes" data-tip="Clientes" aria-label="Clientes"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6a6.5 6.5 0 0 1 3 5.9"/></svg><em>Clientes</em><span class="bdg"></span></button><button data-aba="campanhas" data-g="campanhas" data-tip="Campanhas" aria-label="Campanhas"><svg viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5V4.5L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 8.5a5 5 0 0 1 0 7"/></svg><em>Campanhas</em><span class="bdg"></span></button><button data-aba="produtos" data-g="produtos" data-tip="Produtos" aria-label="Produtos"><svg viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg><em>Produtos</em><span class="bdg"></span></button><button data-aba="painel" data-g="painel" data-tip="Painel" aria-label="Painel"><svg viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M2 20.5h20"/></svg><em>Painel</em><span class="bdg"></span></button></nav><nav class="tabs fim"><button data-aba="importacoes" data-g="ajustes" data-tip="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M17 6h3"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg><em>Ajustes</em><span class="bdg"></span></button></nav></aside><div class="app"><header class="top"><div class="tl"><button id="sideTg" class="ico side-tg" title="Mostrar/esconder menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="busca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="buscaG" placeholder="Buscar cliente, código ou celular" autocomplete="off"><div id="buscaR"></div></div></div><div id="lojabar" class="lojabar"></div><div class="tr"><span class="per" id="periodo"></span><button id="syncst" class="syncst off">○ Nuvem</button></div></header><div id="subnav"></div><main id="main">Carregando…</main></div>
@@ -1234,7 +1235,7 @@ function rtExtrair(d){ if(!d||typeof d!=='object') return null; var dd=d.data&&t
   return {jid:jid,grupo:/@g\.us$/.test(jid)||!!m.isGroup,completo:!!(id&&ts&&(txt||m.messageType||m.type)),
     m:{chatid:jid,messageid:id,id:id,messageTimestamp:ts,fromMe:!!(m.fromMe||k.fromMe),text:txt,messageType:m.messageType||m.type||'',content:m.content,mediaType:m.mediaType}}; }
 /* mensagem que chegou pelo canal ao vivo: entra na conversa na hora, sem esperar a varredura */
-function rtMensagem(l,d){ var e=rtExtrair(d), dg=RT.diag[l]=RT.diag[l]||{n:0}; dg.n++; dg.em=new Date().toISOString(); dg.chaves=Object.keys(d||{}).slice(0,12).join(','); dg.msg=e?Object.keys(e.m).filter(function(k){ return e.m[k]; }).join(','):'';
+function rtMensagem(l,d,orig){ var e=rtExtrair(d), dgs=orig==='nuvem'?(RT.diagNv=RT.diagNv||{}):RT.diag, dg=dgs[l]=dgs[l]||{n:0}; dg.n++; dg.em=new Date().toISOString(); dg.chaves=Object.keys(d||{}).slice(0,12).join(','); dg.msg=e?Object.keys(e.m).filter(function(k){ return e.m[k]; }).join(','):'';
   if(!e||!S.model){ dg.ok='sem mensagem no evento'; return false; } if(!e.jid){ dg.ok='sem chatid'; return false; } if(e.grupo) return true;
   var porNum=porNumCli(), c=null; digitosVariantes(e.jid.split('@')[0]).some(function(x){ c=porNum[x]; return !!c; }); RT.ultMsg=Date.now();
   if(!c){ dg.ok='não é cliente da cesta'; return true; }
@@ -1860,6 +1861,74 @@ function abrirRegras(){ var R=regras();
 /* ---------- UAZAPI: um número por loja. O cliente recebe pelo número da loja dele (loja onde mais compra). Tokens ficam só neste computador ---------- */
 var UZ={lote:null};
 var LOJAS_ENVIO=['CORONEL','CORREAS','BINGEN'];
+/* ---------- LEITURA NA NUVEM (v5.7) ----------
+   A Uazapi de cada loja manda cada mensagem para a função cestaEntrada (Firebase, southamerica-east1), que guarda em entrada/{LOJA}/{id}
+   (sem o token, sem grupos) e avisa em eventos (t:'entrada'). As cestas abertas leem a entrada e colocam na conversa (rtMensagem), então a
+   conversa sobe mesmo com o computador da loja fechado. Cada item é tratado por UM computador só (posse por ETag em entrada/{L}/{id}/p):
+   o computador da loja pega na hora; os outros só depois de 90 s (dá tempo de o da loja pegar). Leitura relê 10 min para trás, para não
+   perder item que chegou atrasado. A varredura antiga continua como reserva e o alerta "WhatsApp lido" continua sendo só da varredura.
+   Itens tratados com mais de 7 dias saem da entrada (o conteúdo já está em hist). */
+var NV={fn:'https://southamerica-east1-motoboy-ddefa.cloudfunctions.net/cestaEntrada',rodando:false,ult:{},n:0,erro:'',lig:null,ligEm:0};
+function nvKey(ms){ return Math.max(0,ms).toString(36).padStart(9,'0'); }
+function nvCursor(l,v){ var k='cesta_nv_'+String(S.sync.raiz||'')+'_'+l; if(v!==undefined){ try{ localStorage.setItem(k,v); }catch(e){} return v; } try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+function nvLigada(l){ var x=(NV.lig||{})[l]; return !!(x&&x.em); }
+async function nvCarregarLig(forcar){ if(!forcar&&NV.lig&&Date.now()-NV.ligEm<10*60000) return; try{ NV.lig=(await fb('GET','config/entradaNuvemLoja'))||{}; NV.ligEm=Date.now(); }catch(e){} }
+async function nvPegar(l,id){ var u=fbUrl('entrada/'+l+'/'+id+'/p'), r, et, v;
+  try{ r=await fetch(u,{headers:{'X-Firebase-ETag':'true'},cache:'no-store'}); et=r.headers.get('ETag'); v=await r.json(); }catch(e){ return false; }
+  if(v&&(v.ok||Date.now()-Date.parse(v.em||0)<5*60000)) return false; if(!et) return false;
+  try{ var r2=await fetch(u,{method:'PUT',headers:{'if-match':et,'Content-Type':'application/json'},body:JSON.stringify({pc:idAba(),em:new Date().toISOString()})}); return r2.ok; }catch(e){ return false; } }
+async function entradaLer(so){ if(NV.rodando||!S.model||!syncAtivo()) return; NV.rodando=true;
+  try{ await nvCarregarLig(); var ls=LOJAS_ENVIO.filter(function(l){ return nvLigada(l)&&podeLoja(l)&&(!so||l===so); });
+    for(var i=0;i<ls.length;i++){ var l=ls[i];
+      try{ var cur=nvCursor(l)||nvKey(Date.now()-864e5), de=nvKey(parseInt(cur.slice(0,9),36)-10*60000), daLoja=!!uazLeitura(l), ate=Date.now()-90000;
+        var v=await fb('GET','entrada/'+l,undefined,'orderBy=%22%24key%22&startAt=%22'+de+'%22&limitToFirst=300')||{};
+        var ks=Object.keys(v).sort(), maior=cur;
+        for(var j=0;j<ks.length;j++){ var k=ks[j], it=v[k]||{}; if(k>maior) maior=k; if(it.em&&(!NV.ult[l]||it.em>NV.ult[l])) NV.ult[l]=it.em;
+          if(it.p&&(it.p.ok||Date.now()-Date.parse(it.p.em||0)<5*60000)) continue;
+          if(!daLoja&&Date.parse(it.em||0)>ate){ if(k<maior) maior=k; continue; } /* deixa para o computador da loja; volta a olhar na próxima */
+          if(!(await nvPegar(l,k))) continue;
+          var d=null; try{ d=typeof it.ev==='string'?JSON.parse(it.ev):it.ev; }catch(e){}
+          if(d) try{ rtMensagem(l,d,'nuvem'); NV.n++; }catch(e){ NV.erro=String(e&&e.message||e).slice(0,120); }
+          try{ await fb('PATCH','entrada/'+l+'/'+k+'/p',{ok:1}); }catch(e){} }
+        if(maior>cur) nvCursor(l,maior); }
+      catch(e){ NV.erro=tituloProd(l)+': '+String(e&&e.message||e).slice(0,120); } } }
+  finally{ NV.rodando=false; }
+  nvLimpar(); }
+async function nvLimpar(){ var mk='cesta_nv_limpo_'+String(S.sync.raiz||''); try{ if(localStorage.getItem(mk)===hoje()) return; localStorage.setItem(mk,hoje()); }catch(e){ return; }
+  var ate=nvKey(Date.now()-7*864e5);
+  for(var i=0;i<LOJAS_ENVIO.length;i++){ var l=LOJAS_ENVIO[i]; if(!nvLigada(l)) continue;
+    try{ var v=await fb('GET','entrada/'+l,undefined,'orderBy=%22%24key%22&endAt=%22'+ate+'%22&limitToFirst=1000')||{}, p={};
+      Object.keys(v).forEach(function(k){ if(v[k]&&v[k].p&&v[k].p.ok) p[k]=null; }); /* só o que já entrou na conversa */
+      if(Object.keys(p).length) await fb('PATCH','entrada/'+l,p); }catch(e){} } }
+function nvAgendar(l){ if(l&&uazLeitura(l)){ clearTimeout(NV.tL); NV.tL=setTimeout(function(){ entradaLer(l); },800); } else if(!NV.tO){ NV.tO=setTimeout(function(){ NV.tO=null; entradaLer(); },95000); } }
+function nvChave(){ var a=new Uint8Array(20); crypto.getRandomValues(a); return Array.prototype.map.call(a,function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }
+function nvLista(j){ var a=Array.isArray(j)?j:(j&&Array.isArray(j.webhooks)?j.webhooks:(j&&typeof j.url==='string'?[j]:null)); return a?a.filter(function(w){ return w&&w.url; }):null; }
+async function ligarNuvem(l){ var inf=$('[data-nvinfo="'+l+'"]'), diz=function(h){ if(inf) inf.innerHTML=h; };
+  if(window.AMB_TESTE){ toast('No teste não liga a leitura na nuvem (mexeria no WhatsApp real da loja).','erro'); return; }
+  if(!podeLoja(l)){ toast('Só o administrador ou a própria loja pode ligar isso.','erro'); return; }
+  var inst=uazLeitura(l); if(!inst){ toast('Configure antes o token da loja '+tituloProd(l)+' neste computador.','erro'); return; }
+  diz('Ligando…');
+  try{ var lista=nvLista(await uazReq(inst,'GET','/webhook')); if(!lista){ diz('<span class="pill late">não consegui ler o que já está configurado na Uazapi — nada foi mexido</span>'); return; }
+    var ch=await fb('GET','config/entradaChave/'+l); if(!ch||String(ch).length<24){ ch=nvChave(); await fb('PUT','config/entradaChave/'+l,ch); }
+    var url=NV.fn+'?loja='+l+'&k='+ch, base=NV.fn+'?loja='+l;
+    var meus=lista.filter(function(w){ return String(w.url).indexOf(base)===0; }), meu=meus[0];
+    var outros=lista.filter(function(w){ return String(w.url).indexOf(NV.fn)!==0; });
+    var temMsg=function(w){ var e=w.events; return !e||(Array.isArray(e)?e:String(e).split(',')).some(function(x){ return /^messages$/i.test(String(x).trim()); }); };
+    if(meu&&meu.url===url&&meu.enabled!==false&&temMsg(meu)){ diz('<span class="pill okp">✔ já estava ligada</span>'); }
+    else{ var corpo={url:url,events:['messages'],excludeMessages:['isGroupYes'],enabled:true};
+      if(meu&&meu.id) corpo=Object.assign({action:'update',id:meu.id},corpo);
+      else if(meu&&outros.length){ diz('<span class="pill late">a Uazapi tem um endereço antigo da cesta sem identificação — confira no painel da Uazapi; nada foi mexido</span>'); return; }
+      else if(outros.length){ var hosts=outros.map(function(w){ return String(w.url).replace(/^https?:\/\//,'').split(/[/?]/)[0]; }).join(', ');
+        if(!confirm('A Uazapi da loja '+tituloProd(l)+' já manda as mensagens para outro endereço ('+hosts+').\n\nOK = manter esse e ACRESCENTAR a leitura na nuvem.\nCancelar = não mexer em nada.')){ diz('não mexi em nada'); return; }
+        corpo=Object.assign({action:'add'},corpo); }
+      await uazReq(inst,'POST','/webhook',corpo);
+      var depois=nvLista(await uazReq(inst,'GET','/webhook'))||[], ok=depois.some(function(w){ return w.url===url&&w.enabled!==false; }), ficou=outros.every(function(o){ return depois.some(function(w){ return w.url===o.url; }); });
+      if(!ok){ diz('<span class="pill late">a Uazapi não confirmou o endereço — a leitura na nuvem não foi ligada</span>'); return; }
+      diz('<span class="pill okp">✔ ligada'+(outros.length?(ficou?' · o endereço antigo continua':' · atenção: o endereço antigo saiu'):'')+'</span>'); }
+    await fb('PUT','config/entradaNuvemLoja/'+l,{em:new Date().toISOString(),por:nomeUsuario(AU.user)||'',pc:S.sync.computador||''});
+    await nvCarregarLig(true); entradaLer(l); }
+  catch(e){ diz('<span class="pill late">'+esc(e.message||String(e))+'</span>'); } }
+function nvStatusTxt(l){ if(!nvLigada(l)) return 'desligada'; var u=NV.ult[l]; return 'ligada'+(u?' · última mensagem '+horaCurta(u):''); }
 function uazCfg(){ var c; try{ c=JSON.parse(localStorage.getItem('cesta_uazapi')||'{}'); }catch(e){ c={}; }
   if(!c.inst){ c.inst={}; if(c.url||c.token){ c.inst.CORONEL={url:c.url||'',token:c.token||'',ativo:c.ativo!==false}; } delete c.url; delete c.token; delete c.ativo; } // versão antiga: 1 número só (era a Loja Coronel)
   return c; }
@@ -1909,11 +1978,12 @@ function telaUazapi(){ var c=uazCfg();
     LOJAS_ENVIO.map(function(l){ var i=(c.inst||{})[l]||{};
       return '<div class="uzloja"><b>Loja '+esc(tituloProd(l))+'</b><div class="sgrid"><label>Endereço do servidor<input data-uzurl="'+l+'" placeholder="ex.: https://reidogado.uazapi.com" value="'+esc(i.url||'')+'"></label>'+
         '<label>Token da instância desta loja<input type="password" data-uztok="'+l+'" value="'+esc(i.token||'')+'" placeholder="token da instância (não o admintoken)"></label></div>'+
-        '<div class="filtros"><label class="chk"><input type="checkbox" data-uzativo="'+l+'" '+(i.ativo!==false&&i.token?'checked':'')+'> enviar pelo número da '+esc(tituloProd(l))+' neste computador</label><span class="nota uzinfo" data-uzinfo="'+l+'" style="margin:0"></span></div></div>'; }).join('')+
+        '<div class="filtros"><label class="chk"><input type="checkbox" data-uzativo="'+l+'" '+(i.ativo!==false&&i.token?'checked':'')+'> enviar pelo número da '+esc(tituloProd(l))+' neste computador</label><span class="nota uzinfo" data-uzinfo="'+l+'" style="margin:0"></span></div>'+
+        '<div class="filtros"><span class="nota uzinfo">☁ Leitura na nuvem: <b>'+esc(nvStatusTxt(l))+'</b></span>'+(i.url&&i.token?'<button class="btn sec mini" data-nvloja="'+l+'">'+(nvLigada(l)?'Conferir na Uazapi':'Ligar leitura na nuvem')+'</button>':'')+'<span class="nota uzinfo" data-nvinfo="'+l+'"></span></div></div>'; }).join('')+
     '<div class="sgrid"><label>Máximo de mensagens por lote<input id="uzMax" type="number" min="1" max="200" value="'+esc(c.loteMax||30)+'"></label>'+
     '<label>Intervalo entre mensagens (segundos)<span style="display:flex;gap:6px"><input id="uzMin" type="number" min="5" value="'+esc(c.intMin||20)+'" style="width:50%"><input id="uzMaxI" type="number" min="5" value="'+esc(c.intMax||45)+'" style="width:50%"></span></label></div>'+
     '<div class="filtros"><button class="btn" id="uzSalvar">Salvar e testar</button></div>'+
-    '<p class="nota">Use uma instância diferente (um celular) para cada loja. Para não correr risco de bloqueio: comece com lotes pequenos (20–30 por dia por número), mantenha o intervalo de 20 a 45 segundos e envie só para quem já é cliente. As respostas dos clientes são lidas da Uazapi automaticamente a cada 10 minutos (aba Painel).</p></div>'; }
+    '<p class="nota">Use uma instância diferente (um celular) para cada loja. Para não correr risco de bloqueio: comece com lotes pequenos (20–30 por dia por número), mantenha o intervalo de 20 a 45 segundos e envie só para quem já é cliente. As respostas dos clientes são lidas da Uazapi automaticamente a cada 10 minutos (aba Painel). Com a <b>leitura na nuvem</b> ligada, as mensagens da loja chegam à cesta mesmo com o computador da loja fechado — basta ligar uma vez em cada loja.</p></div>'; }
 async function salvarTestarUaz(){ var c=uazCfg(); c.inst=c.inst||{};
   LOJAS_ENVIO.forEach(function(l){ c.inst[l]={url:($('[data-uzurl="'+l+'"]').value||'').trim(),token:($('[data-uztok="'+l+'"]').value||'').trim(),ativo:$('[data-uzativo="'+l+'"]').checked}; if(!c.inst[l].url&&!c.inst[l].token) delete c.inst[l]; });
   c.loteMax=$('#uzMax').value; c.intMin=$('#uzMin').value; c.intMax=$('#uzMaxI').value; uazSalvar(c); render();
@@ -2286,6 +2356,7 @@ async function tratarEvento(e){ if(!e||e.pc===idAba()) return;
   else if(e.t==='pf'&&e.ks){ await pfPuxar(e.ks); clearTimeout(AV.pTmr); AV.pTmr=setTimeout(avRender,500); }
   else if(e.t==='usu'){ await carregarUsuarios(); render(); }
   else if(e.t==='vinc'){ clearTimeout(AV.vTmr); AV.vTmr=setTimeout(function(){ sincronizar(); },1500); }
+  else if(e.t==='entrada'){ nvAgendar(e.loja); }
   else if(e.t==='fila'&&e.loja){ if(uazInst(e.loja)) setTimeout(function(){ processarFila(e.loja); },400); if(S.aba==='fila'){ await carregarFila(); avRender(); } } }
 async function puxarContato(id){ var r=await fb('GET','contatos/'+id); if(!r) return; var l=(S.contatos||[]).filter(function(x){ return x.id===id; })[0]; if(l&&l.pendente) return;
   var rec=Object.assign({},r,{id:id,pendente:false,chaves:r.chaves||[],produtos:r.produtos||[]}); await dbTx('contatos',function(st){ st.put(rec); });
@@ -2406,7 +2477,7 @@ async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
     try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
   DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
   if(syncAtivo()){ try{ var pid=''; try{ pid=localStorage.getItem('cesta_pcid')||''; if(!pid){ pid=Math.random().toString(36).slice(2,7); localStorage.setItem('cesta_pcid',pid); } }catch(e){} var id=String(S.sync.computador||('sem nome '+(S.loja||'')+' '+pid)).replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,lidoLoja:RESP.lidoLoja||{},erroLoja:RESP.erroLoja||{},semDados:RESP.semDados||'',dados:{imports:(S.imports||[]).length,clientes:S.model?S.model.lista.length:0,ate:S.model?S.model.refData:''},sync:{estado:SY.estado||'',msg:String(SY.msg||'').slice(0,120)},versao:'5.6'}); }catch(e){} }
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,lidoLoja:RESP.lidoLoja||{},erroLoja:RESP.erroLoja||{},semDados:RESP.semDados||'',dados:{imports:(S.imports||[]).length,clientes:S.model?S.model.lista.length:0,ate:S.model?S.model.refData:''},sync:{estado:SY.estado||'',msg:String(SY.msg||'').slice(0,120)},nuvem:{n:NV.n,ult:NV.ult,erro:NV.erro,diag:RT.diagNv||{}},versao:'5.7'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
@@ -4485,6 +4556,7 @@ function bind(){
     if((b=t.closest('th[data-pord]'))){ var c2=b.dataset.pord; S.prodOrdem=S.prodOrdem.campo===c2?{campo:c2,dir:-S.prodOrdem.dir}:{campo:c2,dir:(c2==='produto'||c2==='linha')?1:-1}; render(); return; }
     if((b=t.closest('[data-del]'))){ if(confirm('Excluir este relatório da base?')){ var id=b.dataset.del; await dbTx('imports',function(s){s.delete(id);}); exclusaoPendente(id); agendarSync(); await recarregar(); render(); toast('Relatório excluído.','ok'); } return; }
     if(t.closest('#drop')){ $('#fpdf').click(); return; }
+    if((b=t.closest('[data-nvloja]'))){ b.disabled=true; try{ await ligarNuvem(b.dataset.nvloja); }finally{ b.disabled=false; } return; }
     var id=t.id;
     if(id==='mais'){ S.limite+=300; render(); }
     else if(id==='expFiltro') exportClientes(filtrarClientes());
@@ -4588,13 +4660,13 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,leituraLoja:leituraLoja,precoAtual:precoAtual,posVendaTipo:posVendaTipo,novidades:novidadesUltima,aprOk:aprOk,corte:corte,formas:formasDoCliente,violacoes:violacoesMsg,revisar:revisarMsg,ehCarnePrep:ehCarnePrep,linhaDe:linhaDe,pfPreparo:pfPreparo,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={ligarNuvem:ligarNuvem,entradaLer:entradaLer,NV:NV,RESP:RESP,histDe:function(c){ return c&&HI.cache[histK(c)]; },foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,leituraLoja:leituraLoja,precoAtual:precoAtual,posVendaTipo:posVendaTipo,novidades:novidadesUltima,aprOk:aprOk,corte:corte,formas:formasDoCliente,violacoes:violacoesMsg,revisar:revisarMsg,ehCarnePrep:ehCarnePrep,linhaDe:linhaDe,pfPreparo:pfPreparo,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!RESP.radarEm||Date.now()-RESP.radarEm>(S.aba==='conversas'?20e3:45e3)) radarRespostas(); },10*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
     setTimeout(enviarHist,5000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(function(){ lerComputadores(true); },6000); setInterval(function(){ lerComputadores(false); },2*60*1000); setInterval(function(){ if(!S.model&&uazLojasLeitura().length&&syncAtivo()&&!SY.ocupado){ sincronizar(true).catch(function(){}); } },3*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
     abrirDeepLink();
     if(syncAtivo()) sincronizar(true);
-    setInterval(function(){ if(document.visibilityState==='visible'&&(!avAoVivo()||(++AV.tick)%4===0)) sincronizar(); },POLL_MS); setTimeout(avLigar,3000); setInterval(avLigar,60000); setTimeout(limparEventos,90000); setInterval(function(){ uazLojas().forEach(function(l){ processarFila(l); }); },20000); setTimeout(function(){ uazLojas().forEach(function(l){ processarFila(l); }); },12000);
+    setInterval(function(){ if(document.visibilityState==='visible'&&(!avAoVivo()||(++AV.tick)%4===0)) sincronizar(); },POLL_MS); setTimeout(avLigar,3000); setInterval(avLigar,60000); setTimeout(entradaLer,8000); setInterval(function(){ entradaLer(); },2*60000); setTimeout(limparEventos,90000); setInterval(function(){ uazLojas().forEach(function(l){ processarFila(l); }); },20000); setTimeout(function(){ uazLojas().forEach(function(l){ processarFila(l); }); },12000);
     window.addEventListener('focus',function(){ agendarSync(300); });
     window.addEventListener('online',function(){ agendarSync(300); });
     window.addEventListener('beforeunload',function(e){ if(UZ.lote&&!UZ.lote.fim){ e.preventDefault(); e.returnValue=''; } });
