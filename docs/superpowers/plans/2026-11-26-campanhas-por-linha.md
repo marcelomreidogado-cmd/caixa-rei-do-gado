@@ -151,3 +151,11 @@
 - [ ] **Step 1:** `vozlinhatest.js`: com frases da equipe no histórico do fixture, `sgLinha` usa uma delas (texto contém a frase aprendida) e continua passando no revisor, ≤200, sem "fresc", assinatura; sem frases, usa a reserva; frase anulada (`anulados`) nunca é usada; KAFTA aparece na cesta de dia e de churrasco; o ciclo da kafta vale nas duas.
 - [ ] **Step 2–4:** falha → implementar → `vozlinhatest`, `sugltest`, `linhatest`, `camplinhatest`, bateria → `ERRS []`.
 - [ ] **Step 5:** Commit `Teste: voz da equipe nas mensagens por linha; kafta nas duas linhas`.
+
+### Task 4b: mensagem automática nunca diz que algo chegou (decisão do Marcelo, 27/11 09h17)
+
+Regra: a equipe pode escrever "Chegou…/Acabamos de receber…/Acabei de receber…/lote novo" na conversa (ela sabe); mensagem montada pelo sistema não pode, porque o sistema não sabe o que chegou.
+
+**Files:** `cesta-teste/index.html` — `regrasContato.chegadaAuto` passa a padrão **false**; com false, nenhuma mensagem do sistema (montarSug e modelos `BIB_PREP`/`{chegou}`/`chegouTxt`, voz da equipe, sgLinha, sgReconq, sgTextoLoja com `{itens}`, promoção automática, kits gerados) contém `RE_CHEGOU_TXT`; modelos com `{chegou}` trocam por versão sem chegada ("Posso separar…"). Hambúrguer: "Acabamos de produzir" também sai (o sistema não sabe). O revisor (`violacoesMsg`) barra frase de chegada em mensagem do sistema quando `chegadaAuto` é false. Texto digitado pela equipe e texto fixo da loja em campanha/kit não são alterados.
+**Test:** `/home/claude/build/chegadatest.js` — com o padrão, 0 mensagens do sistema com chegada em todas as abas e objetivos (fixture e m4load); conversa digitada com "Chegou picanha" sai igual; com `chegadaAuto=true` volta a permitir para peça crua.
+- [ ] Commit `Teste: mensagem automática nunca anuncia chegada`.
