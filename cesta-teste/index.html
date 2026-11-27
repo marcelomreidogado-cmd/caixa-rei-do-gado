@@ -1950,21 +1950,39 @@ async function clCriar(semEnviar){ var d=clRascunho(); if(!d.linha||!d.objetivo)
   var ctx='camp:'+id, s=selCtx(ctx); s.itens={}; publicoCamp(CAMPS[id]).forEach(function(c){ if(!controleCamp(c,id)&&podeSair(c,null,ctx).ok) s.itens[c.chave]={}; });
   if(!Object.keys(s.itens).length){ toast('Ninguém liberado para receber agora. A campanha ficou como rascunho.','erro'); S.campAt=id; render(); return id; }
   await enviarMarcados(ctx); S.cl=null; S.clRes=null; S.campAt=id; render(); return id; }
-/* tela de uma campanha por linha (sem lista suspensa) */
-function telaCampanhaLinha(id){ var cp=CAMPS[id], ctx='camp:'+id, mt=metCamp(ctx), pub=publicoCamp(cp), okK={}, pubOk=pub.filter(function(c){ var r=podeSair(c,null,ctx).ok; if(r) okK[c.chave]=1; return r; }), L=LINHAS_MSG[cp.linha]||{nome:'',ico:''}, f=cp.filtros||{}, st=cp.status||'rascunho';
-  var fora=pub.filter(function(c){ return !okK[c.chave]; }), g={}; fora.forEach(function(c){ var mo=clMotivo(podeSair(c,null,ctx).motivo); g[mo]=(g[mo]||0)+1; });
-  S.visor=S.visor||{}; var lst=pubOk.concat(fora), n=lst.length, i=((S.visor[ctx]||0)%(n||1)+(n||1))%(n||1), cv=lst[i];
+/* tela de uma campanha por linha (sem lista suspensa). O público é calculado em lotes depois de desenhar ("calculando…") e guardado por campanha + dia + versão */
+function clCampChave(id){ var cp=CAMPS[id]||{}; return id+'|'+JSON.stringify([cp.linha,cp.objetivo,cp.filtros,cp.loja,cp.promo,cp.precoPromo,cp.produtoPromo,cp.controle])+'|'+sglChave()+'|'+(regras().voltarAuto?1:0); }
+function clCampPronto(id){ var R=S.clCamp, k; if(!R||R.id!==id||!R.pronto||R.m!==S.model) return null; k=clCampChave(id); if(R.k!==k) return null; if(Date.now()-R.t>PS_VALIDADE) clCampCalcular(id); return R; } /* passado da validade: mostra o último e recalcula por trás */
+function clCampCalcular(id){ var cp=CAMPS[id]; if(!cp||!S.model) return; var k=clCampChave(id); if(S.clCampRun&&S.clCampRun.k===k) return;
+  var ctx='camp:'+id, mm=S.model, cand=clCandidatos(cp), R=S.clCampRun={k:k,id:id,m:mm,pub:[],ok:[],fora:[],foraN:{},pronto:false,i:0};
+  var passo=(function(){ if(S.clCampRun!==R) return; if(S.model!==mm||!S.model){ S.clCampRun=null; setTimeout(function(){ if(S.model&&S.campAt===id) clCampCalcular(id); },50); return; }
+    var fim=Math.min(cand.length,R.i+80);
+    for(;R.i<fim;R.i++){ var c=cand[R.i];
+      try{ var ces=cestaDaLinha(c,cp.linha,{objetivo:cp.objetivo||'repor',loja:cp.loja||c.loja}); if(!ces.ok||(cp.objetivo==='promo'&&!clPromoOk(ces,cp))) continue; R.pub.push(c.chave);
+        var ps=podeSair(c,null,ctx); if(ps.ok) R.ok.push(c.chave); else { R.fora.push({k:c.chave,m:ps.motivo}); var g=clMotivo(ps.motivo); R.foraN[g]=(R.foraN[g]||0)+1; } }catch(e){} }
+    if(R.i<cand.length){ setTimeout(passo,0); return; }
+    R.pronto=true; R.t=Date.now(); S.clCamp=R; S.clCampRun=null;
+    if(S.aba==='campanhas'&&S.campAt===id&&!document.querySelector('#modal.on')) render(); });
+  setTimeout(passo,0); }
+function clCampPrevHtml(id){ var cp=CAMPS[id], ctx='camp:'+id, R=clCampPronto(id); if(!R) return '<div id="clCampPrev"><div class="vazio">calculando…</div></div>';
+  var lst=R.ok.map(function(k){ return {k:k,ok:true,m:''}; }).concat(R.fora), n=lst.length; if(!n) return '<div id="clCampPrev"><div class="vazio">Ninguém no público.</div></div>';
+  S.visor=S.visor||{}; var i=((S.visor[ctx]||0)%n+n)%n, x=lst[i], c=S.model.clientes[x.k];
+  return '<div id="clCampPrev">'+(c?clPrevia(c,cp,id,i,n,x.ok,x.m,ctx):'')+'</div>'; }
+function telaCampanhaLinha(id){ var cp=CAMPS[id], ctx='camp:'+id, mt=metCamp(ctx), R=clCampPronto(id), L=LINHAS_MSG[cp.linha]||{nome:'',ico:''}, f=cp.filtros||{}, st=cp.status||'rascunho';
+  if(!R) clCampCalcular(id);
   var flt=[cp.loja?tituloProd(cp.loja):(f.lojas&&f.lojas.length?f.lojas.map(tituloProd).join(', '):'Todas as lojas')].concat(f.dias?[(CL_TEMPO.filter(function(x){ return x.k===f.dias; })[0]||{t:f.dias}).t+' sem comprar']:[]).concat((f.produtos||[]).length&&cp.objetivo!=='promo'?[f.produtos.map(function(k){ var p=S.model.produtos[k]; return p?nomeNatural(p.produto):k; }).join(', ')]:[]).concat(cp.objetivo==='promo'?[clPromoNome(cp)+' por '+(cp.precoPromo||'?')]:[]);
+  var pubOk=R?R.ok.map(function(k){ return S.model.clientes[k]; }).filter(Boolean):[], nF=R?R.fora.length:0;
+  var pubHtml=!R?'<div class="vazio">calculando…</div>':barraSel(ctx,pubOk.length)+
+      (nF?'<details class="fora"><summary>'+num(nF)+' fora hoje, por quê</summary><ul>'+Object.keys(R.foraN).sort(function(a,b){ return R.foraN[b]-R.foraN[a]; }).map(function(k){ return '<li>'+num(R.foraN[k])+' · '+esc(k)+'</li>'; }).join('')+'</ul></details>':'')+
+      '<div class="tw cl-tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th class="r">Sem comprar</th><th>Cesta</th><th>Resultado</th></tr></thead><tbody>'+
+      pubOk.slice(0,400).map(function(c){ var res=mt.cli.filter(function(x){ return x.c===c; })[0], ces=cestaDaLinha(c,cp.linha,{objetivo:cp.objetivo,loja:cp.loja||c.loja});
+        return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(tituloProd(c.nome))+'</b><small class="cod">'+esc(tituloProd(c.loja))+'</small></td><td class="r">'+c.recencia+'d</td><td><small class="cl-cc">'+esc(ces.itens.map(function(x){ return x.nome; }).join(', '))+'</small></td><td>'+(res?(res.n?'<span class="pill okp">comprou '+brl(res.v)+'</span>':res.r.resp?'<span class="pill">respondeu</span>':'<span class="pill late">enviada</span>'):'—')+'</td></tr>'; }).join('')+'</tbody></table></div>'+(pubOk.length>400?'<small class="nota">Mostrando 400 de '+num(pubOk.length)+'.</small>':'');
   return '<div class="exec"><div class="ex-h"><div><button class="ico txt" id="campVoltar">← Campanhas</button><h1 class="cl-tit"><span id="campNomeT">'+esc(cp.nome)+'</span> <button class="ico" id="campRenom" title="Renomear">✎</button></h1>'+
       '<div class="cl-tags"><span class="pill">'+L.ico+' '+esc(L.nome)+'</span><span class="pill">'+esc(clObjNome(cp.objetivo))+'</span>'+flt.map(function(x){ return '<span class="pill cl-pf">'+esc(x)+'</span>'; }).join('')+'</div></div>'+
     '<div class="ex-act"><div class="cl-objs cl-st">'+[['rascunho','Rascunho'],['ativa','Ativa'],['encerrada','Encerrada']].map(function(o){ return '<button class="cl-ob'+(st===o[0]?' on':'')+'" data-campst="'+o[0]+'">'+o[1]+'</button>'; }).join('')+'</div> <button class="ico txt perigo" id="campDel">Apagar</button></div></div>'+
-    '<div class="ex-kpis">'+kc2('Público de hoje',num(pubOk.length),fora.length?num(fora.length)+' fora hoje':'todos liberados')+kc2('Enviadas',num(mt.env),mt.sair?mt.sair+' pediram SAIR':'')+kc2('Respostas',pct0(mt.tResp),num(mt.resp)+' clientes')+kc2('Compraram',pct0(mt.tComp),num(mt.comp)+' clientes em 7 dias','ok')+kc2('Receita',brl(mt.rec),num(mt.ped)+' pedidos','ok')+'</div>'+
-    '<div class="ex-grid"><div class="ex-col"><section class="card"><header><h3>Público de hoje</h3><span class="cnt">'+num(pubOk.length)+'</span></header>'+barraSel(ctx,pubOk.length)+
-      (fora.length?'<details class="fora"><summary>'+num(fora.length)+' fora hoje, por quê</summary><ul>'+Object.keys(g).sort(function(a,b){ return g[b]-g[a]; }).map(function(k){ return '<li>'+num(g[k])+' · '+esc(k)+'</li>'; }).join('')+'</ul></details>':'')+
-      '<div class="tw cl-tw"><table class="tbl"><thead><tr><th class="ck"></th><th>Cliente</th><th class="r">Sem comprar</th><th>Cesta</th><th>Resultado</th></tr></thead><tbody>'+
-      pubOk.slice(0,400).map(function(c){ var res=mt.cli.filter(function(x){ return x.c===c; })[0], ces=cestaDaLinha(c,cp.linha,{objetivo:cp.objetivo,loja:cp.loja||c.loja});
-        return '<tr class="click" data-cli="'+esc(c.chave)+'"><td class="ck">'+chkSel(ctx,c)+'</td><td><b>'+esc(tituloProd(c.nome))+'</b><small class="cod">'+esc(tituloProd(c.loja))+'</small></td><td class="r">'+c.recencia+'d</td><td><small class="cl-cc">'+esc(ces.itens.map(function(x){ return x.nome; }).join(', '))+'</small></td><td>'+(res?(res.n?'<span class="pill okp">comprou '+brl(res.v)+'</span>':res.r.resp?'<span class="pill">respondeu</span>':'<span class="pill late">enviada</span>'):'—')+'</td></tr>'; }).join('')+'</tbody></table></div></section></div>'+
-    '<div class="ex-col"><section class="card"><header><h3>Prévia</h3></header>'+(cv?clPrevia(cv,cp,id,i,n,!!okK[cv.chave],okK[cv.chave]?'':podeSair(cv,null,ctx).motivo,ctx):'<div class="vazio">Ninguém no público.</div>')+'</section></div></div></div>'; }
+    '<div class="ex-kpis">'+kc2('Público de hoje',R?num(pubOk.length):'…',R?(nF?num(nF)+' fora hoje':'todos liberados'):'calculando…')+kc2('Enviadas',num(mt.env),mt.sair?mt.sair+' pediram SAIR':'')+kc2('Respostas',pct0(mt.tResp),num(mt.resp)+' clientes')+kc2('Compraram',pct0(mt.tComp),num(mt.comp)+' clientes em 7 dias','ok')+kc2('Receita',brl(mt.rec),num(mt.ped)+' pedidos','ok')+'</div>'+
+    '<div class="ex-grid"><div class="ex-col"><section class="card"><header><h3>Público de hoje</h3><span class="cnt">'+(R?num(pubOk.length):'…')+'</span></header>'+pubHtml+'</section></div>'+
+    '<div class="ex-col"><section class="card"><header><h3>Prévia</h3></header>'+clCampPrevHtml(id)+'</section></div></div></div>'; }
 /* ---- tela CAMPANHAS ---- */
 function kc2(rot,val,sub,cls){ return '<div class="ek'+(cls?' '+cls:'')+'"><span>'+rot+'</span><b>'+val+'</b><small>'+(sub||'')+'</small></div>'; }
 /* ---------- FASE 4: promoção e kit sugeridos pelo perfil (motor v5). O preço real é sempre da loja. ---------- */
@@ -2754,6 +2772,7 @@ async function loteUazapi(lista,fnSug,lojaF,ctxL,optL){ optL=optL||{}; var quand
   /* Task 3: campanha por linha agendada é julgada pelo dia em que sai; churrasco agendado para seg/ter vai para o próximo dia liberado */
   var lnQ=''; try{ lnQ=lista.length?(fnSug(lista[0]).linha||''):''; }catch(e){} var dataQ=quandoQ?new Date(quandoQ).toLocaleDateString('sv-SE'):'', avLn='';
   if(lnQ&&quandoQ&&!linhaLiberada(lnQ,dataQ).ok){ var lbQ=linhaLiberada(lnQ,dataQ); quandoQ=new Date(linhaProxDia(lnQ,Date.parse(quandoQ))).toISOString(); dataQ=new Date(quandoQ).toLocaleDateString('sv-SE'); avLn=(LINHAS_MSG[lnQ]?LINHAS_MSG[lnQ].nome:lnQ)+': '+lbQ.motivo+' — agendado para '+quandoBR(quandoQ)+'.'; }
+  else if(lnQ&&!quandoQ&&LINHAS_MSG[lnQ]&&(foraDoHorario(new Date())||!linhaLiberada(lnQ).ok)){ var msQ=linhaProxDia(lnQ,proxAbertura(Date.now())); if(msQ>Date.now()+60e3){ quandoQ=new Date(msQ).toISOString(); dataQ=new Date(msQ).toLocaleDateString('sv-SE'); avLn=(LINHAS_MSG[lnQ].nome)+': fora do horário'+(linhaLiberada(lnQ,new Date(proxAbertura(Date.now()))).ok?'':' e '+linhaLiberada(lnQ,new Date(proxAbertura(Date.now()))).motivo)+' — sai em '+quandoBR(quandoQ)+'.'; } } /* revisão I-1: sem agendamento e fora do horário, a campanha por linha já entra com a data certa em que sai */
   var barradas=[], motivosB={}, foraT={}, exB=[], ehCampL=false; var base=lista.filter(function(c){ var g=fnSug(c); if(/^(camp|lista):/.test(g.campanha||'')) ehCampL=true; if(pendentesDe(c.chave)) return false;
     var ps=podeSair(c,g,ctxL||ctxDeSg(g),Object.assign({},optL.pausaOk?{pausaOk:true}:{},dataQ?{data:dataQ}:{})); if(ps.ok) return true; /* v5.10: porta única */ if(ps.tipo!=='revisor'){ var mt=ps.tipo==='tema'?ps.motivo:ps.motivo.replace(/ \(.*$/,'').replace(/ — .*$/,''); foraT[mt]=(foraT[mt]||0)+1; return false; }
     var rv=ps.rv||[]; rv.forEach(function(x){ var k=x.replace(/ \(.*$/,''); motivosB[k]=(motivosB[k]||0)+1; }); if(rv.length){ barradas.push(c.nome+': '+rv[0]); if(exB.length<3) exB.push('— '+c.nome+' ('+rv.join('; ')+'):\n'+textoFinal(g.mensagem,g).split('\n').filter(function(l){ return !/\bSAIR\b/.test(l); }).join(' / ')); return false; } return false; }); /* v5.9: o revisor só olha quem vai receber */
@@ -2804,9 +2823,10 @@ async function processarFila(l){ var inst=uazInst(l); if(!inst||FM.rodando[l]||!
       for(var a=0;a<ids.length;a++){ var x=q[ids[a]];
         if(x.st==='enviando'){ if(agoraMs-Date.parse((x.envio&&x.envio.em)||x.criado)>10*60e3) await filaConcluir(l,ids[a],x,'verificar','o envio foi interrompido no meio (computador fechado?) — confira no WhatsApp antes de reenviar'); continue; }
         if(x.quando&&Date.parse(x.quando)>agoraMs) continue;
-        var lnX=x.sg&&x.sg.linha; if(lnX&&!linhaLiberada(lnX).ok){ var nqX=new Date(linhaProxDia(lnX,agoraMs)).toISOString(); try{ await fb('PATCH','fila/'+l+'/'+ids[a],{quando:nqX,aviso:(LINHAS_MSG[lnX]?LINHAS_MSG[lnX].nome+': ':'')+linhaLiberada(lnX).motivo+' — espera até '+quandoBR(nqX)}); }catch(e){} continue; } /* Task 3: linha fora do dia volta para a fila até o próximo dia liberado (não é pulada) */
         if(limAt!==false&&!semTetoIt(x)) continue; /* limite do dia: só as que não contam (campanha de desculpas) */
         if(agoraMs-proxAbertura(Date.parse(x.quando||x.criado))>FM.VALIDADE_H*3600e3){ await filaConcluir(l,ids[a],x,'expirado','ficou mais de '+FM.VALIDADE_H+' h na fila sem sair'); continue; }
+        var lnX=x.sg&&x.sg.linha; if(lnX&&!LINHAS_MSG[lnX]){ await filaConcluir(l,ids[a],x,'pulado','linha desconhecida ('+lnX+')'); continue; }
+        if(lnX&&!linhaLiberada(lnX).ok){ var nqX=new Date(linhaProxDia(lnX,agoraMs)).toISOString(); try{ await fb('PATCH','fila/'+l+'/'+ids[a],{quando:nqX,aviso:LINHAS_MSG[lnX].nome+': '+linhaLiberada(lnX).motivo+' — espera até '+quandoBR(nqX)}); }catch(e){} continue; } /* Task 3: linha fora do dia volta para a fila até o próximo dia liberado (não é pulada); a validade é conferida antes (revisão M-3) */
         id=ids[a]; break; }
       if(!id){ if(limAt!==false){ FM.aviso=FM.aviso||{}; FM.aviso[l]=limAt===null?'não consegui conferir o limite do dia — a fila espera':'limite de '+tetoDia(l)+' mensagens hoje atingido — o resto espera'; } break; }
       var st0; try{ st0=await uazStatus(inst); }catch(e){ st0={ok:false,status:e.message}; } if(!st0.ok){ RT.estado[l]='caiu'; try{ vigiarConexao((function(){ var o={}; o[l]={cfg:true,envia:true,ok:false,status:st0.status,motivo:st0.motivo,logado:st0.logado}; return o; })()); }catch(e){} break; }
@@ -3974,7 +3994,7 @@ function linhaLiberada(linha,data){ if(!LINHAS_MSG[linha]) return {ok:false,moti
   if(linha==='churrasco'){ var w=dataLocal(data).getDay(); if(w===1||w===2) return {ok:false,motivo:'churrasco só de quarta a domingo',volta:'quarta'}; }
   return {ok:true,motivo:'',volta:''}; }
 /* Task 3: o próximo momento em que a linha pode sair (churrasco: quarta, na abertura) */
-function linhaProxDia(linha,ms){ var d=new Date(ms); for(var k=0;k<8&&!linhaLiberada(linha,d).ok;k++){ d.setDate(d.getDate()+1); d.setHours(JANELA.ini,0,0,0); } return d.getTime(); }
+function linhaProxDia(linha,ms){ if(!LINHAS_MSG[linha]) return ms; var d=new Date(ms); for(var k=0;k<8&&!linhaLiberada(linha,d).ok;k++){ d.setDate(d.getDate()+1); d.setHours(JANELA.ini,0,0,0); } return d.getTime(); }
 /* clientes de uma loja (para o "lift" da novidade) */
 function clLoja(loja){ var m=S.model; if(CL.cliM!==m){ CL.cliM=m; CL.cliL={}; } if(CL.cliL[loja]) return CL.cliL[loja]; var n=0; m.lista.forEach(function(c){ if(c.comprasLoja&&c.comprasLoja[loja]) n++; }); CL.cliL[loja]=n; return n; }
 function clCompradores(k,loja){ var p=S.model.produtos[k], pl=p&&p.porLoja&&p.porLoja[loja]; return pl&&pl.clientes||{}; }
@@ -4532,6 +4552,7 @@ function itensCtx(ctx){
   if(ctx==='cli') return filtrarClientes().map(function(c){ return {c:c}; });
   if(ctx==='reconq') return filtrarReconq().filter(function(c){ return !jaRecebeuCampanha(c,'reconquista',DIAS_REPETE_RECONQ); }).map(function(c){ return {c:c,prod:'x',modo:'reconq'}; });
   if(ctx.indexOf('kit:')===0){ var kx=kits().filter(function(x){return x.id===ctx.slice(4);})[0]; return kx?publicoKit(kx,S.kc||{}).map(function(c){ return {c:c}; }):[]; }
+  if(ctx.indexOf('camp:')===0&&CAMPS[ctx.slice(5)]&&CAMPS[ctx.slice(5)].linha&&clCampPronto(ctx.slice(5))){ var idx2=ctx.slice(5); return clCampPronto(idx2).pub.map(function(k){ return S.model.clientes[k]; }).filter(function(c){ return c&&!controleCamp(c,idx2); }).map(function(c){ return {c:c}; }); } /* campanha por linha: o público já calculado em lotes */
   if(ctx.indexOf('camp:')===0){ var cpx=CAMPS[ctx.slice(5)]; return cpx?publicoCamp(cpx).filter(function(c){ return !controleCamp(c,ctx.slice(5)); }).map(function(c){ return {c:c}; }):[]; }
   if(ctx.indexOf('lista:')===0) return membros(ctx.slice(6)).filter(function(c){ return !S.loja||c.loja===S.loja; }).map(function(c){ return {c:c}; });
   if(ctx==='rec') return filtrarRecompra().map(function(x){ return {c:x.c,prod:x.e.chave,modo:'recompra'}; });
@@ -5200,7 +5221,7 @@ function bind(){
     if((b=t.closest('[data-clloja]'))){ if(restrito()) return; var ce9=clEstado(), v9=b.dataset.clloja, p9=ce9.lojas.indexOf(v9); if(!v9) ce9.lojas=[]; else if(p9>=0) ce9.lojas.splice(p9,1); else ce9.lojas.push(v9); ce9.i=0; clPintar(['clMontar']); return; }
     if((b=t.closest('[data-cltempo]'))){ var ce10=clEstado(), v10=b.dataset.cltempo; ce10.dias=ce10.dias===v10?'':v10; ce10.i=0; clPintar(['clMontar']); return; }
     if((b=t.closest('[data-clprod]'))){ var ce11=clEstado(), v11=b.dataset.clprod, p11=ce11.prods.indexOf(v11); if(!v11) ce11.prods=[]; else if(ce11.obj==='promo') ce11.prods=p11>=0?[]:[v11]; else if(p11>=0) ce11.prods.splice(p11,1); else ce11.prods.push(v11); ce11.i=0; clPintar(['clMontar']); return; }
-    if((b=t.closest('[data-clnav]'))){ var cx12=b.dataset.clctx; if(cx12==='_novo'){ var ce12=clEstado(); ce12.i=(ce12.i||0)+(+b.dataset.clnav); clPintar(['clPasso4']); } else { S.visor=S.visor||{}; S.visor[cx12]=(S.visor[cx12]||0)+(+b.dataset.clnav); render(); } return; }
+    if((b=t.closest('[data-clnav]'))){ var cx12=b.dataset.clctx; if(cx12==='_novo'){ var ce12=clEstado(); ce12.i=(ce12.i||0)+(+b.dataset.clnav); clPintar(['clPasso4']); } else { S.visor=S.visor||{}; S.visor[cx12]=(S.visor[cx12]||0)+(+b.dataset.clnav); var el12=document.getElementById('clCampPrev'); if(el12&&S.campAt) el12.outerHTML=clCampPrevHtml(S.campAt); else render(); } return; }
     if((b=t.closest('[data-clpronta]'))){ var pp13=b.dataset.clpronta.split(':'); S.cl={linha:pp13[0],obj:pp13[1],lojas:S.loja?[S.loja]:[],dias:'',prods:[],preco:'',i:0}; S.clRes=null; clPintar(['clMontar']); var el13=document.getElementById('clPasso4')||document.getElementById('clMontar'); if(el13&&el13.scrollIntoView) el13.scrollIntoView({behavior:'smooth',block:'start'}); return; }
     if((b=t.closest('[data-clcriar]'))){ if(b.disabled) return; b.disabled=true; try{ await clCriar(false); }finally{ b.disabled=false; } return; }
     if((b=t.closest('[data-clrasc]'))){ await clCriar(true); return; }
