@@ -1803,12 +1803,12 @@ var SGL_TXT={repor:['Já está na hora de repor {p}? Podemos deixar tudo separad
   noite_hamb:['Que tal um hambúrguer hoje? Podemos separar {p} para você.','Hoje é um bom dia para hambúrguer em casa. Quer que a gente separe {p} para você?']}, SGL_NV=' Se quiser variar, temos também {nv}.';
 /* linhas que o cliente compra de verdade: 2+ dias de compra de carne da linha nos últimos 180 dias */
 function perfilLinhas(c){ var k=hoje()+'|'+pfVer(); if(c._plk===k&&c._pl) return c._pl.slice(); var d0=addDias(hoje(),-180), dl={};
-  (c.cestaArr||[]).forEach(function(e){ if(papelOferta(e)!=='principal') return; var ln=linhaMsgDe(e); if(!ln) return; var o=dl[ln]||(dl[ln]={}); (e.datasArr||[]).forEach(function(d){ if(d>=d0) o[d]=1; }); });
+  (c.cestaArr||[]).forEach(function(e){ if(papelOferta(e)!=='principal') return; linhasDoProduto(e).forEach(function(ln){ var o=dl[ln]||(dl[ln]={}); (e.datasArr||[]).forEach(function(d){ if(d>=d0) o[d]=1; }); }); });
   c._pl=['dia','churrasco','hamb'].filter(function(l){ return dl[l]&&Object.keys(dl[l]).length>=2; }); c._plk=k; return c._pl.slice(); }
 /* quem é público de cada sugestão (antes da cesta e da porta) */
 function sglPublico(c,linha,obj){ var rec=c.ultimaCompra?dias(c.ultimaCompra,hoje()):999;
   if(obj==='repor') return rec<30; if(obj==='voltar') return rec>=30&&rec<=90; /* acima de 90 dias é a Reconquista */
-  if(obj==='boasvindas') return (c.diasCompra||[]).length===1&&rec<=15&&(c.cestaArr||[]).some(function(e){ return papelOferta(e)==='principal'&&linhaMsgDe(e)===linha; });
+  if(obj==='boasvindas') return (c.diasCompra||[]).length===1&&rec<=15&&(c.cestaArr||[]).some(function(e){ return papelOferta(e)==='principal'&&linhaMsgDe(e,linha)===linha; });
   if(obj==='apresentar'){ var pl=perfilLinhas(c); return pl.length===1&&pl[0]!==linha; } return false; }
 /* a mensagem de um cliente numa linha/objetivo: só os itens de cestaDaLinha, textoFinal, assinatura da loja, até LIMITE_MSG */
 function sgLinha(c,linha,obj,loja,ces,xo){ xo=xo||{}; loja=loja||c.loja||''; ces=ces||cestaDaLinha(c,linha,{objetivo:obj,loja:loja});
@@ -1819,14 +1819,107 @@ function sgLinha(c,linha,obj,loja,ces,xo){ xo=xo||{}; loja=loja||c.loja||''; ces
   var its=ces.itens, cruz=obj==='apresentar'||obj==='boasvindas', nv=cruz||obj==='promo'?[]:its.filter(function(x){ return x.novo; }).slice(0,1), hb=cruz?its.slice(0,3):its.filter(function(x){ return !x.novo; });
   if(!hb.some(function(x){ return papelOferta(x.chave)==='principal'; })){ hb=its.slice(0,3); nv=[]; } /* sem habitual de carne livre: a novidade vai na frente */
   var ts=SGL_TXT[obj]||SGL_TXT.repor, i0=hashN(c.chave+'|'+linha+'|'+obj)%ts.length, pick=null, fb=null;
+  try{ pick=vozTentar(c,cv,sg,linha,obj,hb,nv,xo||{}); }catch(e){ pick=null; } /* Task 3b: a voz da equipe primeiro; o texto fixo é a reserva */
   for(var a=0;a<ts.length&&!pick;a++){ var t=ts[(i0+a)%ts.length];
     for(var k=Math.min(hb.length,3);k>=1&&!pick;k--){ for(var w=nv.length;w>=0&&!pick;w--){ var sel=hb.slice(0,k).concat(nv.slice(0,w)), x={itens:sel};
       var r=comporMsg(cv,{corpo:t+(w?SGL_NV:''),seed:c.chave+'|'+hoje()+'|'+linha+'|'+obj,vars:{p:listaPT(hb.slice(0,k).map(function(y){ return y.nome; })),nv:w?nv[0].nome:'',ln:SGL_LN[linha]||'',pr:xo.pr||''}}), txt=textoFinal(r.txt,x);
       if(tamMsg(txt)<=LIMITE_MSG){ var cand={t:t,itens:sel,txt:txt,at:r.atendente}, rv=[]; try{ rv=revisarMsg(txt,cv,Object.assign({},sg,{itens:sel})); }catch(e){ rv=['?']; } if(!rv.length) pick=cand; else if(!fb) fb=cand; } } } } /* o revisor barrou (ex.: dois hambúrgueres de fraldinha): tenta com menos itens */
   if(!pick) pick=fb; /* nenhuma passou no revisor: a porta mostra o motivo */
   if(!pick){ sg.semTema='sem produto para citar'; return sg; }
-  sg.itens=pick.itens; sg.mensagem=pick.txt; sg.atendente=pick.at; sg.vtxt=pick.t; sg.vh='linha:'+linha+':'+obj+'|'+hashN(pick.t); sg.variante='linha:'+linha+':'+obj;
+  sg.itens=pick.itens; sg.mensagem=pick.txt; sg.atendente=pick.at; sg.vtxt=pick.t; sg.voz=pick.voz||{fonte:'reserva'}; sg.vh='linha:'+linha+':'+obj+'|'+hashN(pick.t); sg.variante='linha:'+linha+':'+obj;
   sg.ofertas=pick.itens.map(function(y){ return {chave:y.chave,produto:y.produto,linha:linha,novo:!!y.novo}; }); return sg; }
+/* =================== Task 3b (26/11/2026): a voz da equipe nas mensagens por linha ===================
+   Decisão do Marcelo (26/11 20h43): "o tom é esse mesmo, e esse aprendizado tem que vir do banco de dados das nossas mensagens já captadas".
+   A frase de oferta e o fechamento vêm das mensagens reais da equipe que tiveram resposta ou compra (reconhecerMelhores: sem as anuladas e
+   sem as do sistema), escolhidas por linha e objetivo. A abertura que dá o assunto (apresentar a linha, boas-vindas, preço da promoção) é nossa.
+   O texto fixo (SGL_TXT) fica como reserva quando não há frase válida. Toda frase passa por aprOk, pelo revisor e pela trava de linha. */
+var RE_V_NOVO=/provar|experiment|conhec|novidade|lan[cç]amento|nunca levou|vai gostar|vai amar/i,
+  RE_V_REPOR=/repor|acab|de novo|novamente|outra vez|de sempre|como sempre|\bmesm[ao]s?\b|[uú]ltima vez|da outra vez|costum|precis/i,
+  RE_V_VOLTA=/saudade|sumi[ud]|tempinho|faz tempo|tempo que|falta|n[aã]o (te )?vemos/i,
+  RE_V_PROIB=/\d|R\$|%|gr[aá]tis|frete|desconto|promo|brinde|cupom|oferta|\bkit\b|pre[cç]o|valor|amanh[aã]|ontem|segunda|ter[cç]a|quarta|quinta|sexta|s[aá]bado|domingo|semana que vem|m[eê]s que vem|natal|ano novo|feriado|p[aá]scoa|https?:|www\.|\bSAIR\b|\[|\bpix\b|cart[aã]o|encomend|estoque|reclam|desculp|atras|agrad|\bmeses\b|\bsemanas\b|\buns dias\b|oportunidade/i,
+  RE_V_PROD=/\{(p|o_p1|do_p1|seu_p1|Seu_p1)\}/,
+  RE_V_OFERTA=/separ|reserv|guard|deixar|\bquer\b|\bposso\b|levar/i,
+  VOZ_MAI={REI:1,GADO:1,CORONEL:1,CORREAS:1,BINGEN:1},
+  VOZ_SIT={repor:'recompra',voltar:'reativar_risco',noite_hamb:'recompra'},
+  VOZ_AB={apresentar:'O {loja} também trabalha com {ln}.',boasvindas:'Agradecemos a sua primeira compra com a gente!',voltar:'Faz um tempinho que você não aparece por aqui.',promo:'Hoje tem {p} por {pr}.',noite_hamb:'Hoje é um bom dia para hambúrguer em casa.'},
+  VOZ_FE={apresentar:'É só responder que a gente separa.'},
+  VZ={k:'',an:{},tx:{},base:{}};
+/* frase sem produto, preço, data, condição nem nome de cliente (o produto da frase original já virou {p}) */
+function vozTextoOk(t){ t=String(t||''); if(VZ.tx.hasOwnProperty(t)) return VZ.tx[t]; var ok=true, x=t.replace(/\{\w+\}/g,' ');
+  if(!t||RE_V_PROIB.test(x)||RE_FRESCO.test(x)||lojaSemRei(t)||RE_CHEGOU_TXT.test(x)&&/fresquinh/i.test(x)) ok=false;
+  if(ok){ var re=reProdutos(); re.lastIndex=0; if(re.test(x)||cortesNoTexto(x).length) ok=false; re.lastIndex=0; }
+  if(ok){ var ws=x.split(/\s+/).filter(Boolean); for(var i=0;i<ws.length&&ok;i++){ var w=ws[i].replace(/[^A-Za-zÀ-ú]/g,''), n=rgNorm(w); if(!w) continue;
+      if(n.length>=3&&(NOMES_F+NOMES_M).indexOf(' '+n+' ')>=0) ok=false; /* nome de outro cliente */
+      else if(/^[A-ZÀ-Ú]/.test(w)&&i>0&&!/[.!?]$/.test(ws[i-1])&&!VOZ_MAI[n]) ok=false; } } /* nome próprio no meio da frase */
+  VZ.tx[t]=ok; return ok; }
+/* fechamento: a 1ª frase depois da pergunta, curta, sem pergunta e sem produto */
+function vozFechoDe(t){ var f=String(t||'').replace(RE_EMO_INI,'').trim(); f=(f.match(/^[^.!?]+[.!?]*/)||[''])[0].trim(); if(!f||/[?{]/.test(f)||f.length<12||f.length>80||f.split(/\s+/).length<3) return '';
+  if(RE_PREP_TXT.test(f)||RE_CHEGOU_TXT.test(f)||/cort|pe[cç]a inteira|mo[ií]d|bife|tiras|cubos/i.test(f)) return ''; /* fechamento não oferece preparo nem anuncia chegada */
+  if(RE_OPERACIONAL.test(f)||!vozTextoOk(f)) return ''; if(!/[.!]$/.test(f)) f+='.'; return f.charAt(0).toUpperCase()+f.slice(1); }
+/* no aprendizado: em que linha(s) e em que momento do cliente a frase foi usada */
+function vozMarcar(g,txt,c,md,dia,ant,resp,comp){ var lns={};
+  cortesNoTexto(txt).forEach(function(k){ prodsDoCorte(k).forEach(function(p){ linhasDoProduto(p.chave).forEach(function(l){ lns[l]=1; }); }); });
+  Object.keys(lns).forEach(function(l){ g.ln[l]=(g.ln[l]||0)+1; });
+  var uc=ant[ant.length-1], rec=uc?dias(uc,dia):null, ob=[];
+  if(ant.length<=1&&(rec==null||rec<=15)) ob.push('boasvindas');
+  if(rec!=null&&rec<30) ob.push('repor'); else if(rec!=null&&rec<=90) ob.push('voltar');
+  if(ant.length){ var tem={}; (c.cestaArr||[]).forEach(function(e){ if(papelOferta(e)!=='principal') return; if((e.datasArr||[]).some(function(d){ return d<dia; })) linhasDoProduto(e).forEach(function(l){ tem[l]=1; }); });
+    if(Object.keys(lns).some(function(l){ return !tem[l]; })) ob.push('apresentar'); }
+  ob.forEach(function(o){ g.ob[o]=(g.ob[o]||0)+1; });
+  if(md.fe){ var f=g.fe[md.fe]||(g.fe[md.fe]={n:0,resp:0,comp:0}); f.n++; if(resp) f.resp++; if(comp) f.comp++; } }
+/* o que fica guardado em config/aprendidas.voz */
+function vozMontar(R,ex){ ex=ex||{}; var FE={};
+  var of=R.itens.filter(function(g){ return !ex[g.h]&&vozTextoOk(g.t); }).slice(0,60).map(function(g){ return {h:g.h,t:g.t,cat:g.cat,n:g.n,resp:g.resp,comp:g.comp,score:+(+g.score).toFixed(3),ln:g.ln||{},ob:g.ob||{},lojas:g.lojas,ult:g.ult}; });
+  R.itens.forEach(function(g){ Object.keys(g.fe||{}).forEach(function(t){ var x=g.fe[t], k=String(hashN(rgNorm(t))), f=FE[k]||(FE[k]={h:'f'+k,t:t,n:0,resp:0,comp:0}); f.n+=x.n; f.resp+=x.resp; f.comp+=x.comp; }); });
+  var fe=Object.keys(FE).map(function(k){ var f=FE[k]; f.score=+((2*f.comp+f.resp+8*0.3)/(f.n+8)).toFixed(3); return f; }).filter(function(f){ return !ex[f.h]&&f.resp+f.comp>0&&vozFechoDe(f.t)===f.t; }).sort(function(a,b){ return b.score-a.score; }).slice(0,20);
+  return {data:hoje(),of:of,fe:fe}; }
+/* frases e fechamentos de mensagens anuladas (25/11): nunca entram, mesmo que já estejam guardadas */
+function vozAnulH(){ var cs=S.contatos||[], hk=Object.keys(HI.cache||{}), k=Object.keys(ANUL.ids||{}).length+'|'+Object.keys(ANUL.mids||{}).length+'|'+cs.length+'|'+hk.length; if(VZ.ak===k) return VZ.an; var h={};
+  var add=function(txt){ try{ var md=modeloDaMensagem(txt,{nome:''}); if(md){ h[String(hashN(rgNorm(md.t)))]=1; h['t:'+rgNorm(md.t)]=1; if(md.fe){ h['f'+hashN(rgNorm(md.fe))]=1; h['t:'+rgNorm(md.fe)]=1; } } }catch(e){} };
+  cs.forEach(function(r){ if(r&&r.msg&&anulado(r)) add(r.msg); });
+  hk.forEach(function(K){ var H=HI.cache[K]||{}; Object.keys(H).forEach(function(id){ var x=H[id]; if(x&&x.de==='l'&&x.txt&&anulado(Object.assign({id:id},x))) add(x.txt); }); });
+  VZ.ak=k; VZ.an=h; return h; }
+function vozFonte(){ var a=S.cfg.aprendidas||{}; if(a.voz&&Array.isArray(a.voz.of)) return a.voz;
+  return {of:(a.itens||[]).map(function(x){ return Object.assign({ln:{},ob:{}},x); }),fe:[]}; } /* antes do 1º aprendizado novo: as frases já guardadas, sem linha */
+/* frases de oferta válidas para linha × objetivo (a parte que não depende do cliente fica guardada) */
+function vozBase(linha,obj){ var a=S.cfg.aprendidas||{}, V=vozFonte(), an=vozAnulH(), ex=a.excl||{}, k=[a.data||'',(V.of||[]).length,(V.fe||[]).length,Object.keys(ex).length,VZ.ak,agCfg().dia||''].join('|');
+  if(VZ.k!==k){ VZ.k=k; VZ.base={}; } var bk=linha+'|'+obj; if(VZ.base[bk]) return VZ.base[bk];
+  var cat=obj==='promo'?'sem_produto':'produto', novo=/^(apresentar|boasvindas|promo)$/.test(obj);
+  var of=(V.of||[]).filter(function(x){ var t=x&&x.t; if(!t||x.cat!==cat||ex[x.h]||an[x.h]||an['t:'+rgNorm(t)]||!vozTextoOk(t)||RE_POSV_TXT.test(t)||RE_PREP_TXT.test(t)) return false; /* preparo só pelo motor (formas da cesta do cliente) */
+      if(novo) return !RE_APR_ROTINA.test(t)&&!RE_V_REPOR.test(t)&&!RE_V_VOLTA.test(t)&&(obj!=='promo'||(!RE_V_NOVO.test(t)&&RE_V_OFERTA.test(t)));
+      return !RE_V_NOVO.test(t)&&(obj==='voltar'||!RE_V_VOLTA.test(t)); })
+    .map(function(x){ var w=(x.score||0.2)*(1+((x.ln||{})[linha]?0.5:0))*(1+((x.ob||{})[obj]?0.5:0))*((obj==='apresentar'||obj==='boasvindas')&&RE_V_NOVO.test(x.t)?1.3:1); return {x:x,w:w}; })
+    .sort(function(p,q){ return q.w-p.w; }).map(function(o){ return o.x; });
+  var fe=(V.fe||[]).filter(function(f){ var t=f&&f.t; if(!t||ex[f.h]||an[f.h]||an['t:'+rgNorm(t)]||vozFechoDe(t)!==t) return false; if(novo) return !RE_V_REPOR.test(t)&&!RE_V_VOLTA.test(t)&&!RE_APR_ROTINA.test(t); return !RE_V_NOVO.test(t)&&(obj==='voltar'||!RE_V_VOLTA.test(t)); });
+  VZ.base[bk]={of:of,fe:fe}; return VZ.base[bk]; }
+function vozGenero(q,fm){ var g=function(m0,r0,r1){ return r0+(fm?'a':'o')+r1; };
+  return String(q).replace(/\b(para|pra) v[eê](?![A-Za-zÀ-ú])/gi,'$1 ver').replace(/!\?/g,'?').replace(/\s+\?/g,'?') /* erro de digitação da frase original */.replace(/([A-Za-zÀ-ú]+(?:ad|id|ont))[oa](\s+\{(?:o_p1|p)\})/g,g).replace(/\b([Nn]oss)[ao](\s+\{p\})/g,g)
+    .replace(/(^|\s)([AaOo])(\s+noss[ao]\s+\{p\})/g,function(m0,s0,a0,r1){ return s0+(a0===a0.toUpperCase()?(fm?'A':'O'):(fm?'a':'o'))+r1; }); }
+/* a pergunta da frase (sem a introdução), para quando a abertura é nossa */
+function vozPergunta(t){ var fr=String(t).match(/[^.!?]+[.!?]*\s*/g)||[String(t)]; for(var i=fr.length-1;i>=0;i--) if(/\?/.test(fr[i])) return fr[i].trim()+(fr.slice(i+1).join('').trim()?' '+fr.slice(i+1).join('').trim():''); return String(t).trim(); }
+/* tenta montar a mensagem com a voz da equipe; null = usa a reserva */
+function vozTentar(c,cv,sg,linha,obj,hb,nv,xo){ var B=vozBase(linha,obj), sit=VOZ_SIT[obj]||'novo';
+  var ofs=B.of.filter(function(x){ return aprOk(x,c,sit)&&blocoCombina(x.t,c); }); if(!ofs.length) return null;
+  var fes=B.fe.filter(function(f){ return blocoCombina(f.t,c); }).slice(0,2), seed=c.chave+'|'+linha+'|'+obj, n0=Math.min(ofs.length,3), i0=hashN(seed)%n0, ord=[];
+  for(var a=0;a<Math.min(ofs.length,6);a++) ord.push(ofs[a<n0?(i0+a)%n0:a]); /* variedade entre as 3 melhores; depois as outras */
+  for(var i=0;i<ord.length;i++){ var x=ord[i], ab=VOZ_AB[obj]||'', q=x.t;
+    if(obj==='voltar'&&RE_V_VOLTA.test(q)) ab=''; if(ab){ var qp=vozPergunta(q); if(obj==='promo'||RE_V_PROD.test(qp)) q=qp; } /* sem o produto na pergunta, fica a frase inteira */ if(!q||!/\?/.test(q)) continue;
+    if(obj!=='promo'&&!RE_V_PROD.test(q)) continue; /* a mensagem sempre cita o produto */
+    var umP=/\{(o_p1|do_p1|seu_p1|Seu_p1)\}/.test(q), fims=fes.map(function(f){ return {t:f.t,h:f.h}; }); fims.push({t:VOZ_FE[obj]||'',h:''});
+    for(var fi=0;fi<fims.length;fi++){ for(var k=umP?1:Math.min(hb.length,3);k>=1;k--){ for(var w=nv.length;w>=0;w--){
+      var sel=hb.slice(0,k).concat(nv.slice(0,w)), p1=hb[0], fm=p1?(fem(p1.produto)||fem(String(p1.nome||'').toUpperCase())):false;
+      if(RE_CHEGOU_TXT.test(q)&&!sel.every(function(p){ return chegadaOk(q,p); })) continue;
+      if(RE_PREP_TXT.test(q)&&!sel.every(ehCarnePrep)) continue;
+      if(k>1&&/(noss[ao]|[aio]d[oa]|pront[oa]|(^|\s)[aoAO])\s+\{p\}/.test(q)) continue; /* gênero de vários produtos juntos: não arrisca */
+      var qg=vozGenero(q,fm); /* "separado o patinho" → "separada a picanha"; "a nossa {p}" pelo gênero do produto */
+      var corpo=[ab,qg,fims[fi].t].filter(Boolean).join(' ')+(w?SGL_NV:''), vh='linha:'+linha+':'+obj+'|'+hashN(corpo); if(agAposentado(vh,corpo)) continue;
+      var vars={p:listaPT(hb.slice(0,k).map(function(y){ return y.nome; })),p1:p1?p1.nome:'',o_p1:p1?(fm?'a ':'o ')+p1.nome:'',do_p1:p1?(fm?'da ':'do ')+p1.nome:'',seu_p1:p1?(fm?'sua ':'seu ')+p1.nome:'',Seu_p1:p1?(fm?'Sua ':'Seu ')+p1.nome:'',nv:w?nv[0].nome:'',ln:SGL_LN[linha]||'',pr:xo.pr||''};
+      var r=comporMsg(cv,{corpo:corpo,seed:seed+'|'+hoje(),vars:vars}), txt=textoFinal(r.txt,{itens:sel});
+      if(tamMsg(txt)>LIMITE_MSG||RE_FRESCO.test(txt)||/\{\w+\}/.test(txt)) continue;
+      var rv=[]; try{ rv=revisarMsg(txt,cv,Object.assign({},sg,{itens:sel})); }catch(e){ rv=['?']; } if(rv.length) continue;
+      if(outraLinhaMsg(linha,{itens:sel},txt)) continue;
+      return {t:corpo,itens:sel,txt:txt,at:r.atendente,voz:{fonte:'equipe',h:x.h,fe:fims[fi].h,frase:x.t}}; } } } }
+  return null; }
 function sglCopia(x){ return Object.assign({},x,{clientes:x.clientes.slice(),fora:Object.assign({},x.fora),exemplo:Object.assign({},x.exemplo,{itens:(x.exemplo.itens||[]).slice()})}); }
 /* sugestoesCamp() -> [{id:'linha:objetivo', linha, objetivo, tit, desc, ico, n, clientes:[chave], fora:{motivo:n}, exemplo:{cliente, nome, mensagem, itens:[chave]}}] */
 function sglChave(){ var m=S.model; return [S.loja||'',hoje(),pfVer(),S._gv||0,(S.contatos||[]).length,m.refData||'',m.lista.length].join('|'); }
@@ -1908,7 +2001,7 @@ function clPasso1(){ var e=clEstado(), sg=sglPronto();
   return '<div class="cl-p" id="clPasso1"><h4 class="cl-h"><i>1</i>Linha</h4><div class="cl-lns">'+['dia','churrasco','hamb'].map(function(l){ var lb=linhaLiberada(l), L=LINHAS_MSG[l];
     return '<button class="cl-ln'+(e.linha===l?' on':'')+'" data-clinha="'+l+'"'+(lb.ok?'':' disabled')+'><span class="cl-li">'+L.ico+'</span><b class="cl-lt">'+esc(L.nome)+'</b>'+(lb.ok?'<b class="cl-n">'+(sg?num(clContaLinha(sg,l)):'…')+'</b><small>com cesta liberada hoje</small>':'<b class="cl-n">—</b><small>volta na '+esc(lb.volta)+'</small>')+'</button>'; }).join('')+'</div></div>'; }
 function clProdutosLinha(e){ var m=S.model, ls=e.lojas.length?e.lojas:null;
-  return Object.keys(m.produtos).filter(function(k){ var p=m.produtos[k]; if(!p||!p.ativo||papelOferta(k)!=='principal'||linhaMsgDe(k)!==e.linha) return false; return !ls||ls.some(function(l){ return p.porLoja&&p.porLoja[l]; }); })
+  return Object.keys(m.produtos).filter(function(k){ var p=m.produtos[k]; if(!p||!p.ativo||papelOferta(k)!=='principal'||linhaMsgDe(k,e.linha)!==e.linha) return false; return !ls||ls.some(function(l){ return p.porLoja&&p.porLoja[l]; }); })
     .map(function(k){ var p=m.produtos[k], n=0; (ls||Object.keys(p.porLoja||{})).forEach(function(l){ var pl=p.porLoja&&p.porLoja[l]; if(pl) n+=Object.keys(pl.clientes||{}).length; }); return {k:k,n:n,nome:nomeNatural(p.produto)}; })
     .sort(function(a,b){ return b.n-a.n; }).slice(0,14); }
 function clPasso3(){ var e=clEstado(); if(e.linha&&e.obj) clCalcular(); var R=S.clRes, d=clRascunho(), pr=e.obj==='promo', ps=clProdutosLinha(e), so=restrito();
@@ -3980,6 +4073,7 @@ var CL={nov:{},novV:'',cliL:{}};
 /* linha da mensagem de um produto; acompanhamento "dos dois" (batata, molho, bacon) herda a linha da carne com que vai (com) */
 function linhaMsgDe(prod,com){ var q=ofProduto(prod); if(!q||!q.nome) return ''; var inf=infoOferta(prod); if(inf.papel==='nunca') return '';
   var n=rgNorm(q.nome), L=linhaDe(q.chave,q.nome); if(/CARVAO/.test(n)) return '';
+  if((com==='dia'||com==='churrasco')&&RE_DUAS_LINHAS.test(n)&&inf.papel==='principal') return com; /* Task 3b (Marcelo, 26/11): kafta vale nas duas linhas */
   if(inf.ctx==='hb'||L==='Hambúrguer') return 'hamb';
   if(inf.papel==='acomp'){ if(inf.ctx==='churrasco') return 'churrasco'; return (com==='churrasco'||com==='hamb')?com:''; }
   if(L==='Bovinos dia a dia') return 'dia';
@@ -3989,6 +4083,9 @@ function linhaMsgDe(prod,com){ var q=ofProduto(prod); if(!q||!q.nome) return '';
   if(L==='Suínos e linguiças') return (/DIA A DIA|BISTECA|\bISCA\b|MOID|\bBIFE\b/.test(n)&&!/NABRASA|BRASA|DUROC|\bLING|LINGUICA|ESPET/.test(n))?'dia':'churrasco';
   if(inf.ctx==='churrasco') return 'churrasco'; /* carne com nome de carne em outra família (espeto de picanha, cupim barbecue) */
   return ''; }
+/* Task 3b: produtos das duas linhas (Dia a dia e Churrasco). linhaMsgDe(prod) continua dando a linha principal; com a linha (com) dá ela. */
+var RE_DUAS_LINHAS=/\bKAFTA\b/;
+function linhasDoProduto(prod){ var l=linhaMsgDe(prod); if(!l) return []; var q=ofProduto(prod); if((l==='dia'||l==='churrasco')&&q&&RE_DUAS_LINHAS.test(rgNorm(q.nome))&&linhaMsgDe(prod,l==='dia'?'churrasco':'dia')!==l) return ['dia','churrasco']; return [l]; }
 function dataLocal(d){ if(d instanceof Date) return d; var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(d||'')); return m?new Date(+m[1],+m[2]-1,+m[3],12):new Date(); }
 function linhaLiberada(linha,data){ if(!LINHAS_MSG[linha]) return {ok:false,motivo:'linha desconhecida',volta:''};
   if(linha==='churrasco'){ var w=dataLocal(data).getDay(); if(w===1||w===2) return {ok:false,motivo:'churrasco só de quarta a domingo',volta:'quarta'}; }
@@ -4003,12 +4100,12 @@ function clRanking(linha,loja,base,modo){ var m=S.model, v=pfVer()+'|'+(m.refDat
   var key=linha+'|'+loja+'|'+modo+'|'+base.slice().sort().join(','); if(CL.nov[key]) return CL.nov[key];
   var B={}, nB=0; base.forEach(function(k){ var cs=clCompradores(k,loja); Object.keys(cs).forEach(function(ck){ if(!B[ck]){ B[ck]=1; nB++; } }); });
   var N=clLoja(loja)||1, minC=Math.max(1,Math.ceil(nB*0.05)), out=[];
-  if(nB) Object.keys(m.produtos).forEach(function(k){ var p=m.produtos[k]; if(!p||!p.ativo||p.promo||base.indexOf(k)>=0) return; if(papelOferta(k)!=='principal'||linhaMsgDe(k)!==linha) return;
+  if(nB) Object.keys(m.produtos).forEach(function(k){ var p=m.produtos[k]; if(!p||!p.ativo||p.promo||base.indexOf(k)>=0) return; if(papelOferta(k)!=='principal'||linhaMsgDe(k,linha)!==linha) return;
     var cs=clCompradores(k,loja), nk=0, cnt=0; Object.keys(cs).forEach(function(ck){ nk++; if(B[ck]) cnt++; }); if(!nk||cnt<minC) return;
     var pl=p.porLoja[loja]; out.push({k:k,cnt:cnt,lift:cnt*N/(nB*nk),val:pl?pl.valor:0}); });
   out.sort(function(a,b){ return modo==='lift'?((b.lift-a.lift)||(b.cnt-a.cnt)||(b.val-a.val)):((b.cnt-a.cnt)||(b.val-a.val)); });
   /* sem base (cliente sem compra na loja): os mais vendidos da linha na loja */
-  if(!out.length) Object.keys(m.produtos).forEach(function(k){ var p=m.produtos[k], pl=p&&p.porLoja&&p.porLoja[loja]; if(!p||!p.ativo||p.promo||!pl||base.indexOf(k)>=0||papelOferta(k)!=='principal'||linhaMsgDe(k)!==linha) return; out.push({k:k,cnt:0,lift:0,val:pl.valor,mais:1}); });
+  if(!out.length) Object.keys(m.produtos).forEach(function(k){ var p=m.produtos[k], pl=p&&p.porLoja&&p.porLoja[loja]; if(!p||!p.ativo||p.promo||!pl||base.indexOf(k)>=0||papelOferta(k)!=='principal'||linhaMsgDe(k,linha)!==linha) return; out.push({k:k,cnt:0,lift:0,val:pl.valor,mais:1}); });
   if(out.length&&out[0].mais) out.sort(function(a,b){ return b.val-a.val; });
   CL.nov[key]=out.map(function(x){ return x.k; }); return CL.nov[key]; }
 function clItem(k,novo){ var p=S.model.produtos[k]; return {chave:k,produto:p.produto,nome:nomeNatural(p.produto),novo:!!novo}; }
@@ -4392,7 +4489,7 @@ function telaAnalise(){ var r=AN.res, pc=function(a,b){ return b?Math.round(a/b*
    A equipe continua escrevendo do jeito dela: é isso que treina a agente.
    ===================================================================== */
 var APR={rodando:false,status:''};
-function aprCfg(){ var a=S.cfg.aprendidas||{}; return {data:a.data||'',itens:a.itens||[],rq:a.rq||[],excl:a.excl||{},lidas:a.lidas||0,consideradas:a.consideradas||0}; }
+function aprCfg(){ var a=S.cfg.aprendidas||{}; return {data:a.data||'',itens:a.itens||[],rq:a.rq||[],excl:a.excl||{},lidas:a.lidas||0,consideradas:a.consideradas||0,voz:a.voz||null}; }
 function reAcento(w){ return String(w).toLowerCase().replace(/[^a-zà-ú0-9\s-]/g,'').replace(/[aáàâã]/g,'[aáàâã]').replace(/[eéê]/g,'[eéê]').replace(/[ií]/g,'[ií]').replace(/[oóôõ]/g,'[oóôõ]').replace(/[uú]/g,'[uú]').replace(/[cç]/g,'[cç]'); }
 var RE_PRODS=null;
 function reProdutos(){ if(RE_PRODS) return RE_PRODS; var fr={};
@@ -4417,9 +4514,9 @@ function modeloDaMensagem(txt,c){ var t=limparCorpo(String(txt||'').replace(/\s*
   for(var k=0;k<3;k++) t=t.replace(new RegExp(P+'(?:\\s*,\\s*|\\s+e\\s+)'+P,'g'),P);
   t=t.replace(new RegExp('\\b(seu|sua|seus|suas)\\s+'+P,'gi'),function(m,a){ return /^[SA-Z]/.test(a)?'{Seu_p1}':'{seu_p1}'; })
      .replace(new RegExp('\\b(do|da|dos|das)\\s+'+P,'gi'),'{do_p1}').replace(new RegExp('(^|\\s)(o|a|os|as)\\s+'+P,'gi'),'$1{o_p1}').replace(new RegExp(P,'g'),'{p}');
-  t=t.replace(/^[,\s]+/,'').replace(RE_EMO_INI,'').replace(/^\{nome\}[,!.]?\s*/,''); var q=t.search(/\?/); if(q>=0){ var resto=t.slice(q+1).match(new RegExp('^(?:\\s|'+EMO_SRC+'|[!?.])*')); t=t.slice(0,q+1+(resto?resto[0].length:0)).trim(); } // a oferta termina na pergunta; o que vem depois é outra mensagem
+  t=t.replace(/^[,\s]+/,'').replace(RE_EMO_INI,'').replace(/^\{nome\}[,!.]?\s*/,''); var q=t.search(/\?/), fe0=''; if(q>=0){ var resto=t.slice(q+1).match(new RegExp('^(?:\\s|'+EMO_SRC+'|[!?.])*')); fe0=t.slice(q+1+(resto?resto[0].length:0)).trim(); t=t.slice(0,q+1+(resto?resto[0].length:0)).trim(); } /* Task 3b: o que vem depois da pergunta é o fechamento da equipe */ // a oferta termina na pergunta; o que vem depois é outra mensagem
   if(t.length<25||!/\?/.test(t)||/https?:|www\.|^\(mensagem/i.test(t)||/^(t[áa] bom|perfeito|ok\b|certo|claro|combinado|obrigad|eu quem|j[áa] estamos|vou deixar|infelizmente)/i.test(t)||/^(posso|quer)\b[^.!]{0,30}\?\s*\S{0,3}$/i.test(t)) return null; if((t.match(/\{(p|o_p1|seu_p1|Seu_p1|do_p1)\}/g)||[]).length>1) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
-  return {t:t,cat:/\{(p|o_p1|seu_p1|Seu_p1|do_p1)\}/.test(t)?'produto':'sem_produto'}; }
+  return {t:t,cat:/\{(p|o_p1|seu_p1|Seu_p1|do_p1)\}/.test(t)?'produto':'sem_produto',fe:vozFechoDe(fe0)}; }
 async function lerTodoHistorico(st){ var ks=[]; try{ ks=syncAtivo()?Object.keys((await fb('GET','hist',undefined,'shallow=true'))||{}):[]; }catch(e){}
   for(var i=0;i<ks.length;i+=8){ await Promise.all(ks.slice(i,i+8).map(async function(K){ var c=clientePorK(K); if(c) await carregarHist(c); })); if(st) st('Lendo conversas: '+Math.min(i+8,ks.length)+' de '+ks.length); } return ks.length; }
 /* reconhece as melhores mensagens da equipe em todo o histórico */
@@ -4431,7 +4528,7 @@ function reconhecerMelhores(){ var m=S.model, G={}, lidas=0;
       var md=null; try{ md=modeloDaMensagem(b.txt,c); }catch(e){ md=null; } if(!md) return;
       var resp=tl.some(function(x){ var t=Date.parse(x.em); return x.de==='c'&&t>b.fim&&t-b.fim<=48*3600e3; }), dia=new Date(b.ini-3*3600e3).toISOString().slice(0,10), comp=compras.some(function(d){ return d>=dia&&dias(dia,d)<=7; });
       var ant=compras.filter(function(d){ return d<dia; }), uc=ant[ant.length-1], rq=!!uc&&dias(uc,dia)>90, comp15=compras.some(function(d){ return d>=dia&&dias(dia,d)<=15; });
-      var k=String(hashN(rgNorm(md.t))), g=G[k]||(G[k]={h:k,t:md.t,cat:md.cat,n:0,resp:0,comp:0,rq:0,rqResp:0,rqComp:0,lojas:{},ult:'',ex:''}); g.n++; if(resp) g.resp++; if(comp) g.comp++; if(rq){ g.rq++; if(resp) g.rqResp++; if(comp15) g.rqComp++; } g.lojas[tituloProd(b.loja||'')]=1; if(dia>g.ult){ g.ult=dia; g.ex=b.txt.slice(0,220); } }); });
+      var k=String(hashN(rgNorm(md.t))), g=G[k]||(G[k]={h:k,t:md.t,cat:md.cat,n:0,resp:0,comp:0,rq:0,rqResp:0,rqComp:0,lojas:{},ult:'',ex:'',ln:{},ob:{},fe:{}}); g.n++; if(resp) g.resp++; if(comp) g.comp++; try{ vozMarcar(g,b.txt,c,md,dia,ant,resp,comp); }catch(e){} if(rq){ g.rq++; if(resp) g.rqResp++; if(comp15) g.rqComp++; } g.lojas[tituloProd(b.loja||'')]=1; if(dia>g.ult){ g.ult=dia; g.ex=b.txt.slice(0,220); } }); });
   var it=Object.keys(G).map(function(k){ var g=G[k]; g.score=(2*g.comp+g.resp+8*0.3)/(g.n+8); g.lojas=Object.keys(g.lojas).filter(Boolean); return g; }).filter(function(g){ return g.resp+g.comp>0; }).sort(function(a,b){ return b.score-a.score; });
   return {itens:it,lidas:lidas}; }
 async function aprenderMensagensEquipe(auto){ if(APR.rodando||!S.model) return; APR.rodando=true; var st=function(t){ APR.status=t; var e=document.getElementById('aprStatus'); if(e) e.textContent=t; };
@@ -4442,13 +4539,13 @@ async function aprenderMensagensEquipe(auto){ if(APR.rodando||!S.model) return; 
     var R=reconhecerMelhores(), ex=cfg.excl, prod=R.itens.filter(function(g){ return g.cat==='produto'&&!ex[g.h]; }).slice(0,15), sem=R.itens.filter(function(g){ return g.cat==='sem_produto'&&!ex[g.h]; }).slice(0,10);
     var rqL=R.itens.filter(function(g){ return g.rq>0&&(g.rqResp+g.rqComp)>0&&!ex[g.h]; }).map(function(g){ g.rqScore=(2*g.rqComp+g.rqResp+4*0.3)/(g.rq+4); return g; }).sort(function(a,b){ return b.rqScore-a.rqScore; }).slice(0,10);
     var novo={data:hoje(),itens:prod.concat(sem).map(function(g){ return {h:g.h,t:g.t,cat:g.cat,n:g.n,resp:g.resp,comp:g.comp,score:+g.score.toFixed(3),lojas:g.lojas,ult:g.ult,ex:g.ex}; }),
-      rq:rqL.map(function(g){ return {h:g.h,t:g.t,cat:g.cat,n:g.rq,resp:g.rqResp,comp:g.rqComp,rqScore:+g.rqScore.toFixed(3),lojas:g.lojas,ult:g.ult,ex:g.ex}; }),excl:ex,lidas:R.lidas,consideradas:R.itens.length};
+      rq:rqL.map(function(g){ return {h:g.h,t:g.t,cat:g.cat,n:g.rq,resp:g.rqResp,comp:g.rqComp,rqScore:+g.rqScore.toFixed(3),lojas:g.lojas,ult:g.ult,ex:g.ex}; }),excl:ex,lidas:R.lidas,consideradas:R.itens.length,voz:vozMontar(R,ex)};
     S.cfg.aprendidas=novo; await salvarCfg('aprendidas',novo); limparSugestoes();
-    st('Atualizado em '+dBR(hoje())+': '+novo.itens.length+' mensagens da equipe em uso, de '+num(R.lidas)+' lidas.'); if(!auto||S.aba==='importacoes') render();
+    st('Atualizado em '+dBR(hoje())+': '+novo.itens.length+' mensagens da equipe em uso, de '+num(R.lidas)+' lidas ('+novo.voz.of.length+' frases e '+novo.voz.fe.length+' fechamentos para as campanhas por linha).'); if(!auto||S.aba==='importacoes') render();
   }catch(e){ st('Erro: '+e.message); } finally{ APR.rodando=false; } }
 function aprendidasPara(sit){ /* filtrar com aprOk(x,c,sit) onde houver cliente */ var cat=/^(reativar_inativo|sem_cesta)$/.test(sit)?'sem_produto':/^(recompra|vip|padrao|reativar_risco)$/.test(sit)?'produto':''; if(!cat) return [];
   return aprCfg().itens.filter(function(x){ return x.cat===cat; }); }
-async function excluirAprendida(h){ var a=aprCfg(); a.excl[h]=1; a.itens=a.itens.filter(function(x){ return x.h!==h; }); a.rq=a.rq.filter(function(x){ return x.h!==h; }); S.cfg.aprendidas=a; await salvarCfg('aprendidas',a); limparSugestoes(); render(); toast('Mensagem retirada. Ela não volta a ser usada.','ok'); }
+async function excluirAprendida(h){ var a=aprCfg(); a.excl[h]=1; a.itens=a.itens.filter(function(x){ return x.h!==h; }); a.rq=a.rq.filter(function(x){ return x.h!==h; }); if(a.voz) a.voz={data:a.voz.data,of:(a.voz.of||[]).filter(function(x){ return x.h!==h; }),fe:(a.voz.fe||[]).filter(function(x){ return x.h!==h; })}; S.cfg.aprendidas=a; await salvarCfg('aprendidas',a); limparSugestoes(); render(); toast('Mensagem retirada. Ela não volta a ser usada.','ok'); }
 function blocoAprendidas(){ var a=aprCfg(), pc=function(x,n){ return n?Math.round(x/n*100)+'%':'—'; };
   var rqB=a.rq.length?'<h4 style="margin:14px 0 6px">🤝 Reconquista: mensagens da equipe que trouxeram cliente de volta ('+a.rq.length+')</h4><div class="tw"><table class="tbl"><thead><tr><th>Modelo</th><th class="r">Enviadas a sumidos</th><th class="r">Responderam</th><th class="r">Voltaram em 15 dias</th><th></th></tr></thead><tbody>'+a.rq.map(function(x){ return '<tr><td><b>'+esc(x.t)+'</b><small class="cod" title="'+esc(x.ex)+'">original: '+esc(String(x.ex||'').slice(0,110))+'</small></td><td class="r">'+x.n+'</td><td class="r">'+pc(x.resp,x.n)+'</td><td class="r">'+pc(x.comp,x.n)+'</td><td><button class="ico" data-aprexcl="'+esc(x.h)+'" title="Não usar mais">✕</button></td></tr>'; }).join('')+'</tbody></table></div>':'<p class="nota">Reconquista: ainda não há mensagens da equipe para clientes sumidos que tiveram resposta ou compra. Enquanto isso, a reconquista cita o produto que o cliente mais levava.</p>';
   return '<section class="card" style="margin-bottom:12px"><header><h3>🧠 Mensagens que a equipe ensinou</h3><span class="cnt">'+a.itens.length+'</span></header>'+
@@ -5437,7 +5534,7 @@ function bind(){
 async function init(){
   try{ if(!window.pdfjsLib) throw new Error('Leitor de PDF não carregou.');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([document.getElementById('pdfworker').textContent],{type:'application/javascript'}));
-    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={clTela:clBlocoMontar,clCpDe:clCpDe,sgCampLinha:sgCampLinha,clRascunho:clRascunho,clCandidatos:clCandidatos,clCriar:clCriar,clCamps:function(){ return CAMPS; },sglCalcular:sglCalcular,linhaProxDia:linhaProxDia,fb:fb,dias:dias,hoje:hoje,enviarMarcados:enviarMarcados,render:render,regras:regras,publicoCamp:publicoCamp,sgCamp:sgCamp,controleSug:controleSug,semCarne:semCarne,processarFila:processarFila,loteUazapi:loteUazapi,sgLeve:sgLeve,filaDoDia:filaDoDia,podeSair:podeSair,sgDoCtx:sgDoCtx,chkSel:chkSel,chkSelReconq:chkSelReconq,btnEnviar:btnEnviar,barraSel:barraSel,astroPainel:astroPainel,papelOferta:papelOferta,linhaMsgDe:linhaMsgDe,linhaLiberada:linhaLiberada,sugestoesCamp:sugestoesCamp,perfilLinhas:perfilLinhas,sgLinha:sgLinha,tamMsg:tamMsg,cestaDaLinha:cestaDaLinha,LINHAS_MSG:LINHAS_MSG,pfLimparCli:pfLimparCli,outraLinhaMsg:outraLinhaMsg,infoOferta:infoOferta,pilPorta:pilPorta,avisoBebidaCamp:avisoBebidaCamp,blocoCesta:blocoCesta,filtrarSug:filtrarSug,portaManual:portaManual,rgNormPos:rgNormPos,PS:PS,itensOferta:itensOferta,ofertaNoTexto:ofertaNoTexto,gruposRecompra:gruposRecompra,itensCtx:itensCtx,semMotivoHoje:semMotivoHoje,promoPerfis:promoPerfis,abrirProduto:abrirProduto,selCtx:selCtx,conferirChat:conferirChat,clienteEscreveu24h:clienteEscreveu24h,responderConversa:responderConversa,agForaDaMedia:agForaDaMedia,agSyncFresca:agSyncFresca,SY:SY,desculpasCorpo:desculpasCorpo,nomeCruCadastro:nomeCruCadastro,anuncioDe:anuncioDe,processarFila:processarFila,JANELA:JANELA,abrirRegras:abrirRegras,nomeTrat:nomeTrat,saudacao:saudacao,assinaturaDe:assinaturaDe,registrarContato:registrarContato,optout:optout,contatosDe:contatosDe,ofertaHoje0:ofertaHoje0,agenteDia:agenteDia,agenteCalc:agenteCalc,agCfg:agCfg,agAposentado:agAposentado,agRevisarModelo:agRevisarModelo,cartaoAgente:cartaoAgente,AG:AG,anulado:anulado,ANUL:ANUL,anulLer:anulLer,anulAplicar:anulAplicar,chaveMid:chaveMid,linhaTempo:linhaTempo,textosEquipe:textosEquipe,linhasPainel:linhasPainel,metCamp:metCamp,telaEnviadas:telaEnviadas,blocoHistCompleto:blocoHistCompleto,chatConversa:chatConversa,calcularAnalise:calcularAnalise,resultadoReconq:resultadoReconq,chegadaOk:chegadaOk,chegaOk:chegaOk,chegouTxt:chegouTxt,carnePV:carnePV,posVendaTipo:posVendaTipo,nomeChamada:nomeChamada,nomeNatural:nomeNatural,montarSug:montarSug,ofertaHoje:ofertaHoje,travaCorte:travaCorte,respostaSugerida:respostaSugerida,violacoesMsg:violacoesMsg,BIB5:BIB5,BIB_PREP:BIB_PREP,escolherCorpo:escolherCorpo,sgTextoLoja:sgTextoLoja,limparSugestoes:limparSugestoes,tetoDia:tetoDia,tetoAuto:tetoAuto,tetoCfg:tetoCfg,lojaSemRei:lojaSemRei,mpTexto:mpTexto,sgDesculpas:sgDesculpas,podeCamp:podeCamp,enviadosHoje:enviadosHoje,enviarChat:enviarChat,enviarUazapi:enviarUazapi,bib4:bib4,S:S,processarFila:processarFila,FM:FM,revisaoTexto:revisaoTexto,revisarMsg:revisarMsg,textoFinal:textoFinal,acentuar:acentuar,foraDoHorario:foraDoHorario,ligarNuvem:ligarNuvem,entradaLer:entradaLer,NV:NV,RESP:RESP,histDe:function(c){ return c&&HI.cache[histK(c)]; },foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,leituraLoja:leituraLoja,precoAtual:precoAtual,posVendaTipo:posVendaTipo,novidades:novidadesUltima,aprOk:aprOk,corte:corte,formas:formasDoCliente,violacoes:violacoesMsg,revisar:revisarMsg,ehCarnePrep:ehCarnePrep,linhaDe:linhaDe,pfPreparo:pfPreparo,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
+    lerSync(); try{ setLoja(localStorage.getItem('cesta_loja')||''); }catch(e){} await prepararLogin(); await dbOpen(); await carregarUsuarios(); await recarregar(); aplicarPerm(); S.aba=S.model?'hoje':'importacoes'; bind(); render(); cvCarregar().then(function(){ avRender(); if(S.model) badge('conversas',nConversasNovas()); setTimeout(cvMontar,20000); }); setInterval(cvCarregar,10*60*1000); setInterval(carregarUsuarios,5*60*1000); setTimeout(varrerAudios,30000); setInterval(varrerAudios,5*60*1000); pfCarregar().then(function(){ avRender(); setTimeout(pfMontar,90000); }); setInterval(pfCarregar,10*60*1000); window.__cesta=S; window.__sug=sugestoes; window.__sync=sincronizar; window.__SY=SY; window.__recarregar=recarregar; window.__resp=verificarRespostas; window.__t={sglPublico:sglPublico,linhasDoProduto:linhasDoProduto,vozMontar:vozMontar,vozBase:vozBase,vozTextoOk:vozTextoOk,vozFechoDe:vozFechoDe,vozAnulH:vozAnulH,reconhecerMelhores:reconhecerMelhores,modeloDaMensagem:modeloDaMensagem,VZ:VZ,clTela:clBlocoMontar,clCpDe:clCpDe,sgCampLinha:sgCampLinha,clRascunho:clRascunho,clCandidatos:clCandidatos,clCriar:clCriar,clCamps:function(){ return CAMPS; },sglCalcular:sglCalcular,linhaProxDia:linhaProxDia,fb:fb,dias:dias,hoje:hoje,enviarMarcados:enviarMarcados,render:render,regras:regras,publicoCamp:publicoCamp,sgCamp:sgCamp,controleSug:controleSug,semCarne:semCarne,processarFila:processarFila,loteUazapi:loteUazapi,sgLeve:sgLeve,filaDoDia:filaDoDia,podeSair:podeSair,sgDoCtx:sgDoCtx,chkSel:chkSel,chkSelReconq:chkSelReconq,btnEnviar:btnEnviar,barraSel:barraSel,astroPainel:astroPainel,papelOferta:papelOferta,linhaMsgDe:linhaMsgDe,linhaLiberada:linhaLiberada,sugestoesCamp:sugestoesCamp,perfilLinhas:perfilLinhas,sgLinha:sgLinha,tamMsg:tamMsg,cestaDaLinha:cestaDaLinha,LINHAS_MSG:LINHAS_MSG,pfLimparCli:pfLimparCli,outraLinhaMsg:outraLinhaMsg,infoOferta:infoOferta,pilPorta:pilPorta,avisoBebidaCamp:avisoBebidaCamp,blocoCesta:blocoCesta,filtrarSug:filtrarSug,portaManual:portaManual,rgNormPos:rgNormPos,PS:PS,itensOferta:itensOferta,ofertaNoTexto:ofertaNoTexto,gruposRecompra:gruposRecompra,itensCtx:itensCtx,semMotivoHoje:semMotivoHoje,promoPerfis:promoPerfis,abrirProduto:abrirProduto,selCtx:selCtx,conferirChat:conferirChat,clienteEscreveu24h:clienteEscreveu24h,responderConversa:responderConversa,agForaDaMedia:agForaDaMedia,agSyncFresca:agSyncFresca,SY:SY,desculpasCorpo:desculpasCorpo,nomeCruCadastro:nomeCruCadastro,anuncioDe:anuncioDe,processarFila:processarFila,JANELA:JANELA,abrirRegras:abrirRegras,nomeTrat:nomeTrat,saudacao:saudacao,assinaturaDe:assinaturaDe,registrarContato:registrarContato,optout:optout,contatosDe:contatosDe,ofertaHoje0:ofertaHoje0,agenteDia:agenteDia,agenteCalc:agenteCalc,agCfg:agCfg,agAposentado:agAposentado,agRevisarModelo:agRevisarModelo,cartaoAgente:cartaoAgente,AG:AG,anulado:anulado,ANUL:ANUL,anulLer:anulLer,anulAplicar:anulAplicar,chaveMid:chaveMid,linhaTempo:linhaTempo,textosEquipe:textosEquipe,linhasPainel:linhasPainel,metCamp:metCamp,telaEnviadas:telaEnviadas,blocoHistCompleto:blocoHistCompleto,chatConversa:chatConversa,calcularAnalise:calcularAnalise,resultadoReconq:resultadoReconq,chegadaOk:chegadaOk,chegaOk:chegaOk,chegouTxt:chegouTxt,carnePV:carnePV,posVendaTipo:posVendaTipo,nomeChamada:nomeChamada,nomeNatural:nomeNatural,montarSug:montarSug,ofertaHoje:ofertaHoje,travaCorte:travaCorte,respostaSugerida:respostaSugerida,violacoesMsg:violacoesMsg,BIB5:BIB5,BIB_PREP:BIB_PREP,escolherCorpo:escolherCorpo,sgTextoLoja:sgTextoLoja,limparSugestoes:limparSugestoes,tetoDia:tetoDia,tetoAuto:tetoAuto,tetoCfg:tetoCfg,lojaSemRei:lojaSemRei,mpTexto:mpTexto,sgDesculpas:sgDesculpas,podeCamp:podeCamp,enviadosHoje:enviadosHoje,enviarChat:enviarChat,enviarUazapi:enviarUazapi,bib4:bib4,S:S,processarFila:processarFila,FM:FM,revisaoTexto:revisaoTexto,revisarMsg:revisarMsg,textoFinal:textoFinal,acentuar:acentuar,foraDoHorario:foraDoHorario,ligarNuvem:ligarNuvem,entradaLer:entradaLer,NV:NV,RESP:RESP,histDe:function(c){ return c&&HI.cache[histK(c)]; },foneWa:foneWa,bib:bib4,hashN:hashN,pesoTexto:pesoTexto,aprendizado:aprendizado,estado:estadoContato,histAdd:histAdd,histK:histK,HI:HI,TR:TR,CV:CV,PERM:PERM,cvMontar:cvMontar,AU:AU,carregarUsuarios:carregarUsuarios,elegivel:elegivel,perfil:perfilCliente,processarFila:processarFila,prepFrase:prepFrase,preparoTxt:preparoTxt,tipoPreparo:tipoPreparo,chegouTxt:chegouTxt,leituraLoja:leituraLoja,precoAtual:precoAtual,posVendaTipo:posVendaTipo,novidades:novidadesUltima,aprOk:aprOk,corte:corte,formas:formasDoCliente,violacoes:violacoesMsg,revisar:revisarMsg,ehCarnePrep:ehCarnePrep,linhaDe:linhaDe,pfPreparo:pfPreparo,temaTexto:temaTexto,itemTema:itemTema,sgCamp:sgCamp,cortesNoTexto:cortesNoTexto,loteUazapi:loteUazapi,pfPorRecusa:pfPorRecusa,novaLista:novaLista,sugestoes:sugestoes,novaCampanha:novaCampanha,oferta:function(c){ return ofertaHoje(c,null); },trava:travaCorte,pfExtrair:pfExtrair,PF:PF,resposta:respostaSugerida,posVenda:posVenda,aplicarPerm:aplicarPerm,meuPapel:meuPapel,encerra:encerraConversa,cvEstado:cvEstado,threads:threadsConversa,rodarFila:rodarFila,enfileirarAudios:enfileirarAudios};
     setTimeout(function(){ verificarRespostas(false); },20000); setInterval(function(){ verificarRespostas(false); },5*60*1000); setInterval(function(){ if(!RESP.radarEm||Date.now()-RESP.radarEm>(S.aba==='conversas'?20e3:45e3)) radarRespostas(); },10*1000); setTimeout(radarRespostas,8000); setTimeout(rtLigar,5000); setInterval(rtLigar,2*60*1000);
     setTimeout(enviarHist,5000); setTimeout(function(){ agenteDia(false,'abertura').catch(function(){}); },70000); setInterval(function(){ agenteDia(false,'abertura').catch(function(){}); },60*60*1000); setTimeout(function(){ if(S.model&&syncAtivo()&&aprCfg().data!==hoje()) aprenderMensagensEquipe(true); },25000); setTimeout(crmLer,2500); setTimeout(vigiarCrmAntigo,40000); setInterval(vigiarCrmAntigo,20*60*1000); setTimeout(campLer,3000); setTimeout(linguaLer,3500); setInterval(function(){ if(document.visibilityState==='visible') campLer(); },60000); setInterval(function(){ if(document.visibilityState==='visible') crmLer(); },45000); setInterval(enviarHist,3*60*1000); setTimeout(checarNumeros,4000); setInterval(checarNumeros,2*60*1000); setTimeout(function(){ lerComputadores(true); },6000); setInterval(function(){ lerComputadores(false); },2*60*1000); setInterval(function(){ if(!S.model&&uazLojasLeitura().length&&syncAtivo()&&!SY.ocupado){ sincronizar(true).catch(function(){}); } },3*60*1000); window.__dbTx=dbTx; window.__lg=lingua; window.__tr={transcrever:transcreverAudio,fila:TR,aprender:aprenderTodas,executar:trExecutar};window.__fila={processar:processarFila,carregar:carregarFila,FM:FM,AV:AV,lote:loteUazapi,RT:RT,evento:tratarEvento};window.__m5={selCtx:selCtx,enviar:enviarMarcados,elegivel:elegivel,uazPara:uazPara,atendPend:atendPendente,sugFoco:sugFoco,controle:controleSug,estado:estadoContato,promo:promoPerfis,dup:candidatosDup,juntar:juntarCadastros,desfazer:desfazerJuncao,reconq:sgReconq};window.__m4={modelo:modeloDaMensagem,aprender:aprenderMensagensEquipe,reconhecer:reconhecerMelhores,CAMPS:CAMPS,sug:sugestoes,foco:sugFoco,cesta:cestaPerfil,nat:nomeNatural,comp:complementoDe,auditar:auditarMensagens,viol:violacoesMsg,camp:sgCamp,reconq:sgReconq,kit:sgKit,limpar:limparCorpo}; window.__ir=function(a){ S.aba=a; S.limite=200; render(); }; window.__hist={radar:radarRespostas,HI:HI,linhaTempo:linhaTempo,perfil:perfilComunicacao,enviar:enviarHist,verificar:verificarRespostas}; window.__sugFoco=sugFoco;
     setSync(syncAtivo()?'sync':'off');
