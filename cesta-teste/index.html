@@ -4193,7 +4193,7 @@ var CL={nov:{},novV:'',cliL:{}};
 /* linha da mensagem de um produto; acompanhamento "dos dois" (batata, molho, bacon) herda a linha da carne com que vai (com) */
 function linhaMsgDe(prod,com){ var q=ofProduto(prod); if(!q||!q.nome) return ''; var inf=infoOferta(prod); if(inf.papel==='nunca') return '';
   var n=rgNorm(q.nome), L=linhaDe(q.chave,q.nome); if(/CARVAO/.test(n)) return '';
-  if(/\bFRALD(A|INHA)\b/.test(n)&&!/^(HB|HAMB\w*)\b/.test(n)) return /PARA HAMB|\bP HAMB/.test(n)?'':'churrasco'; /* Marcelo, 27/11: fraldinha (FRALDA RED…) = só Churrasco; fraldinha para hambúrguer não entra em cesta. HB FRALDINHA é hambúrguer (não muda) */
+  if(/\bFRALD(A|INHA)\b/.test(n)&&!/^(HB|HAMB\w*)\b/.test(n)) return /PARA HAMB|\bP HAMB/.test(n)?'hamb':'churrasco'; /* Marcelo, 27/11: fraldinha (FRALDA RED…) = só Churrasco; fralda para hambúrguer (o cliente pede para moer o burger) = Hambúrguer. HB FRALDINHA é hambúrguer (não muda) */
   if((com==='dia'||com==='churrasco')&&RE_DUAS_LINHAS.test(n)&&inf.papel==='principal') return com; /* Task 3b (Marcelo, 26/11): kafta vale nas duas linhas */
   if(inf.ctx==='hb'||L==='Hambúrguer') return 'hamb';
   if(inf.papel==='acomp'){ if(inf.ctx==='churrasco') return 'churrasco'; return (com==='churrasco'||com==='hamb')?com:''; }
