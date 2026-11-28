@@ -3024,7 +3024,7 @@ async function processarFila(l){ var inst=uazInst(l); if(!inst||FM.rodando[l]||!
       var it=await filaPegar(l,id); if(!it) continue;
       if(!S.model){ await filaVoltar(l,id,'base recarregando'); break; } var c=S.model.clientes[it.chave];
       if(!c){ await filaConcluir(l,id,it,'pulado','cliente não está na base deste computador'); continue; }
-      var sg0=it.sg||{}, sg=Object.assign({},sugestoes(c),sg0); ['ofertas','novidades','produtos','itens'].forEach(function(k){ sg[k]=Array.isArray(sg0[k])?sg0[k]:[]; }); if(it.kit){ var fk=kitImg(it.kit); if(!fk){ await filaConcluir(l,id,it,'falhou','o kit está sem foto neste computador'); continue; } sg.midia={type:'image',file:fk}; }
+      var sg0=it.sg||{}, sg=Object.assign({},sugestoes(c),sg0); ['ofertas','novidades','produtos','itens'].forEach(function(k){ sg[k]=Array.isArray(sg0[k])?sg0[k]:[]; }); if(it.kit){ var fk=kitImg(it.kit); if(!fk) fk=await kitImgNuvem(it.kit); if(!fk){ await filaConcluir(l,id,it,'falhou','o kit está sem foto (nem neste computador nem na nuvem) — abra o kit e salve a foto de novo'); continue; } sg.midia={type:'image',file:fk}; }
       it.msg=textoFinal(String(it.msg||'').replace(/^(Bom dia|Boa tarde|Boa noite)\b/i,saudacao()),sg); if(it.quando){ var cpQ=String(sg.campanha||'').indexOf('camp:')===0&&CAMPS[String(sg.campanha).slice(5)]; if(cpQ&&promoBloq(c,cpQ)){ await filaConcluir(l,id,it,'pulado','comprou o produto da promoção hoje ou ontem'); continue; } }
       var psF=podeSair(c,sg,it.ctx||ctxDeSg(sg),{envio:true,msg:it.msg,pausaOk:!!it.pausaOk}); /* v5.10b: pausa confirmada no 1 a 1 vale também pela fila */ /* v5.10: porta única (SAIR, pausa, travas, oferta, revisor, janela) */
       if(!psF.ok&&psF.tipo==='janela'){ await filaVoltar(l,id,psF.motivo); break; }
@@ -3073,7 +3073,7 @@ async function checarNumeros(){ var lojas=LOJAS_ENVIO, out={};
     try{ var st=await uazStatus(inst); out[l]={cfg:true,envia:!!uazInst(l),ok:st.ok,status:st.status,numero:st.numero,nome:st.nome,motivo:st.motivo,ultQueda:st.ultQueda,logado:st.logado,aoVivo:rtAoVivo(l)}; }catch(e){ out[l]={cfg:true,envia:!!uazInst(l),ok:false,erro:e.message}; } }
   DIAG.st=out; DIAG.em=new Date(); try{ vigiarConexao(out); }catch(e){}
   if(syncAtivo()){ try{ var pid=''; try{ pid=localStorage.getItem('cesta_pcid')||''; if(!pid){ pid=Math.random().toString(36).slice(2,7); localStorage.setItem('cesta_pcid',pid); } }catch(e){} var id=String(S.sync.computador||('sem nome '+(S.loja||'')+' '+pid)).replace(/[.#$\[\]\/]/g,'_').slice(0,60);
-    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,lidoLoja:RESP.lidoLoja||{},erroLoja:RESP.erroLoja||{},semDados:RESP.semDados||'',dados:{imports:(S.imports||[]).length,clientes:S.model?S.model.lista.length:0,ate:S.model?S.model.refData:''},sync:{estado:SY.estado||'',msg:String(SY.msg||'').slice(0,120)},nuvem:{n:NV.n,ult:NV.ult,erro:NV.erro,diag:RT.diagNv||{}},versao:'5.11'}); }catch(e){} }
+    await fb('PUT','computadores/'+id,{nome:S.sync.computador||'',em:new Date().toISOString(),lojaTela:S.loja||'',numeros:out,radar:RESP.radarEm?RESP.radarEm.toISOString():'',leitura:RESP.ult?RESP.ult.toISOString():'',info:RESP.info||'',varredura:S.varrInfo||'',quedas:RT.hist,usuario:nomeUsuario(AU.user)||'',sse:RT.diag,lidoLoja:RESP.lidoLoja||{},erroLoja:RESP.erroLoja||{},semDados:RESP.semDados||'',dados:{imports:(S.imports||[]).length,clientes:S.model?S.model.lista.length:0,ate:S.model?S.model.refData:''},sync:{estado:SY.estado||'',msg:String(SY.msg||'').slice(0,120)},nuvem:{n:NV.n,ult:NV.ult,erro:NV.erro,diag:RT.diagNv||{}},versao:'5.11.1'}); }catch(e){} }
   if(S.aba==='conversas'||S.aba==='painel') render(); }
 function linhaNumeros(){ var st=DIAG.st, ls=Object.keys(st); if(!ls.length) return '<span class="nota">Verificando os números…</span>';
   return '<div class="numeros">'+ls.map(function(l){ var x=st[l];
@@ -3650,6 +3650,8 @@ async function marcarVisto(id){ var r=(S.contatos||[]).filter(function(x){return
 var KIT_TIPOS={churrasco:'Churrasco',dia:'Dia a dia',burger:'Burger / hambúrguer',outro:'Outro'};
 function kits(){ return Array.isArray(S.cfg.kits)?S.cfg.kits:[]; }
 function kitImg(id){ return S.cfg['kitimg_'+id]||''; }
+/* v5.11.1: computador que envia busca a foto do kit na nuvem quando não tem (antes só o computador que salvou tinha a foto e a fila falhava) */
+async function kitImgNuvem(id){ try{ var d=await fb('GET','kit_img/'+id); if(d&&d.d){ await dbTx('config',function(st){ st.put({k:'kitimg_'+id,v:d.d,pendente:false}); }); S.cfg['kitimg_'+id]=d.d; return d.d; } }catch(e){} return ''; }
 async function salvarKitImg(id,dataUrl){ await dbTx('config',function(st){ st.put({k:'kitimg_'+id,v:dataUrl,pendente:false,em:new Date().toISOString()}); }); S.cfg['kitimg_'+id]=dataUrl;
   if(syncAtivo()){ try{ await fb('PUT','kit_img/'+id,{d:dataUrl,em:new Date().toISOString()}); }catch(e){ toast('Foto salva neste computador, mas não subiu para a nuvem: '+e.message,'erro'); } } }
 async function buscarImagensKits(){ if(!syncAtivo()) return; var falta=kits().filter(function(k){ return !kitImg(k.id); }); if(!falta.length) return;
@@ -3669,7 +3671,7 @@ function publicoKit(k,f){ var m=S.model;
 function kitLegPadrao(tp){ var ls=KIT_LEGENDAS[tp||'outro']||KIT_LEGENDAS.outro; return chegadaSist()?ls:ls.filter(function(t){ return !anunciaChegada(t); }); } /* Task 4b: legenda pronta do sistema não diz que chegou */
 function legendasKit(k){ var t=(S.kc&&S.kc.kit===k.id&&S.kc.legendas)||(!ehPadraoAntigo(k.legendas)?k.legendas.join('\n---\n'):kitLegPadrao(k.tipo).join('\n---\n')); return t.split(/\n\s*---\s*\n/).map(function(x){return x.trim();}).filter(Boolean); }
 function sgKit(c,k){ var _r=sgKit0(c,k); _r.promo=k.promo!==false; if(_r.promo){ _r.semTrava=true; _r.campanha='kit:'+k.id; _r.campanhaDias=1; } return _r; }
-function telaKits(){ var ks=kits(), kc=S.kc||{};
+function telaKits(){ var ks=kits(), kc=S.kc||{}; if(!S._kitImgBusca){ S._kitImgBusca=1; setTimeout(function(){ buscarImagensKits(); },50); }
   setTimeout(buscarImagensKits,50);
   var mtK=ks.reduce(function(o,k){ var x=metCamp('kit:'+k.id); o.env+=x.env; o.comp+=x.comp; o.rec+=x.rec; return o; },{env:0,comp:0,rec:0});
   var h=cabExec('Kits','Kit com preço é oferta real: pode ir também para quem está há mais de 30 dias sem comprar. Público pelo perfil de compra do motor novo (churrasco, dia a dia, hambúrguer). Em Campanhas o sistema sugere o kit de cada perfil.',
